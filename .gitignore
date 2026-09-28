@@ -35,3 +35,7 @@ server/target/
 # ===== IDE =====
 .vscode/
 *.code-workspace
+
+# ===== 内部开发文档（不上传） =====
+PLAN.md
+AGENTS.md
