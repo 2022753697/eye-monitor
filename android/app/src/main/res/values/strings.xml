@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">眼互</string>
+
+    <!-- 通用 -->
+    <string name="back">返回</string>
+    <string name="settings">设置</string>
+    <string name="cancel">取消</string>
+    <string name="go_settings">去设置</string>
+
+    <!-- 主界面 -->
+    <string name="main_title">眼互</string>
+    <string name="main_subtitle">恋爱守护 · 相互看见</string>
+    <string name="status_not_running">监控未启动</string>
+    <string name="status_running">监控运行中</string>
+    <string name="status_not_paired">未配对</string>
+    <string name="paired_with_code">已配对，码: %1$s</string>
+    <string name="btn_start_monitor">启动监控</string>
+    <string name="btn_stop_monitor">停止监控</string>
+    <string name="btn_pair_manage">配对管理</string>
+    <string name="btn_location_map">位置地图</string>
+    <string name="btn_permission_settings">权限设置</string>
+    <string name="btn_accessibility_test">无障碍诊断</string>
+    <string name="toast_monitor_started">监控已自动启动</string>
+    <string name="toast_monitor_stopped">监控已停止</string>
+    <string name="toast_notification_granted">通知权限已开启</string>
+    <string name="toast_peer_opened">对方打开了 %1$s</string>
+    <string name="dialog_permission_title">需要权限</string>
+    <string name="dialog_permission_message">眼互需要以下权限才能正常工作：\n\n1. 「使用情况访问权限」或「无障碍服务」- 用于检测 App 切换\n2. 「通知权限」- 用于接收对方 App 切换提醒\n\n请点击「去设置」依次开启这些权限。\n\n诊断信息：\n%1$s</string>
+    <string name="dialog_diag_title">无障碍服务诊断</string>
+    <string name="dialog_diag_message">诊断结果：\n\n%1$s\n\n修复建议：\n%2$s</string>
+
+    <!-- 监控页 -->
+    <string name="monitor_title">实时监控</string>
+    <string name="switch_count_label">今日切换次数：</string>
+    <string name="toast_unknown_app">未知应用</string>
+    <string name="dialog_monitor_permission_title">需要权限</string>
+    <string name="dialog_monitor_permission_message">眼互需要以下权限之一才能监控 App 切换：\n\n1. 「使用情况访问权限」- 推荐\n或\n2. 「无障碍服务」- 备选方案\n\n请点击「去设置」开启对应权限。</string>
+
+    <!-- 配对页 -->
+    <string name="pair_title">配对</string>
+    <string name="pair_hint_create">点击「创建配对」获取 6 位码</string>
+    <string name="pair_create">创建配对</string>
+    <string name="pair_or_join">或输入配对码加入：</string>
+    <string name="pair_code_hint">输入 6 位配对码</string>
+    <string name="pair_join">加入配对</string>
+    <string name="pair_connecting">正在连接服务器...</string>
+    <string name="pair_input_empty">请输入配对码</string>
+    <string name="pair_input_invalid">配对码为6位数字</string>
+    <string name="pair_disconnected">连接断开，请重试</string>
+    <string name="pair_connect_failed">连接失败: %1$s</string>
+    <string name="pair_success_with_code">配对成功！码: %1$s</string>
+    <string name="pair_success">配对成功</string>
+    <string name="pair_code_share">配对码: %1$s，分享给对方</string>
+    <string name="pair_created_share">已创建配对，请将码分享给对方</string>
+    <string name="pair_failed">配对失败: %1$s</string>
+    <string name="pair_unknown_response">未知响应: %1$s</string>
+
+    <!-- 地图页 -->
+    <string name="map_title">位置共享</string>
+    <string name="map_status_dragging">手动拖动中...</string>
+    <string name="map_status_gps_off">请开启定位服务</string>
+    <string name="map_status_network_only">仅使用网络定位（精度较低）</string>
+    <string name="map_status_ready">地图就绪</string>
+    <string name="map_status_need_permission">需要定位权限</string>
+    <string name="map_status_paired">已配对</string>
+    <string name="map_marker_me">我</string>
+    <string name="map_marker_my_location">你的位置</string>
+    <string name="map_marker_peer">对方设备</string>
+    <string name="map_marker_peer_id">ID: %1$s</string>
+    <string name="map_status_me">我: %1$s, %2$s</string>
+    <string name="map_status_peer">对方: %1$s, %2$s</string>
+    <string name="map_snippet_gps_accuracy">GPS精度: %1$d米</string>
+    <string name="map_snippet_accuracy">精度: %1$d米</string>
+
+    <!-- 列表项占位（仅布局预览用） -->
+    <string name="item_app_name_placeholder">微信</string>
+    <string name="item_package_placeholder">com.tencent.mm</string>
+    <string name="item_time_placeholder">12:30:45</string>
+
+    <!-- 聊天首页 -->
+    <string name="pair_input_card_hint">输入对方分享的 6 位配对码</string>
+    <string name="btn_confirm_pair">确认配对</string>
+    <string name="btn_create_pair_code">创建配对码</string>
+    <string name="chat_title_default">对方</string>
+    <string name="chat_hint_input">输入消息…</string>
+    <string name="chat_empty">配对成功，开始聊天吧～</string>
+    <string name="chat_peer_opened">对方打开了 %1$s</string>
+    <string name="menu_map">位置地图</string>
+    <string name="menu_permissions">权限设置</string>
+    <string name="menu_diagnose">无障碍诊断</string>
+    <string name="menu_nickname">设置昵称</string>
+    <string name="menu_unpair">解除配对</string>
+    <string name="dialog_nickname_title">设置昵称</string>
+    <string name="dialog_nickname_hint">输入昵称（对方看到的名字）</string>
+    <string name="dialog_unpair_title">解除配对</string>
+    <string name="dialog_unpair_message">确定要解除配对吗？本地聊天记录将清空。</string>
+    <string name="ok">确定</string>
+    <string name="btn_send">发送</string>
+    <string name="menu_my_location">我的位置</string>
+    <string name="menu_go_to_peer">去找他</string>
+    <string name="toast_self_no_location">暂无我的位置</string>
+    <string name="toast_peer_no_location">对方暂无位置</string>
+    <string name="dialog_permission_hint_message">App 切换监控需要开启以下权限之一：\n\n1. 「使用情况访问权限」- 推荐，在系统设置→应用→眼互→使用情况访问中开启\n2. 「无障碍服务」- 备选，在系统设置→辅助功能中开启\n\n开启后，对方切换 App 时这里会实时显示系统提示。</string>
+    <string name="btn_open_accessibility">开启无障碍服务</string>
+    <string name="btn_open_usage_stats">开启使用情况访问</string>
+    <string name="dialog_monitor_permission_fallback">请前往系统设置 → 应用 → 眼互 → 使用情况访问中开启</string>
+</resources>

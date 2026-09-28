@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 主操作按钮：暖色填充 + 圆角 + 可选图标 -->
+    <style name="Widget.EyeMonitor.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">16dp</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="iconTint">@color/text_on_primary</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <!-- 次级操作按钮：描边样式 -->
+    <style name="Widget.EyeMonitor.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="cornerRadius">16dp</item>
+        <item name="strokeColor">@color/primary</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="iconTint">@color/primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+
+    <!-- 头栏按钮：半透明白底，用于渐变头栏上 -->
+    <style name="Widget.EyeMonitor.Button.Header" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">14dp</item>
+        <item name="backgroundTint">@color/white_translucent</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+    </style>
+
+    <!-- 头栏标题 -->
+    <style name="TextAppearance.EyeMonitor.HeaderTitle" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <!-- 输入框 -->
+    <style name="Widget.EyeMonitor.EditText" parent="Widget.AppCompat.EditText">
+        <item name="android:background">@drawable/bg_input</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColorHint">@color/text_secondary</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+</resources>

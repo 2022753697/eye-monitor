@@ -1,0 +1,37 @@
+# ===== 通用 =====
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*~
+
+# ===== Android / Gradle =====
+android/.gradle/
+android/.idea/
+android/.kotlin/
+android/local.properties
+android/captures/
+android/build/
+android/app/build/
+*.iml
+*.apk
+*.aab
+*.keystore
+
+# ===== Maven / Java 后端 =====
+server/target/
+*.class
+*.jar.dist
+
+# ===== 本地工具 / 规划工件 =====
+# 本地助手配置（含本机路径与权限，不提交）
+.nezha/
+.claude/settings.local.json
+.claude/settings.json
+# AI 规划中间产物
+.omc/
+
+# ===== IDE =====
+.vscode/
+*.code-workspace

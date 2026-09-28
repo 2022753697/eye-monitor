@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 地图（全屏） -->
+    <com.amap.api.maps.MapView
+        android:id="@+id/map_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 顶部双头像胶囊（微信共享地址风格，点击弹菜单） -->
+    <LinearLayout
+        android:id="@+id/top_avatar_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_top_card"
+        android:elevation="4dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:gravity="center_vertical"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="16dp">
+
+        <ImageView
+            android:id="@+id/iv_avatar_self"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/avatar_self"
+            android:contentDescription="我的位置" />
+
+        <ImageView
+            android:id="@+id/iv_avatar_peer"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/avatar_peer"
+            android:contentDescription="对方位置"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+</FrameLayout>
