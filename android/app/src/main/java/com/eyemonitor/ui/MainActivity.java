@@ -39,6 +39,7 @@ import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.AppUsageTracker;
+import com.eyemonitor.service.DeviceStatusTracker;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
 
@@ -71,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private View viewPairPanel;
     private View viewChatPanel;
     private TextView tvChatTitle;
+    private TextView tvPeerStatus;
     private View btnChatMap;
     private ImageButton btnChatMore;
     private EditText etChatInput;
@@ -136,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         // 聊天面板
         viewChatPanel = findViewById(R.id.view_chat_panel);
         tvChatTitle = findViewById(R.id.tv_chat_title);
+        tvPeerStatus = findViewById(R.id.tv_peer_status);
         btnChatMap = findViewById(R.id.btn_chat_map);
         btnChatMore = findViewById(R.id.btn_chat_more);
         etChatInput = findViewById(R.id.et_chat_input);
@@ -163,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
         btnChatMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
         btnChatMore.setOnClickListener(v -> toggleMorePanel());
         btnSend.setOnClickListener(v -> sendChatMessage());
+        // 顶栏状态行点击进对方设备状态详情页
+        tvPeerStatus.setOnClickListener(v -> startActivity(new Intent(this, DeviceStatusActivity.class)));
 
         // 更多面板：格子绑定
         bottomBar = findViewById(R.id.bottom_bar);
@@ -246,6 +251,11 @@ public class MainActivity extends AppCompatActivity {
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             need.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            need.add(android.Manifest.permission.BLUETOOTH_CONNECT);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
                 && checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -268,6 +278,7 @@ public class MainActivity extends AppCompatActivity {
         // 已配对则刷新标题与状态
         if (prefs.isPaired()) {
             updateChatHeader();
+            refreshPeerStatus();
             loadChatHistory();
         }
     }
@@ -300,6 +311,38 @@ public class MainActivity extends AppCompatActivity {
         String peer = prefs.getPeerNickname();
         tvChatTitle.setText(peer != null && !peer.isEmpty()
                 ? peer : getString(R.string.chat_title_default));
+    }
+
+    /** 刷新聊天头栏状态行：电量% · 充电 · 网络 · 蓝牙 · 在线（离线置灰） */
+    private void refreshPeerStatus() {
+        int battery = prefs.getPeerBattery();
+        String batteryText = battery >= 0
+                ? getString(R.string.percent_format, battery) : getString(R.string.status_unknown);
+        String chargingText = getString(prefs.getPeerCharging()
+                ? R.string.status_charging : R.string.status_not_charging);
+
+        String network = prefs.getPeerNetwork();
+        String networkText;
+        if (DeviceStatusTracker.NETWORK_WIFI.equals(network)) {
+            networkText = getString(R.string.status_network_wifi);
+        } else if (DeviceStatusTracker.NETWORK_MOBILE.equals(network)) {
+            networkText = getString(R.string.status_network_mobile);
+        } else if (DeviceStatusTracker.NETWORK_NONE.equals(network)) {
+            networkText = getString(R.string.status_network_none);
+        } else {
+            networkText = getString(R.string.status_unknown);
+        }
+
+        String bluetoothText = getString(prefs.getPeerBluetooth()
+                ? R.string.status_bluetooth_on : R.string.status_bluetooth_off);
+        boolean online = prefs.getPeerOnline();
+        String onlineText = getString(online ? R.string.status_online : R.string.status_offline);
+
+        tvPeerStatus.setText(getString(R.string.peer_status_line,
+                batteryText, chargingText, networkText, bluetoothText, onlineText));
+        tvPeerStatus.setTextColor(online
+                ? getColor(R.color.text_on_primary)
+                : getColor(R.color.text_on_primary_muted));
     }
 
     // --- 监控权限引导 ---
@@ -404,7 +447,17 @@ public class MainActivity extends AppCompatActivity {
     private void onEventReceived(WsMessage message) {
         switch (message.getType()) {
             case "pair_confirm":
+                // peerOnline：服务器在对方上下线时推送；本地 WS 断开/恢复时由 MonitorService 合成广播
+                Object peerOnlineObj = message.getPayload() != null
+                        ? message.getPayload().get("peerOnline") : null;
+                if (peerOnlineObj instanceof Boolean) {
+                    prefs.setPeerOnline((Boolean) peerOnlineObj);
+                }
                 switchView(prefs.isPaired());
+                refreshPeerStatus();
+                break;
+            case "device_status":
+                refreshPeerStatus();
                 break;
             case "chat":
                 handleChatMessage(message);
