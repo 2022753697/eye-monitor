@@ -261,21 +261,16 @@
         </LinearLayout>
 
 
-        <!-- 纪念日：贴在聊天内容区顶部的爱心徽章（水平居中，内嵌倒计时天数），点击进纪念日页 -->
+        <!-- 纪念日：像贴纸一样贴在头栏与聊天内容区接缝处的爱心（水平居中、浮动感、内嵌天数），点击进纪念日页 -->
         <FrameLayout
             android:id="@+id/view_anniversary_heart"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="2dp"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
+            android:layout_marginTop="-16dp"
+            android:elevation="4dp"
             android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
+            android:focusable="true">
 
             <ImageView
                 android:layout_width="34dp"
