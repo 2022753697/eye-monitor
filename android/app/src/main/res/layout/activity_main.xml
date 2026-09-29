@@ -196,6 +196,35 @@
                     android:textSize="13sp"
                     android:layout_marginStart="6dp" />
             </LinearLayout>
+
+            <!-- 共享图库（图标 + 文字） -->
+            <LinearLayout
+                android:id="@+id/btn_chat_gallery"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_btn_white_rect"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_gallery"
+                    android:tint="@color/text_on_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gallery_title"
+                    android:textColor="@color/text_on_primary"
+                    android:textSize="13sp"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 纪念日倒计时卡片（最近一个，无数据时隐藏） -->
@@ -240,6 +269,18 @@
                 android:textSize="15sp"
                 android:maxLines="4"
                 android:inputType="textMultiLine" />
+
+            <!-- 媒体（选照片/视频发送；照片选择器免存储权限） -->
+            <ImageButton
+                android:id="@+id/btn_add_media"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/ic_add"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="13dp"
+                android:tint="@color/text_secondary"
+                android:contentDescription="@string/menu_image"
+                android:layout_marginStart="8dp" />
 
             <!-- 发送（无输入灰色 / 有输入粉色） -->
             <ImageButton

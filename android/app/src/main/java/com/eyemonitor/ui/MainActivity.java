@@ -5,11 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.media.ThumbnailUtils;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
@@ -18,6 +22,7 @@ import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,7 +32,10 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,17 +45,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.eyemonitor.R;
+import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
+import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.AppUsageTracker;
 import com.eyemonitor.service.DeviceStatusTracker;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
 import com.eyemonitor.util.AnniversaryUtils;
+import com.eyemonitor.util.MediaUtils;
 
+import com.bumptech.glide.Glide;
+
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -68,6 +82,9 @@ public class MainActivity extends AppCompatActivity {
     private static final SimpleDateFormat TIME_FORMAT =
             new SimpleDateFormat("HH:mm", Locale.getDefault());
 
+    // 媒体选择器请求码
+    private static final int REQ_PICK_MEDIA = 2002;
+
     // 配对面板
     private EditText etPairCode;
     private Button btnJoinPair;
@@ -79,9 +96,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvChatTitle;
     private TextView tvPeerStatus;
     private View btnChatMap;
+    private View btnChatGallery;
     private ImageButton btnChatMore;
     private EditText etChatInput;
     private ImageButton btnSend;
+    private ImageButton btnAddMedia;
     private RecyclerView rvChat;
     private ChatAdapter chatAdapter;
     private View bottomBar;
@@ -90,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
     // 纪念日倒计时卡片
     private View viewAnniversaryCard;
     private TextView tvAnniversaryCardCountdown;
+    /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
+    private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -185,9 +206,11 @@ public class MainActivity extends AppCompatActivity {
         tvChatTitle = findViewById(R.id.tv_chat_title);
         tvPeerStatus = findViewById(R.id.tv_peer_status);
         btnChatMap = findViewById(R.id.btn_chat_map);
+        btnChatGallery = findViewById(R.id.btn_chat_gallery);
         btnChatMore = findViewById(R.id.btn_chat_more);
         etChatInput = findViewById(R.id.et_chat_input);
         btnSend = findViewById(R.id.btn_send);
+        btnAddMedia = findViewById(R.id.btn_add_media);
         rvChat = findViewById(R.id.rv_chat);
 
         // 注册事件广播（兼容 API 24+）
@@ -209,19 +232,18 @@ public class MainActivity extends AppCompatActivity {
         btnJoinPair.setOnClickListener(v -> joinPair());
         btnCreatePair.setOnClickListener(v -> startActivity(new Intent(this, PairActivity.class)));
         btnChatMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
+        btnChatGallery.setOnClickListener(v -> startActivity(new Intent(this, GalleryActivity.class)));
         btnChatMore.setOnClickListener(v -> toggleMorePanel());
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 顶栏状态行点击进对方设备状态详情页
         tvPeerStatus.setOnClickListener(v -> startActivity(new Intent(this, DeviceStatusActivity.class)));
         setupSosButton();
+        btnAddMedia.setOnClickListener(v -> pickMedia());
 
         // 更多面板：格子绑定
         bottomBar = findViewById(R.id.bottom_bar);
         morePanel = findViewById(R.id.more_panel);
-        morePanel.findViewById(R.id.grid_image).setOnClickListener(v -> {
-            hideMorePanel();
-            Toast.makeText(this, R.string.toast_image_coming_soon, Toast.LENGTH_SHORT).show();
-        });
+        morePanel.findViewById(R.id.grid_image).setOnClickListener(v -> pickMedia());
         morePanel.findViewById(R.id.grid_map).setOnClickListener(v -> {
             hideMorePanel();
             startActivity(new Intent(this, MapActivity.class));
@@ -472,15 +494,181 @@ public class MainActivity extends AppCompatActivity {
         scrollToBottom();
     }
 
-    /** 从本地数据库加载聊天历史 */
+    // --- 媒体发送（照片/视频，HTTP 上传 + WS 元数据） ---
+
+    /** 打开系统照片选择器（API 24+ 通用 ACTION_OPEN_DOCUMENT，免存储权限） */
+    private void pickMedia() {
+        hideMorePanel();
+        hideKeyboard();
+        if (!prefs.isPaired()) {
+            Toast.makeText(this, R.string.media_not_paired, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
+        try {
+            startActivityForResult(intent, REQ_PICK_MEDIA);
+        } catch (Exception e) {
+            Log.w(TAG, "打开媒体选择器失败", e);
+            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_PICK_MEDIA && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) handleMediaPicked(uri);
+        }
+    }
+
+    /** 校验大小/视频时长后上传（拷贝与时长读取走后台线程，避免大文件阻塞 UI） */
+    private void handleMediaPicked(Uri uri) {
+        long size = MediaUtils.querySize(this, uri);
+        if (size > MediaUtils.MAX_MEDIA_BYTES) {
+            Toast.makeText(this, R.string.media_file_too_large,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String name = MediaUtils.queryDisplayName(this, uri);
+        String mime = getContentResolver().getType(uri);
+        final boolean video = MediaUtils.isVideo(mime);
+        final String finalName = name;
+        final String finalMime = mime;
+        AppDatabase.dbExecutor.execute(() -> {
+            // 先拷到缓存文件（上传与后续归档都用它），再后台校验视频时长
+            String safe = finalName.length() > 60 ? finalName.substring(finalName.length() - 60) : finalName;
+            File tmp = new File(new File(getCacheDir(), "media_send"),
+                    System.currentTimeMillis() + "_" + safe.replaceAll("[^a-zA-Z0-9._-]", "_"));
+            File dir = tmp.getParentFile();
+            if (dir != null) dir.mkdirs();
+            if (!MediaUtils.copyUriToFile(MainActivity.this, uri, tmp)) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.media_pick_failed,
+                        Toast.LENGTH_SHORT).show());
+                return;
+            }
+            long duration = video ? MediaUtils.queryDurationMs(MainActivity.this, uri) : 0;
+            final File file = tmp;
+            final long finalDuration = duration;
+            runOnUiThread(() -> {
+                if (video && (finalDuration < 0 || finalDuration > MediaUtils.MAX_VIDEO_MS)) {
+                    file.delete();
+                    Toast.makeText(MainActivity.this, R.string.media_video_too_long,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                uploadMedia(file, finalName, finalMime, finalDuration, uri);
+            });
+        });
+    }
+
+    /** 上传到服务器并广播元数据；成功后本地归档 + 聊天气泡立即显示 */
+    private void uploadMedia(File file, String name, String mime, long duration, Uri uri) {
+        Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+        AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), new AuthManager.Callback() {
+            @Override
+            public void onSuccess(com.google.gson.JsonObject data) {
+                final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
+                if (fileId == null || fileId.isEmpty()) {
+                    file.delete();
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.auth_error_response,
+                            Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                final long now = System.currentTimeMillis();
+                final MediaCacheEntity e = new MediaCacheEntity();
+                e.fileId = fileId;
+                e.serverFileName = data.has("fileName") && !data.get("fileName").isJsonNull()
+                        ? data.get("fileName").getAsString() : name;
+                e.mime = data.has("mime") && !data.get("mime").isJsonNull()
+                        ? data.get("mime").getAsString() : mime;
+                e.size = data.has("size") ? data.get("size").getAsLong() : file.length();
+                e.duration = duration;
+                e.ts = now;
+                AppDatabase db = AppDatabase.getInstance(MainActivity.this);
+                AppDatabase.dbExecutor.execute(() -> {
+                    // 本地归档 getFilesDir()/media/{fileId}（聊天气泡与图库都从本地文件渲染，后台拷贝）
+                    File dst = MediaUtils.localMediaFile(MainActivity.this, fileId);
+                    boolean archived = dst.exists() && dst.length() > 0
+                            || MediaUtils.copyUriToFile(MainActivity.this, uri, dst);
+                    if (!archived) archived = file.renameTo(dst);
+                    if (archived) e.localPath = dst.getAbsolutePath();
+                    file.delete();
+                    db.cacheDao().upsertMedia(e);
+                    db.chatDao().insert(new ChatEntity("media", fileId,
+                            prefs.getNickname(), true, now));
+                    runOnUiThread(() -> {
+                        // 借道服务发送 WS 元数据（服务器同时在上传响应里转发，接收端已按 fileId 去重）
+                        String from = prefs.getNickname() != null ? prefs.getNickname() : "";
+                        MonitorService.sendMediaMeta(MainActivity.this, fileId,
+                                e.serverFileName, e.mime, e.size, duration, from);
+                        mediaByFileId.put(fileId, e);
+                        chatAdapter.addItem(new ChatItem(TYPE_MEDIA_SELF, fileId, from,
+                                TIME_FORMAT.format(new Date(now)), now));
+                        scrollToBottom();
+                        Toast.makeText(MainActivity.this, R.string.media_send_success,
+                                Toast.LENGTH_SHORT).show();
+                    });
+                });
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                runOnUiThread(() -> {
+                    file.delete();
+                    Toast.makeText(MainActivity.this,
+                            getString(R.string.media_upload_failed,
+                                    msg != null ? msg : code + ""),
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    /** 生成媒体缩略图：视频走 ThumbnailUtils 后台生成，图片走 Glide */
+    private void loadThumb(ImageView iv, String path, String mime) {
+        if (MediaUtils.isVideo(mime)) {
+            final String local = path;
+            AppDatabase.dbExecutor.execute(() -> {
+                final Bitmap bmp = ThumbnailUtils.createVideoThumbnail(local,
+                        MediaStore.Video.Thumbnails.MINI_KIND);
+                runOnUiThread(() -> {
+                    if (bmp != null) iv.setImageBitmap(bmp);
+                    else iv.setImageResource(R.drawable.ic_image);
+                });
+            });
+        } else {
+            Glide.with(iv)
+                    .load(new File(path))
+                    .centerCrop()
+                    .placeholder(R.drawable.ic_image)
+                    .error(R.drawable.ic_image)
+                    .into(iv);
+        }
+    }
+
+    /** 从本地数据库加载聊天历史（媒体气泡元数据从 media_cache 映射补齐） */
     private void loadChatHistory() {
         AppDatabase.dbExecutor.execute(() -> {
-            List<ChatEntity> all = AppDatabase.getInstance(MainActivity.this).chatDao().getAll();
+            AppDatabase db = AppDatabase.getInstance(MainActivity.this);
+            List<MediaCacheEntity> media = db.cacheDao().getMedia();
+            List<ChatEntity> all = db.chatDao().getAll();
             runOnUiThread(() -> {
+                mediaByFileId.clear();
+                for (MediaCacheEntity m : media) mediaByFileId.put(m.fileId, m);
                 chatAdapter.clear();
                 for (ChatEntity e : all) {
-                    int type = "system".equals(e.kind) ? TYPE_SYSTEM
-                            : e.isSelf ? TYPE_SELF : TYPE_PEER;
+                    int type;
+                    if ("media".equals(e.kind)) {
+                        type = e.isSelf ? TYPE_MEDIA_SELF : TYPE_MEDIA_PEER;
+                    } else if ("system".equals(e.kind)) {
+                        type = TYPE_SYSTEM;
+                    } else {
+                        type = e.isSelf ? TYPE_SELF : TYPE_PEER;
+                    }
                     chatAdapter.addItem(new ChatItem(type, e.text, e.fromName,
                             TIME_FORMAT.format(new Date(e.timestamp)), e.timestamp));
                 }
@@ -526,7 +714,6 @@ public class MainActivity extends AppCompatActivity {
                         ? (String) message.getPayload().get("appName") : null;
                 appendSystemItem(appName);
                 break;
-<<<<<<< HEAD
             case "anniversary_sync":
                 refreshAnniversaryCard();
                 break;
@@ -540,6 +727,11 @@ public class MainActivity extends AppCompatActivity {
             case "sos_ack":
                 // 对方已确认安全：居中系统提示
                 appendSystemText(getString(R.string.sos_ack_chat));
+                break;
+            case "media":
+            case "media_deleted":
+                // 服务层已落库/清理，这里整页重载以渲染媒体气泡或移除被删项
+                loadChatHistory();
                 break;
             case "error":
                 handleError(message);
@@ -996,6 +1188,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int TYPE_SELF = 0;
     private static final int TYPE_PEER = 1;
     private static final int TYPE_SYSTEM = 2;
+    private static final int TYPE_MEDIA_SELF = 3;
+    private static final int TYPE_MEDIA_PEER = 4;
 
     public static class ChatItem {
         public final int type;
@@ -1046,6 +1240,10 @@ public class MainActivity extends AppCompatActivity {
                 case TYPE_PEER:
                     view = inflater.inflate(R.layout.item_chat_peer, parent, false);
                     break;
+                case TYPE_MEDIA_SELF:
+                case TYPE_MEDIA_PEER:
+                    view = inflater.inflate(R.layout.item_chat_media, parent, false);
+                    break;
                 default:
                     view = inflater.inflate(R.layout.item_chat_system, parent, false);
                     break;
@@ -1056,7 +1254,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             ChatItem item = items.get(position);
-            holder.bind(item);
+            holder.bind(item, position);
         }
 
         @Override
@@ -1069,6 +1267,13 @@ public class MainActivity extends AppCompatActivity {
             TextView tvText;
             TextView tvTime;
             TextView tvFrom;
+            // 媒体气泡视图
+            LinearLayout llMediaBubble;
+            FrameLayout flMediaContainer;
+            ImageView ivMediaThumb;
+            LinearLayout llMediaPlaceholder;
+            TextView tvMediaHint;
+            FrameLayout flVideoBadge;
 
             ViewHolder(View view, int viewType) {
                 super(view);
@@ -1083,6 +1288,17 @@ public class MainActivity extends AppCompatActivity {
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvFrom = view.findViewById(R.id.tv_chat_from);
                         break;
+                    case TYPE_MEDIA_SELF:
+                    case TYPE_MEDIA_PEER:
+                        llMediaBubble = view.findViewById(R.id.ll_media_bubble);
+                        flMediaContainer = view.findViewById(R.id.fl_media_container);
+                        ivMediaThumb = view.findViewById(R.id.iv_media_thumb);
+                        llMediaPlaceholder = view.findViewById(R.id.ll_media_placeholder);
+                        tvMediaHint = view.findViewById(R.id.tv_media_hint);
+                        flVideoBadge = view.findViewById(R.id.fl_video_badge);
+                        tvTime = view.findViewById(R.id.tv_chat_time);
+                        tvFrom = view.findViewById(R.id.tv_chat_from);
+                        break;
                     default:
                         tvText = view.findViewById(R.id.tv_system_text);
                         break;
@@ -1090,6 +1306,10 @@ public class MainActivity extends AppCompatActivity {
             }
 
             void bind(ChatItem item) {
+                bind(item, getBindingAdapterPosition());
+            }
+
+            void bind(ChatItem item, int position) {
                 switch (viewType) {
                     case TYPE_SELF:
                         tvText.setText(item.text);
@@ -1102,11 +1322,87 @@ public class MainActivity extends AppCompatActivity {
                         tvFrom.setText(from != null && !from.isEmpty()
                                 ? from : getString(R.string.chat_title_default));
                         break;
+                    case TYPE_MEDIA_SELF:
+                    case TYPE_MEDIA_PEER:
+                        bindMedia(this, item, position);
+                        break;
                     default:
                         tvText.setText(MainActivity.this.styleSystemText(item));
                         break;
                 }
             }
         }
+    }
+
+    // --- 媒体气泡渲染 ---
+
+    /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
+    private void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
+        final boolean self = item.type == TYPE_MEDIA_SELF;
+        final int density = (int) getResources().getDisplayMetrics().density;
+        final int outerPad = 60 * density;
+        final int nearPad = 12 * density;
+        int startPad = self ? nearPad : outerPad;
+        int endPad = self ? outerPad : nearPad;
+        h.llMediaBubble.setGravity(self ? Gravity.END : Gravity.START);
+        h.llMediaBubble.setPadding(startPad, 0, endPad, 0);
+        h.flMediaContainer.setBackgroundResource(
+                self ? R.drawable.bg_bubble_self : R.drawable.bg_bubble_peer);
+        h.tvTime.setText(item.time);
+        if (self) {
+            h.tvFrom.setVisibility(View.GONE);
+        } else {
+            h.tvFrom.setVisibility(View.VISIBLE);
+            String from = item.from;
+            h.tvFrom.setText(from != null && !from.isEmpty()
+                    ? from : getString(R.string.chat_title_default));
+        }
+
+        final String fileId = item.text;
+        final MediaCacheEntity meta = mediaByFileId.get(fileId);
+        final String mime = meta != null ? meta.mime : null;
+        final long duration = meta != null ? meta.duration : 0;
+        final boolean video = MediaUtils.isVideo(mime);
+        h.flVideoBadge.setVisibility(video ? View.VISIBLE : View.GONE);
+
+        final String localPath = meta != null ? meta.localPath : null;
+        final boolean downloaded = localPath != null && new File(localPath).exists();
+        if (downloaded) {
+            h.ivMediaThumb.setVisibility(View.VISIBLE);
+            h.llMediaPlaceholder.setVisibility(View.GONE);
+            loadThumb(h.ivMediaThumb, localPath, mime);
+        } else {
+            h.ivMediaThumb.setVisibility(View.GONE);
+            h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.tvMediaHint.setText(R.string.media_download_hint);
+        }
+
+        h.flMediaContainer.setOnClickListener(v -> {
+            if (downloaded) {
+                MediaUtils.launchViewer(MainActivity.this, fileId, mime, duration, localPath);
+            } else {
+                h.tvMediaHint.setText(R.string.media_downloading);
+                MediaUtils.openMedia(MainActivity.this, fileId, mime, duration, null,
+                        new MediaUtils.MediaCb() {
+                            @Override
+                            public void onReady(String path) {
+                                runOnUiThread(() -> {
+                                    MediaCacheEntity m = mediaByFileId.get(fileId);
+                                    if (m != null) m.localPath = path;
+                                    chatAdapter.notifyItemChanged(position);
+                                });
+                            }
+
+                            @Override
+                            public void onError(int code, String msg) {
+                                runOnUiThread(() -> {
+                                    h.tvMediaHint.setText(R.string.media_download_hint);
+                                    Toast.makeText(MainActivity.this, R.string.media_download_failed,
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        });
+            }
+        });
     }
 }

@@ -68,6 +68,9 @@ public interface CacheDao {
     @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
     void upsertMedia(MediaCacheEntity entity);
 
+    @Query("SELECT * FROM media_cache WHERE fileId = :fileId")
+    MediaCacheEntity getMedia(String fileId);
+
     @Query("SELECT * FROM media_cache ORDER BY ts DESC")
     List<MediaCacheEntity> getMedia();
 

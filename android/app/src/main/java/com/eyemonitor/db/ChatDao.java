@@ -22,4 +22,12 @@ public interface ChatDao {
     /** 清空聊天记录 */
     @Query("DELETE FROM chat")
     void clear();
+
+    /** 删除指定媒体的聊天气泡（media_deleted 双向同步时清理本地） */
+    @Query("DELETE FROM chat WHERE kind = 'media' AND text = :fileId")
+    void deleteMediaChat(String fileId);
+
+    /** 指定媒体聊天气泡数量（上传后服务器与发送端都可能广播 media，按 fileId 去重） */
+    @Query("SELECT COUNT(*) FROM chat WHERE kind = 'media' AND text = :fileId")
+    int countMediaChat(String fileId);
 }
