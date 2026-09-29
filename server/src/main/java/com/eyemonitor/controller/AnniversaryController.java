@@ -39,11 +39,12 @@ public class AnniversaryController {
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> list(HttpServletRequest request) {
         String pairCode = requirePairCode(request);
+        // 客户端 SyncManager 按 data.anniversaries 数组读取（与 fence/chats 同步契约一致）
         List<Map<String, Object>> out = new ArrayList<>();
         for (AnniversaryEntity e : anniversaryRepo.findByPairCodeOrderByUpdatedAtAsc(pairCode)) {
             out.add(view(e));
         }
-        return ApiResponse.ok(out);
+        return ApiResponse.ok(Map.of("anniversaries", out));
     }
 
     @PostMapping
