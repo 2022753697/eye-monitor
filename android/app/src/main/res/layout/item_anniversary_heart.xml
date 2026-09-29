@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="64dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:paddingTop="4dp"
-    android:paddingBottom="2dp"
     android:clickable="true"
     android:focusable="true">
 
     <FrameLayout
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_gravity="center_horizontal">
 
         <ImageView
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_heart"
             android:contentDescription="纪念日" />
@@ -38,8 +36,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/text_secondary"
-        android:textSize="9sp"
-        android:maxWidth="60dp"
+        android:textSize="10sp"
+        android:maxWidth="180dp"
         android:maxLines="1"
         android:ellipsize="end" />
 </LinearLayout>
