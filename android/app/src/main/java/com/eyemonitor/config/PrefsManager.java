@@ -18,7 +18,17 @@ public class PrefsManager {
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
     private static final String KEY_PERMISSION_PROMPTED = "permission_prompted";
     private static final String KEY_GENDER = "gender";
-
+    // 账户体系（R29：登录 token / 资料缓存）
+    private static final String KEY_ACCESS_TOKEN = "access_token";
+    private static final String KEY_REFRESH_TOKEN = "refresh_token";
+    private static final String KEY_USERNAME = "username";
+    private static final String KEY_AVATAR = "avatar";
+    private static final String KEY_BIRTHDAY = "birthday";
+    private static final String KEY_BIO = "bio";
+    private static final String KEY_PEER_AVATAR = "peer_avatar";
+    private static final String KEY_PEER_GENDER = "peer_gender";
+    private static final String KEY_PEER_BIRTHDAY = "peer_birthday";
+    private static final String KEY_PEER_BIO = "peer_bio";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -62,6 +72,132 @@ public class PrefsManager {
     /** 设置服务器地址 */
     public void setServerUrl(String url) {
         prefs.edit().putString(KEY_SERVER_URL, url).apply();
+    }
+
+    /** 由 ws 地址推导 HTTP API 基址（ws://host:port/ws/eye -> http://host:port） */
+    public String getApiBaseUrl() {
+        String api = getServerUrl().replaceFirst("^wss?://", "http://");
+        int slash = api.indexOf('/', "http://".length());
+        if (slash > 0) {
+            api = api.substring(0, slash);
+        }
+        return api;
+    }
+
+    /** WebSocket 带 token 的连接地址（多参数追加时避免重复 ?） */
+    public String getAuthServerUrl() {
+        String url = getServerUrl();
+        String token = getAccessToken();
+        if (token == null || token.isEmpty()) return url;
+        return url + (url.contains("?") ? "&token=" : "?token=") + token;
+    }
+
+    // --- 账户 token / 登录态 ---
+
+    public String getAccessToken() {
+        return prefs.getString(KEY_ACCESS_TOKEN, null);
+    }
+
+    public void setAccessToken(String token) {
+        prefs.edit().putString(KEY_ACCESS_TOKEN, token).apply();
+    }
+
+    public String getRefreshToken() {
+        return prefs.getString(KEY_REFRESH_TOKEN, null);
+    }
+
+    public void setRefreshToken(String token) {
+        prefs.edit().putString(KEY_REFRESH_TOKEN, token).apply();
+    }
+
+    public String getUsername() {
+        return prefs.getString(KEY_USERNAME, null);
+    }
+
+    public void setUsername(String username) {
+        prefs.edit().putString(KEY_USERNAME, username).apply();
+    }
+
+    /** 清除登录态（保留配对码；KICKED/登出/refresh 失效时调用） */
+    public void clearAuth() {
+        prefs.edit()
+                .remove(KEY_ACCESS_TOKEN)
+                .remove(KEY_REFRESH_TOKEN)
+                .remove(KEY_USERNAME)
+                .apply();
+    }
+
+    /** 是否已登录（有 access token 即视为登录态） */
+    public boolean isLoggedIn() {
+        return getAccessToken() != null;
+    }
+
+    // --- 我的资料缓存（登录后同步自服务器 / 服务端 user_profile 广播） ---
+
+    public String getAvatar() {
+        return prefs.getString(KEY_AVATAR, null);
+    }
+
+    public void setAvatar(String avatar) {
+        prefs.edit().putString(KEY_AVATAR, avatar).apply();
+    }
+
+    public String getBirthday() {
+        return prefs.getString(KEY_BIRTHDAY, null);
+    }
+
+    public void setBirthday(String birthday) {
+        prefs.edit().putString(KEY_BIRTHDAY, birthday).apply();
+    }
+
+    public String getBio() {
+        return prefs.getString(KEY_BIO, null);
+    }
+
+    public void setBio(String bio) {
+        prefs.edit().putString(KEY_BIO, bio).apply();
+    }
+
+    // --- 对方资料缓存（来自服务端 user_profile 广播 / chat.from 学习兜底） ---
+
+    public String getPeerAvatar() {
+        return prefs.getString(KEY_PEER_AVATAR, null);
+    }
+
+    public void setPeerAvatar(String avatar) {
+        if (avatar != null) {
+            prefs.edit().putString(KEY_PEER_AVATAR, avatar).apply();
+        }
+    }
+
+    public String getPeerGender() {
+        return prefs.getString(KEY_PEER_GENDER, null);
+    }
+
+    public void setPeerGender(String gender) {
+        if (gender != null) {
+            prefs.edit().putString(KEY_PEER_GENDER, gender).apply();
+        }
+    }
+
+    public String getPeerBirthday() {
+        return prefs.getString(KEY_PEER_BIRTHDAY, null);
+    }
+
+    public void setPeerBirthday(String birthday) {
+        if (birthday != null) {
+            prefs.edit().putString(KEY_PEER_BIRTHDAY, birthday).apply();
+        }
+    }
+
+    public String getPeerBio() {
+        return prefs.getString(KEY_PEER_BIO, null);
+    }
+
+    public void setPeerBio(String bio) {
+        if (bio != null) {
+            prefs.edit().putString(KEY_PEER_BIO, bio).apply();
+        }
     }
 
     /** 获取我的昵称（未设置返回 null） */

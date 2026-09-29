@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- 渐变头栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_header_gradient"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/profile_title"
+            android:textColor="@color/text_on_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_profile_back"
+            style="@style/Widget.EyeMonitor.Button.Header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- 头像 -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:id="@+id/iv_avatar"
+                    android:layout_width="92dp"
+                    android:layout_height="92dp"
+                    android:src="@drawable/avatar_female"
+                    android:contentDescription="@string/profile_avatar_hint"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:text="@string/profile_avatar_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </FrameLayout>
+
+            <!-- 编辑卡片 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_nickname_label"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/et_profile_nickname"
+                    style="@style/Widget.EyeMonitor.EditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="text"
+                    android:maxLength="32"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_gender_label"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <RadioButton
+                        android:id="@+id/rb_profile_female"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="@string/gender_option_female"
+                        android:textColor="@color/text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_profile_male"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/gender_option_male"
+                        android:textColor="@color/text_primary" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_birthday_label"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/et_profile_birthday"
+                    style="@style/Widget.EyeMonitor.EditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:hint="@string/profile_birthday_hint"
+                    android:inputType="datetime"
+                    android:maxLength="10"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_bio_label"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/et_profile_bio"
+                    style="@style/Widget.EyeMonitor.EditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/profile_bio_hint"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="4"
+                    android:maxLength="60" />
+
+                <Button
+                    android:id="@+id/btn_profile_save"
+                    style="@style/Widget.EyeMonitor.Button.Primary"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="@string/profile_save"
+                    android:layout_marginTop="20dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

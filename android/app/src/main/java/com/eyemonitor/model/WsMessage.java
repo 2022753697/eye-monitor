@@ -79,6 +79,101 @@ public class WsMessage {
         return new WsMessage("chat", deviceId, pairCode, payload, System.currentTimeMillis());
     }
 
+    // --- 账户体系扩展消息类型（契约 v1，与 server 侧同步） ---
+
+    /** 资料变更广播（R29：昵称/头像/性别/生日/签名同步给对方） */
+    public static WsMessage createUserProfile(String deviceId, String pairCode,
+                                              String nickname, String avatar,
+                                              String gender, String birthday, String bio) {
+        Map<String, Object> payload = new HashMap<>();
+        if (nickname != null) payload.put("nickname", nickname);
+        if (avatar != null) payload.put("avatar", avatar);
+        if (gender != null) payload.put("gender", gender);
+        if (birthday != null) payload.put("birthday", birthday);
+        if (bio != null) payload.put("bio", bio);
+        return new WsMessage("user_profile", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** SOS 紧急求助：位置可选（无定位时不带 lat/lng） */
+    public static WsMessage createSos(String deviceId, String pairCode, String text,
+                                      Double lat, Double lng) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("text", text);
+        if (lat != null) payload.put("lat", lat);
+        if (lng != null) payload.put("lng", lng);
+        return new WsMessage("sos", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** SOS 回执（我没事）：回到发起方 */
+    public static WsMessage createSosAck(String deviceId, String pairCode, String from) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("from", from);
+        return new WsMessage("sos_ack", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 设备状态（五件套：电量/充电/网络/在线/蓝牙） */
+    public static WsMessage createDeviceStatus(String deviceId, String pairCode,
+                                               int battery, boolean charging, String network,
+                                               boolean online, boolean bluetooth) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("battery", battery);
+        payload.put("charging", charging);
+        payload.put("network", network);
+        payload.put("online", online);
+        payload.put("bluetooth", bluetooth);
+        return new WsMessage("device_status", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 纪念日变更广播 */
+    public static WsMessage createAnniversarySync(String deviceId, String pairCode, String action,
+                                                  long id, String name, String date,
+                                                  boolean repeat, long updatedAt) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("action", action);
+        payload.put("id", id);
+        if (name != null) payload.put("name", name);
+        if (date != null) payload.put("date", date);
+        payload.put("repeat", repeat);
+        payload.put("updatedAt", updatedAt);
+        return new WsMessage("anniversary_sync", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 围栏变更广播 */
+    public static WsMessage createFenceSync(String deviceId, String pairCode, String action,
+                                            long id, String name, Double lat, Double lng,
+                                            Double radius, Boolean enabled) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("action", action);
+        payload.put("id", id);
+        if (name != null) payload.put("name", name);
+        if (lat != null) payload.put("lat", lat);
+        if (lng != null) payload.put("lng", lng);
+        if (radius != null) payload.put("radius", radius);
+        if (enabled != null) payload.put("enabled", enabled);
+        return new WsMessage("fence_sync", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 媒体元数据广播（文件已上传服务器，WS 只传元数据） */
+    public static WsMessage createMediaMeta(String deviceId, String pairCode, String fileId,
+                                            String fileName, String mime, long size,
+                                            Double duration, String from) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("fileId", fileId);
+        payload.put("fileName", fileName);
+        payload.put("mime", mime);
+        payload.put("size", size);
+        if (duration != null) payload.put("duration", duration);
+        payload.put("from", from);
+        return new WsMessage("media", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 媒体删除广播（双向同步删除） */
+    public static WsMessage createMediaDeleted(String deviceId, String pairCode, String fileId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("fileId", fileId);
+        return new WsMessage("media_deleted", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
     // --- JSON 序列化/反序列化 ---
 
     public String toJson() {

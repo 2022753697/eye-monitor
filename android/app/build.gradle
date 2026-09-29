@@ -48,7 +48,11 @@ dependencies {
     // 高德地图 3D SDK（内置定位+搜索功能）
     implementation 'com.amap.api:3dmap-location-search:10.1.200_loc6.4.9_sea9.7.4'
 
-    // Room 本地数据库（聊天记录）
+    // Room 本地数据库（聊天记录 + 缓存）
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
+
+    // Glide（头像加载，圆形变换）
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 }
