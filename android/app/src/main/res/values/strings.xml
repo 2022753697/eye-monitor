@@ -190,6 +190,7 @@
     <string name="anniversary_card_title">最近纪念日</string>
     <string name="anniversary_card_hint">查看全部 ›</string>
     <string name="anniversary_card_empty">还没有纪念日，点这里添加第一个 ❤</string>
+    <string name="anniversary_together_days">已 %1$d 天</string>
     <string name="anniversary_today_chat">今天是你和 TA 的 %1$s 纪念日❤</string>
 
     <!-- 设备状态（Wave2） -->

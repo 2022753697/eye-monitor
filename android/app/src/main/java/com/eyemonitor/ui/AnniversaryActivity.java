@@ -297,13 +297,22 @@ public class AnniversaryActivity extends AppCompatActivity {
             h.tvRepeat.setVisibility(e.repeat ? View.VISIBLE : View.GONE);
 
             long days = AnniversaryUtils.daysUntilNext(e, today);
-            if (days == 0) {
-                h.tvCountdown.setText(R.string.anniversary_countdown_today_short);
+            long since = AnniversaryUtils.daysSinceStart(e, today);
+            String countdown;
+            if (since >= 0) {
+                // 已在一起：显示「已 N 天」，每年重复再附加「距下次 M 天」
+                countdown = getString(R.string.anniversary_together_days, since);
+                if (e.repeat && days >= 0) {
+                    countdown += " · " + getString(R.string.anniversary_countdown_days_short, days);
+                }
+            } else if (days == 0) {
+                countdown = getString(R.string.anniversary_countdown_today_short);
             } else if (days > 0) {
-                h.tvCountdown.setText(getString(R.string.anniversary_countdown_days_short, days));
+                countdown = getString(R.string.anniversary_countdown_days_short, days);
             } else {
-                h.tvCountdown.setText("");
+                countdown = "";
             }
+            h.tvCountdown.setText(countdown);
             h.btnEdit.setOnClickListener(v -> showEditDialog(e));
             h.btnDelete.setOnClickListener(v -> delete(e));
         }

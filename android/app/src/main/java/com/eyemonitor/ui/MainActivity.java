@@ -971,20 +971,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** 刷新首页纪念日倒计时卡片：读 Room 缓存找最近一个，无数据隐藏卡片 */
-    /** 刷新头栏爱心：显示最近纪念日倒计时天数；无数据显示「+」引导 */
+    /** 刷新头栏爱心：优先显示「在一起第 N 天」（起始纪念日已过天数+1）；无起始则显示最近倒计时；再无数据显「+」 */
     private void refreshAnniversaryCard() {
         AppDatabase.dbExecutor.execute(() -> {
             List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
                     .cacheDao().getAnniversaries();
             runOnUiThread(() -> {
-                AnniversaryCacheEntity nearest = AnniversaryUtils.findNearest(list);
-                if (nearest == null || nearest.name == null) {
-                    // 无数据：爱心内显示「+」，点击添加
-                    tvAnniversaryHeartCount.setText("+");
+                Calendar today = AnniversaryUtils.today();
+                AnniversaryCacheEntity together = AnniversaryUtils.findTogetherStart(list);
+                if (together != null) {
+                    long days = AnniversaryUtils.daysSinceStart(together, today) + 1;
+                    tvAnniversaryHeartCount.setText(String.valueOf(days));
                     return;
                 }
-                long days = AnniversaryUtils.daysUntilNext(nearest, AnniversaryUtils.today());
-                tvAnniversaryHeartCount.setText(String.valueOf(days));
+                AnniversaryCacheEntity nearest = AnniversaryUtils.findNearest(list);
+                if (nearest != null) {
+                    tvAnniversaryHeartCount.setText(String.valueOf(
+                            AnniversaryUtils.daysUntilNext(nearest, today)));
+                    return;
+                }
+                // 无数据：爱心内显示「+」，点击添加
+                tvAnniversaryHeartCount.setText("+");
             });
         });
     }

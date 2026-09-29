@@ -82,6 +82,34 @@ public final class AnniversaryUtils {
         return best;
     }
 
+    /**
+     * 「在一起」已过天数：自该纪念日日期起算的整天数（date <= 今天）。
+     * 日期在未来返回 -1（尚未开始）；repeat 不影响该值（不按周期重置）。
+     */
+    public static long daysSinceStart(AnniversaryCacheEntity e, Calendar today) {
+        Calendar c = parseDate(e.date);
+        if (c == null) return -1;
+        if (c.after(today)) return -1;
+        return daysBetween(c, today);
+    }
+
+    /** 找「在一起」起始纪念日：所有 date <= 今天的条目里日期最早的一个；无则 null */
+    public static AnniversaryCacheEntity findTogetherStart(List<AnniversaryCacheEntity> list) {
+        if (list == null || list.isEmpty()) return null;
+        Calendar today = today();
+        AnniversaryCacheEntity best = null;
+        Calendar bestDate = null;
+        for (AnniversaryCacheEntity e : list) {
+            Calendar c = parseDate(e.date);
+            if (c == null || c.after(today)) continue;
+            if (bestDate == null || c.before(bestDate)) {
+                bestDate = c;
+                best = e;
+            }
+        }
+        return best;
+    }
+
     /** 本地时区今天 yyyy-MM-dd */
     public static String todayString() {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().getTime());
