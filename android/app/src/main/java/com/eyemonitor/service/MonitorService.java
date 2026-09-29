@@ -62,6 +62,14 @@ public class MonitorService extends Service {
     public static final String EXTRA_PROFILE_GENDER = "profile_gender";
     public static final String EXTRA_PROFILE_BIRTHDAY = "profile_birthday";
     public static final String EXTRA_PROFILE_BIO = "profile_bio";
+    // 媒体元数据广播（借道 MonitorService 的 WebSocket 发送 createMediaMeta）
+    public static final String ACTION_SEND_MEDIA_META = "com.eyemonitor.SEND_MEDIA_META";
+    public static final String EXTRA_MEDIA_FILE_ID = "media_file_id";
+    public static final String EXTRA_MEDIA_FILE_NAME = "media_file_name";
+    public static final String EXTRA_MEDIA_MIME = "media_mime";
+    public static final String EXTRA_MEDIA_SIZE = "media_size";
+    public static final String EXTRA_MEDIA_DURATION = "media_duration";
+    public static final String EXTRA_MEDIA_FROM = "media_from";
 
     // 静态引用：PairActivity 配对成功后将 WSClient 交给 MonitorService
     private static WSClient sharedWSClient;
@@ -130,17 +138,18 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
-    /** 资料变更后广播 user_profile 给对方（借道 MonitorService 的 WebSocket） */
-    public static void sendProfileUpdate(Context context, String nickname, String avatar,
-                                         String gender, String birthday, String bio) {
-        if (context == null) return;
+    /** 上传成功后广播媒体元数据（借道 MonitorService 的 WebSocket，服务器按 pairCode 转发给对方） */
+    public static void sendMediaMeta(Context context, String fileId, String fileName, String mime,
+                                     long size, long duration, String from) {
+        if (context == null || fileId == null) return;
         Intent intent = new Intent(context, MonitorService.class);
-        intent.setAction(ACTION_BROADCAST_PROFILE);
-        if (nickname != null) intent.putExtra(EXTRA_PROFILE_NICKNAME, nickname);
-        if (avatar != null) intent.putExtra(EXTRA_PROFILE_AVATAR, avatar);
-        if (gender != null) intent.putExtra(EXTRA_PROFILE_GENDER, gender);
-        if (birthday != null) intent.putExtra(EXTRA_PROFILE_BIRTHDAY, birthday);
-        if (bio != null) intent.putExtra(EXTRA_PROFILE_BIO, bio);
+        intent.setAction(ACTION_SEND_MEDIA_META);
+        intent.putExtra(EXTRA_MEDIA_FILE_ID, fileId);
+        if (fileName != null) intent.putExtra(EXTRA_MEDIA_FILE_NAME, fileName);
+        if (mime != null) intent.putExtra(EXTRA_MEDIA_MIME, mime);
+        intent.putExtra(EXTRA_MEDIA_SIZE, size);
+        intent.putExtra(EXTRA_MEDIA_DURATION, duration);
+        if (from != null) intent.putExtra(EXTRA_MEDIA_FROM, from);
         context.startService(intent);
     }
 
@@ -176,6 +185,25 @@ public class MonitorService extends Service {
         if (intent != null && ACTION_REQUEST_SELF_LOCATION.equals(intent.getAction())) {
             Log.i(TAG, "地图请求本机位置上报");
             sendLocation();
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_MEDIA_META.equals(intent.getAction())) {
+            String fileId = intent.getStringExtra(EXTRA_MEDIA_FILE_ID);
+            if (fileId != null && wsClient != null && prefs.getPairCode() != null) {
+                long size = intent.getLongExtra(EXTRA_MEDIA_SIZE, 0);
+                long duration = intent.getLongExtra(EXTRA_MEDIA_DURATION, 0);
+                WsMessage media = WsMessage.createMediaMeta(prefs.getDeviceId(), prefs.getPairCode(),
+                        fileId, intent.getStringExtra(EXTRA_MEDIA_FILE_NAME),
+                        intent.getStringExtra(EXTRA_MEDIA_MIME), size,
+                        duration > 0 ? (double) duration : null,
+                        intent.getStringExtra(EXTRA_MEDIA_FROM));
+                Log.i(TAG, "发送媒体元数据: fileId=" + fileId);
+                wsClient.send(media);
+            } else {
+                Log.w(TAG, "媒体元数据发送失败: fileId=" + fileId + ", wsClient=" + wsClient
+                        + ", paired=" + (prefs.getPairCode() != null));
+            }
             return START_NOT_STICKY;
         }
 
@@ -537,10 +565,20 @@ public class MonitorService extends Service {
                 break;
             case "anniversary_sync":
             case "fence_sync":
-            case "media":
-            case "media_deleted":
                 // 服务器真源 -> 更新本地缓存（Wave-2 功能读缓存）
                 SyncManager.handleWsMessage(this, message);
+                broadcastEvent(message);
+                break;
+            case "media":
+                // 服务器真源 -> 更新媒体缓存 + 落一条媒体聊天气泡（按 fileId 去重）
+                SyncManager.handleWsMessage(this, message);
+                saveMediaChat(message);
+                broadcastEvent(message);
+                break;
+            case "media_deleted":
+                // 双向同步删除：清缓存行、本地文件与聊天气泡
+                SyncManager.handleWsMessage(this, message);
+                removeMediaLocal(message);
                 broadcastEvent(message);
                 break;
             case "error":
@@ -641,6 +679,36 @@ public class MonitorService extends Service {
 
         // 不弹系统通知（需求：只在聊天界面以居中系统提示展示）
         broadcastEvent(message);
+    }
+
+    /** 收到的媒体消息落一条聊天气泡（kind=media, text=fileId；上传后服务器与发送端可能双份广播，按 fileId 去重） */
+    private void saveMediaChat(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object fileId = payload != null ? payload.get("fileId") : null;
+        if (!(fileId instanceof String) || ((String) fileId).isEmpty()) return;
+        String fid = (String) fileId;
+        Object f = payload != null ? payload.get("from") : null;
+        String from = f instanceof String ? (String) f : null;
+        long ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            if (db.chatDao().countMediaChat(fid) > 0) return;
+            db.chatDao().insert(new ChatEntity("media", fid, from, false, ts));
+        });
+    }
+
+    /** media_deleted：清理本地媒体聊天气泡与缓存文件（Room 缓存行由 SyncManager 清理） */
+    private void removeMediaLocal(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object fileId = payload != null ? payload.get("fileId") : null;
+        if (!(fileId instanceof String) || ((String) fileId).isEmpty()) return;
+        final String fid = (String) fileId;
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            db.chatDao().deleteMediaChat(fid);
+            java.io.File f = new java.io.File(new java.io.File(getFilesDir(), "media"), fid);
+            if (f.exists()) f.delete();
+        });
     }
 
     /** 持久化收到的聊天消息（服务层，不依赖 Activity 生命周期） */
