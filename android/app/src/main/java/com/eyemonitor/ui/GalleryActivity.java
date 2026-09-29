@@ -75,10 +75,14 @@ public class GalleryActivity extends AppCompatActivity {
     private RecyclerView rvGallery;
     private TextView tvEmpty;
     private View btnGallerySelect;
-    private View fabAddFolder;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabAddFolder;
     private View batchBar;
     private TextView tvBatchCount;
     private GalleryAdapter adapter;
+
+    /** 扇形气泡菜单：自下而上 [返回, 上传, 选择, 新建文件夹] */
+    private final java.util.List<View> fabMenuItems = new java.util.ArrayList<>();
+    private boolean fabMenuOpen;
 
     /** 批量选择模式与选中集合 */
     private boolean batchMode;
@@ -138,14 +142,31 @@ public class GalleryActivity extends AppCompatActivity {
         btnGallerySelect = findViewById(R.id.btn_gallery_select);
         batchBar = findViewById(R.id.batch_bar);
         tvBatchCount = findViewById(R.id.tv_batch_count);
-        findViewById(R.id.btn_gallery_back).setOnClickListener(v -> finish());
-        findViewById(R.id.btn_gallery_upload).setOnClickListener(v -> pickMedia());
-        btnGallerySelect.setOnClickListener(v -> toggleBatchMode());
+        findViewById(R.id.btn_gallery_back).setOnClickListener(v -> {
+            collapseFabMenu();
+            finish();
+        });
+        findViewById(R.id.btn_gallery_upload).setOnClickListener(v -> {
+            collapseFabMenu();
+            pickMedia();
+        });
+        btnGallerySelect.setOnClickListener(v -> {
+            collapseFabMenu();
+            toggleBatchMode();
+        });
+        findViewById(R.id.btn_menu_new_folder).setOnClickListener(v -> {
+            collapseFabMenu();
+            showCreateFolderDialog();
+        });
+        fabMenuItems.add(findViewById(R.id.btn_gallery_back));
+        fabMenuItems.add(findViewById(R.id.btn_gallery_upload));
+        fabMenuItems.add(findViewById(R.id.btn_gallery_select));
+        fabMenuItems.add(findViewById(R.id.btn_menu_new_folder));
         findViewById(R.id.btn_batch_move).setOnClickListener(v -> showBatchMoveDialog());
         findViewById(R.id.btn_batch_delete).setOnClickListener(v -> confirmBatchDelete());
         findViewById(R.id.btn_batch_cancel).setOnClickListener(v -> toggleBatchMode());
         fabAddFolder = findViewById(R.id.fab_add_folder);
-        fabAddFolder.setOnClickListener(v -> showCreateFolderDialog());
+        fabAddFolder.setOnClickListener(v -> toggleFabMenu());
 
         GridLayoutManager lm = new GridLayoutManager(this, 3);
         lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -191,8 +212,63 @@ public class GalleryActivity extends AppCompatActivity {
         batchBar.setVisibility(batchMode ? View.VISIBLE : View.GONE);
         btnGallerySelect.setVisibility(batchMode ? View.GONE : View.VISIBLE);
         fabAddFolder.setVisibility(batchMode ? View.GONE : View.VISIBLE);
+        if (batchMode) collapseFabMenu();
         updateBatchCount();
         adapter.notifyDataSetChanged();
+    }
+
+    private void toggleFabMenu() {
+        if (fabMenuOpen) collapseFabMenu();
+        else expandFabMenu();
+    }
+
+    /** 展开扇形气泡菜单：从 FAB 中心缩放淡出到各自位置 */
+    private void expandFabMenu() {
+        if (fabMenuOpen) return;
+        fabMenuOpen = true;
+        fabAddFolder.setImageResource(R.drawable.ic_minus);
+        int[] fab = new int[2];
+        fabAddFolder.getLocationInWindow(fab);
+        final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
+        final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        for (int i = 0; i < fabMenuItems.size(); i++) {
+            final View item = fabMenuItems.get(i);
+            int[] loc = new int[2];
+            item.getLocationInWindow(loc);
+            final float dx = fabCx - (loc[0] + item.getWidth() / 2f);
+            final float dy = fabCy - (loc[1] + item.getHeight() / 2f);
+            item.setTranslationX(dx);
+            item.setTranslationY(dy);
+            item.setScaleX(0.6f);
+            item.setScaleY(0.6f);
+            item.setAlpha(0f);
+            item.setVisibility(View.VISIBLE);
+            item.animate().translationX(0).translationY(0)
+                    .scaleX(1).scaleY(1).alpha(1f)
+                    .setDuration(220).setStartDelay(i * 40L).start();
+        }
+    }
+
+    /** 收回扇形菜单：气泡缩放淡出回 FAB，图标恢复 + */
+    private void collapseFabMenu() {
+        if (!fabMenuOpen) return;
+        fabMenuOpen = false;
+        fabAddFolder.setImageResource(R.drawable.ic_add);
+        int[] fab = new int[2];
+        fabAddFolder.getLocationInWindow(fab);
+        final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
+        final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        for (int i = fabMenuItems.size() - 1; i >= 0; i--) {
+            final View item = fabMenuItems.get(i);
+            int[] loc = new int[2];
+            item.getLocationInWindow(loc);
+            final float dx = fabCx - (loc[0] + item.getWidth() / 2f);
+            final float dy = fabCy - (loc[1] + item.getHeight() / 2f);
+            item.animate().translationX(dx).translationY(dy)
+                    .scaleX(0.6f).scaleY(0.6f).alpha(0f)
+                    .setDuration(180).setStartDelay((fabMenuItems.size() - 1 - i) * 30L)
+                    .withEndAction(() -> item.setVisibility(View.INVISIBLE)).start();
+        }
     }
 
     private void updateBatchCount() {

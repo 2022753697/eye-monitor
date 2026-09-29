@@ -292,6 +292,7 @@
     <string name="batch_done">已处理 %1$d 项</string>
     <string name="gallery_folder_all">全部</string>
     <string name="gallery_folder_new">➕ 新建文件夹</string>
+    <string name="gallery_more_actions">更多操作</string>
     <string name="gallery_folder_new_hint">文件夹名称</string>
     <string name="gallery_folder_create">创建</string>
     <string name="gallery_folder_create_failed">创建文件夹失败：%1$s</string>

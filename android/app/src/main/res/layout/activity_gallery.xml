@@ -26,29 +26,6 @@
             android:layout_weight="1"
             style="@style/TextAppearance.EyeMonitor.HeaderTitle"
             android:text="@string/gallery_title" />
-
-        <Button
-            android:id="@+id/btn_gallery_select"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/space_8"
-            android:text="@string/gallery_select" />
-
-        <Button
-            android:id="@+id/btn_gallery_upload"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/space_8"
-            android:text="@string/gallery_upload" />
-
-        <Button
-            android:id="@+id/btn_gallery_back"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/back" />
     </LinearLayout>
 
     <!-- 分类条移除：全部视图 = 文件夹卡片上下列表（每行一个文件夹），见 item_media_folder.xml -->
@@ -118,17 +95,95 @@
     </LinearLayout>
     </LinearLayout>
 
-    <!-- 新建文件夹：右下角悬浮按钮（全部视图） -->
+    <!-- 新建文件夹：右下角悬浮按钮（全部视图）· 点按展开/收回扇形菜单 -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_folder"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/space_16"
-        android:contentDescription="@string/gallery_folder_new"
+        android:contentDescription="@string/gallery_more_actions"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/primary"
         app:tint="@color/white"
         app:rippleColor="@color/white_translucent"
         app:elevation="4dp" />
+
+    <!-- 扇形气泡菜单：沿 FAB 左上方斜线排布（返回→上传→选择→新建文件夹，自下而上）
+         初始 INVISIBLE 保留布局占位，展开时从 FAB 位置缩放淡入 -->
+    <TextView
+        android:id="@+id/btn_gallery_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/space_88"
+        android:layout_marginBottom="@dimen/space_56"
+        android:background="@drawable/bg_card"
+        android:elevation="3dp"
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8"
+        android:text="@string/back"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_13"
+        android:textStyle="bold"
+        android:visibility="invisible" />
+
+    <TextView
+        android:id="@+id/btn_gallery_upload"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/space_120"
+        android:layout_marginBottom="@dimen/space_112"
+        android:background="@drawable/bg_card"
+        android:elevation="3dp"
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8"
+        android:text="@string/gallery_upload"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_13"
+        android:textStyle="bold"
+        android:visibility="invisible" />
+
+    <TextView
+        android:id="@+id/btn_gallery_select"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/space_152"
+        android:layout_marginBottom="@dimen/space_168"
+        android:background="@drawable/bg_card"
+        android:elevation="3dp"
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8"
+        android:text="@string/gallery_select"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_13"
+        android:textStyle="bold"
+        android:visibility="invisible" />
+
+    <TextView
+        android:id="@+id/btn_menu_new_folder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/space_184"
+        android:layout_marginBottom="@dimen/space_224"
+        android:background="@drawable/bg_card"
+        android:elevation="3dp"
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8"
+        android:text="@string/gallery_folder_new"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_13"
+        android:textStyle="bold"
+        android:visibility="invisible" />
 </FrameLayout>

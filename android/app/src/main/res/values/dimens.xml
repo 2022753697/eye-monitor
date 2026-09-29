@@ -15,6 +15,14 @@
     <dimen name="space_16">16dp</dimen>
     <dimen name="space_24">24dp</dimen>
     <dimen name="space_32">32dp</dimen>
+    <dimen name="space_56">56dp</dimen>
+    <dimen name="space_88">88dp</dimen>
+    <dimen name="space_112">112dp</dimen>
+    <dimen name="space_120">120dp</dimen>
+    <dimen name="space_152">152dp</dimen>
+    <dimen name="space_168">168dp</dimen>
+    <dimen name="space_184">184dp</dimen>
+    <dimen name="space_224">224dp</dimen>
 
     <!-- 圆角 -->
     <dimen name="radius_sm">8dp</dimen>
