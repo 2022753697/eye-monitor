@@ -90,10 +90,9 @@ public class GalleryActivity extends AppCompatActivity {
     private final java.util.List<View> fabMenuItems = new java.util.ArrayList<>();
     private boolean fabMenuOpen;
 
-    /** 扇形展开参数（与 fabMenuItems 一一对应）：距左轴仰角（度）+ 半径（dp），
-     *  0°=正左，90°=正上；角度/半径拉开形成开阔的左向扇形（顶部收拢回 FAB 上方） */
-    private static final float[] FAB_MENU_ANGLES = {8f, 32f, 52f, 70f};
-    private static final float[] FAB_MENU_RADIUS = {105f, 125f, 140f, 160f};
+    /** 扇形展开参数（与 fabMenuItems 一一对应）：距左轴仰角（度）+ 半径（dp） */
+    private static final float[] FAB_MENU_ANGLES = {5f, 32f, 57f, 68f};
+    private static final float[] FAB_MENU_RADIUS = {140f, 190f, 220f, 250f};
 
     /** 批量选择模式与选中集合 */
     private boolean batchMode;
@@ -239,18 +238,17 @@ public class GalleryActivity extends AppCompatActivity {
         if (fabMenuOpen) return;
         fabMenuOpen = true;
         fabAddFolder.setImageResource(R.drawable.ic_minus);
-        int[] fab = new int[2];
-        fabAddFolder.getLocationInWindow(fab);
-        final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
-        final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        // 以 FAB 的布局位置（getLeft/getTop + 宽高，不含 translation）为锚点计算起点
+        final float fabCx = fabAddFolder.getLeft() + fabAddFolder.getWidth() / 2f;
+        final float fabCy = fabAddFolder.getTop() + fabAddFolder.getHeight() / 2f;
         final float density = getResources().getDisplayMetrics().density;
         for (int i = 0; i < fabMenuItems.size(); i++) {
             View item = fabMenuItems.get(i);
-            int[] loc = new int[2];
-            item.getLocationInWindow(loc);
-            // 起始平移：把子项中心对齐到 FAB 中心
-            final float startDx = fabCx - (loc[0] + item.getWidth() / 2f);
-            final float startDy = fabCy - (loc[1] + item.getHeight() / 2f);
+            // 静止中心 = 布局位置（getLeft/getTop 不含 translation）——防多次展开累积漂移
+            final float restCx = item.getLeft() + item.getWidth() / 2f;
+            final float restCy = item.getTop() + item.getHeight() / 2f;
+            final float startDx = fabCx - restCx;
+            final float startDy = fabCy - restCy;
             // 三角函数目标坐标：0°=正左，90°=正上（屏幕坐标 y 向下，故 dy 取负）
             double rad = Math.toRadians(FAB_MENU_ANGLES[i]);
             final float targetOffX = -((float) Math.cos(rad) * FAB_MENU_RADIUS[i] * density);
@@ -279,17 +277,15 @@ public class GalleryActivity extends AppCompatActivity {
         if (!fabMenuOpen) return;
         fabMenuOpen = false;
         fabAddFolder.setImageResource(R.drawable.ic_add);
-        int[] fab = new int[2];
-        fabAddFolder.getLocationInWindow(fab);
-        final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
-        final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        final float fabCx = fabAddFolder.getLeft() + fabAddFolder.getWidth() / 2f;
+        final float fabCy = fabAddFolder.getTop() + fabAddFolder.getHeight() / 2f;
         final float density = getResources().getDisplayMetrics().density;
         for (int i = fabMenuItems.size() - 1; i >= 0; i--) {
             final View item = fabMenuItems.get(i);
-            int[] loc = new int[2];
-            item.getLocationInWindow(loc);
-            final float startDx = fabCx - (loc[0] + item.getWidth() / 2f);
-            final float startDy = fabCy - (loc[1] + item.getHeight() / 2f);
+            final float restCx = item.getLeft() + item.getWidth() / 2f;
+            final float restCy = item.getTop() + item.getHeight() / 2f;
+            final float startDx = fabCx - restCx;
+            final float startDy = fabCy - restCy;
             double rad = Math.toRadians(FAB_MENU_ANGLES[i]);
             final float targetOffX = -((float) Math.cos(rad) * FAB_MENU_RADIUS[i] * density);
             final float targetOffY = -((float) Math.sin(rad) * FAB_MENU_RADIUS[i] * density);
@@ -306,6 +302,9 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     item.setVisibility(View.INVISIBLE);
+                    // 动画结束后显式清零 translation，确保下次展开从同一静止位置出发
+                    item.setTranslationX(0);
+                    item.setTranslationY(0);
                 }
             });
             anim.start();

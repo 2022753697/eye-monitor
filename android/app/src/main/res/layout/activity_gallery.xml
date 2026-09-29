@@ -113,9 +113,10 @@
          展开时用三角函数计算左上方扇形目标坐标，ObjectAnimator 从 FAB 中心散开 -->
     <TextView
         android:id="@+id/btn_gallery_back"
-        android:layout_width="wrap_content"
+        android:layout_width="110dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:gravity="center"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
@@ -131,9 +132,10 @@
 
     <TextView
         android:id="@+id/btn_gallery_upload"
-        android:layout_width="wrap_content"
+        android:layout_width="110dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:gravity="center"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
@@ -149,9 +151,10 @@
 
     <TextView
         android:id="@+id/btn_gallery_select"
-        android:layout_width="wrap_content"
+        android:layout_width="110dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:gravity="center"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
@@ -167,9 +170,10 @@
 
     <TextView
         android:id="@+id/btn_menu_new_folder"
-        android:layout_width="wrap_content"
+        android:layout_width="110dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:gravity="center"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
