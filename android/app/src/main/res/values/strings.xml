@@ -190,4 +190,28 @@
     <string name="anniversary_card_title">最近纪念日</string>
     <string name="anniversary_card_hint">查看全部 ›</string>
     <string name="anniversary_today_chat">今天是你和 TA 的 %1$s 纪念日❤</string>
+
+    <!-- 设备状态（Wave2） -->
+    <string name="device_status_title">对方设备状态</string>
+    <string name="peer_status_placeholder">-- · -- · -- · -- · --</string>
+    <string name="peer_status_line">%1$s · %2$s · %3$s · %4$s · %5$s</string>
+    <string name="percent_format">%1$d%%</string>
+    <string name="status_unknown">--</string>
+    <string name="status_charging">充电中</string>
+    <string name="status_not_charging">未充电</string>
+    <string name="status_network_wifi">WiFi</string>
+    <string name="status_network_mobile">4G</string>
+    <string name="status_network_none">无网</string>
+    <string name="status_bluetooth_on">蓝牙开</string>
+    <string name="status_bluetooth_off">蓝牙关</string>
+    <string name="status_online">在线</string>
+    <string name="status_offline">离线</string>
+    <string name="status_on">开</string>
+    <string name="status_off">关</string>
+    <string name="label_online">在线状态</string>
+    <string name="label_battery">电量</string>
+    <string name="label_charging">充电</string>
+    <string name="label_network">网络</string>
+    <string name="label_bluetooth">蓝牙</string>
+    <string name="device_status_tip">对方设备每 30 秒上报一次状态，状态变化时即时更新；点击聊天首页状态行可查看详情</string>
 </resources>

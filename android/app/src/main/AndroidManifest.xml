@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- 蓝牙状态读取（Android 12+ 为运行时权限 BLUETOOTH_CONNECT） -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- 3D地图需要OpenGL ES 2.0 -->
@@ -66,6 +70,11 @@
 
         <activity
             android:name=".ui.PairActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.DeviceStatusActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 

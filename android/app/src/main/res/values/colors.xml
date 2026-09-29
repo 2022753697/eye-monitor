@@ -14,6 +14,8 @@
     <color name="text_primary">#4A3B3D</color>
     <color name="text_secondary">#9A8B8D</color>
     <color name="text_on_primary">#FFFFFF</color>
+    <!-- 渐变头栏上的弱化文本（如离线状态） -->
+    <color name="text_on_primary_muted">#B3FFFFFF</color>
 
     <!-- 状态 -->
     <color name="status_ok">#4CAF8A</color>

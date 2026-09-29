@@ -129,6 +129,19 @@
                     android:textColor="@color/text_on_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
+
+                <!-- 对方设备状态一行（电量% · 充电 · 网络 · 蓝牙 · 在线），点击进详情页 -->
+                <TextView
+                    android:id="@+id/tv_peer_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/peer_status_placeholder"
+                    android:textColor="@color/text_on_primary_muted"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
             </LinearLayout>
 
             <!-- 共享地图（图标 + 文字） -->

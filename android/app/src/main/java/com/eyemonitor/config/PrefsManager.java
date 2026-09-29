@@ -32,6 +32,12 @@ public class PrefsManager {
     // 纪念日到期提醒去重（当天只提示一次）
     private static final String KEY_ANNIVERSARY_REMINDER_DATE = "anniversary_reminder_date";
     private static final String KEY_ANNIVERSARY_REMINDER_IDS = "anniversary_reminder_ids";
+    // 对方设备状态缓存（Wave2：来自对方 device_status 上报）
+    private static final String KEY_PEER_BATTERY = "peer_battery";
+    private static final String KEY_PEER_CHARGING = "peer_charging";
+    private static final String KEY_PEER_NETWORK = "peer_network";
+    private static final String KEY_PEER_BLUETOOTH = "peer_bluetooth";
+    private static final String KEY_PEER_ONLINE = "peer_online";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -267,6 +273,55 @@ public class PrefsManager {
 
     public void setAnniversaryReminderIds(String ids) {
         prefs.edit().putString(KEY_ANNIVERSARY_REMINDER_IDS, ids).apply();
+    }
+
+    // --- 对方设备状态（来自 device_status / pair_confirm） ---
+
+    /** 对方电量（0-100，未知为 -1） */
+    public int getPeerBattery() {
+        return prefs.getInt(KEY_PEER_BATTERY, -1);
+    }
+
+    public void setPeerBattery(int battery) {
+        prefs.edit().putInt(KEY_PEER_BATTERY, battery).apply();
+    }
+
+    /** 对方是否充电中 */
+    public boolean getPeerCharging() {
+        return prefs.getBoolean(KEY_PEER_CHARGING, false);
+    }
+
+    public void setPeerCharging(boolean charging) {
+        prefs.edit().putBoolean(KEY_PEER_CHARGING, charging).apply();
+    }
+
+    /** 对方网络类型：wifi | mobile | none */
+    public String getPeerNetwork() {
+        return prefs.getString(KEY_PEER_NETWORK, null);
+    }
+
+    public void setPeerNetwork(String network) {
+        if (network != null) {
+            prefs.edit().putString(KEY_PEER_NETWORK, network).apply();
+        }
+    }
+
+    /** 对方蓝牙是否开启 */
+    public boolean getPeerBluetooth() {
+        return prefs.getBoolean(KEY_PEER_BLUETOOTH, false);
+    }
+
+    public void setPeerBluetooth(boolean bluetooth) {
+        prefs.edit().putBoolean(KEY_PEER_BLUETOOTH, bluetooth).apply();
+    }
+
+    /** 对方是否在线（默认在线；pair_confirm(peerOnline=false) / 本地 WS 断开时置灰） */
+    public boolean getPeerOnline() {
+        return prefs.getBoolean(KEY_PEER_ONLINE, true);
+    }
+
+    public void setPeerOnline(boolean online) {
+        prefs.edit().putBoolean(KEY_PEER_ONLINE, online).apply();
     }
 
     /** 是否已配对 */
