@@ -44,7 +44,7 @@
     <!-- 重要：必须 compact（minHeight=0 + inset=0 + paddingTop/Bottom=4dp）否则撑满头栏呈矩形块； -->
     <!-- 必须去 elevation/stateListAnimator，否则透明底+阴影=黑框 -->
     <style name="Widget.EyeMonitor.Button.Header" parent="Widget.EyeMonitor.Button.Default">
-        <item name="backgroundTint">@color/white_translucent</item>
+        <item name="backgroundTint">@color/header_btn_bg</item>
         <item name="android:textColor">@color/text_on_primary</item>
         <item name="android:textSize">@dimen/text_13</item>
         <item name="android:paddingLeft">@dimen/space_12</item>

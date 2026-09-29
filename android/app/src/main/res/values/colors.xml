@@ -26,6 +26,8 @@
     <!-- 其他 -->
     <color name="divider">#F0E0DC</color>
     <color name="white_translucent">#33FFFFFF</color>
+    <!-- 头栏按钮胶囊底色（30% 白，渐变头栏上按钮感清晰又柔和） -->
+    <color name="header_btn_bg">#4DFFFFFF</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="black_60">#99000000</color>
