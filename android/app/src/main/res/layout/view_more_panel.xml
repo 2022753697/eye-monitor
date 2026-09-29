@@ -7,7 +7,7 @@
     android:background="@color/surface"
     android:elevation="4dp">
 
-    <!-- 第 1 行：图片 / 位置地图 / 设置昵称 / 设置性别 -->
+    <!-- 第 1 行：图片 / SOS 紧急求助 / 权限设置 / 无障碍诊断 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,7 +44,7 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/grid_map"
+            android:id="@+id/grid_sos"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -57,82 +57,18 @@
             <ImageView
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:src="@drawable/ic_map"
+                android:src="@drawable/ic_sos"
                 android:background="@drawable/bg_icon_circle"
                 android:padding="11dp"
-                android:tint="@color/primary" />
+                android:tint="@color/status_error" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/menu_map"
-                android:textColor="@color/text_primary"
+                android:text="@string/menu_sos"
+                android:textColor="@color/status_error"
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_nickname"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_person"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_nickname"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_gender"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_gender"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_gender"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 第 2 行：权限设置 / 无障碍诊断 / 解除配对 / 清空聊天 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="6dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
 
         <LinearLayout
             android:id="@+id/grid_permissions"
@@ -187,6 +123,16 @@
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
+    </LinearLayout>
+
+    <!-- 第 2 行：解除配对 / 清空聊天 / 历史轨迹 / 我的主页 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="16dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
 
         <LinearLayout
             android:id="@+id/grid_unpair"
@@ -202,15 +148,15 @@
             <ImageView
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:src="@drawable/ic_pair"
+                android:src="@drawable/ic_delete"
                 android:background="@drawable/bg_icon_circle"
                 android:padding="11dp"
-                android:tint="@color/status_error" />
+                android:tint="@color/primary" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/menu_unpair"
-                android:textColor="@color/status_error"
+                android:textColor="@color/text_primary"
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
@@ -232,7 +178,7 @@
                 android:src="@drawable/ic_delete"
                 android:background="@drawable/bg_icon_circle"
                 android:padding="11dp"
-                android:tint="@color/primary" />
+                android:tint="@color/text_secondary" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -241,22 +187,6 @@
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/divider"
-        android:layout_marginTop="12dp" />
-
-    <!-- 第 3 行：轨迹回放 / 我的主页（登录账号资料/头像） -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="6dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
 
         <LinearLayout
             android:id="@+id/grid_track"
@@ -297,11 +227,12 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
             <ImageView
-                android:id="@+id/iv_more_profile_av"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:src="@drawable/avatar_female"
-                android:contentDescription="@string/menu_profile" />
+                android:src="@drawable/ic_person"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="11dp"
+                android:tint="@color/primary" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

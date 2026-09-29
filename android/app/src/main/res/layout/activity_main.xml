@@ -140,31 +140,67 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <!-- 对方设备状态一行（电量% · 充电 · 网络 · 蓝牙 · 在线），点击进详情页 -->
-                <TextView
-                    android:id="@+id/tv_peer_status"
+                <!-- 对方设备状态一行：电量图标+百分比 · 充电图标 · 网络 · 蓝牙图标 · 在线；点击进详情页 -->
+                <LinearLayout
+                    android:id="@+id/peer_status_bar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginTop="2dp"
-                    android:text="@string/peer_status_placeholder"
-                    android:textColor="@color/text_on_primary_muted"
-                    android:textSize="12sp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground" />
-            </LinearLayout>
+                    android:background="?attr/selectableItemBackground"
+                    android:paddingEnd="4dp">
 
-            <!-- SOS 紧急求助（长按 3 秒触发） -->
-            <ImageButton
-                android:id="@+id/btn_sos"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:src="@drawable/ic_sos"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="12dp"
-                android:tint="@color/status_error"
-                android:contentDescription="@string/sos_alert_entrance_desc"
-                android:layout_marginEnd="8dp" />
+                    <ImageView
+                        android:id="@+id/iv_peer_battery"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_battery_lv2"
+                        android:contentDescription="电量" />
+
+                    <TextView
+                        android:id="@+id/tv_peer_battery_pct"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_on_primary_muted"
+                        android:textSize="12sp"
+                        android:layout_marginStart="3dp" />
+
+                    <ImageView
+                        android:id="@+id/iv_peer_charging"
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_charging_off"
+                        android:contentDescription="充电状态"
+                        android:layout_marginStart="6dp" />
+
+                    <TextView
+                        android:id="@+id/tv_peer_network"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_on_primary_muted"
+                        android:textSize="12sp"
+                        android:layout_marginStart="6dp" />
+
+                    <ImageView
+                        android:id="@+id/iv_peer_bluetooth"
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_bluetooth_off"
+                        android:contentDescription="蓝牙"
+                        android:layout_marginStart="6dp" />
+
+                    <TextView
+                        android:id="@+id/tv_peer_online"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_on_primary_muted"
+                        android:textSize="12sp"
+                        android:layout_marginStart="6dp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- SOS 冷却倒计时（触发后显示剩余秒数） -->
             <TextView

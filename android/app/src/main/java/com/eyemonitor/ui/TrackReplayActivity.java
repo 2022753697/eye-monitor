@@ -87,17 +87,56 @@ public class TrackReplayActivity extends AppCompatActivity {
         @Override
         public void run() {
             if (!playing) return;
-            currentIndex++;
-            if (currentIndex >= points.size()) {
-                finishPlayback();
-                return;
-            }
-            drawPolylineUpTo(currentIndex);
-            updatePlayMarker(currentIndex);
-            updateProgress();
-            handler.postDelayed(this, tickIntervalMs());
+            // 从 idx-1 平滑移动到 idx（线性插值 + 相机跟随），完成后推进下一拍
+            animateSegment(currentIndex);
         }
     };
+
+    /** 平滑移动 marker 从 points[idx-1] 到 points[idx]；到位后绘制折线、推进进度、进入下一拍 */
+    private void animateSegment(final int idx) {
+        if (!playing || idx <= 0 || idx >= points.size()) {
+            finishPlayback();
+            return;
+        }
+        final TrackPoint from = points.get(idx - 1);
+        final TrackPoint to = points.get(idx);
+        if (playMarker == null) {
+            playMarker = aMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(from.lat, from.lng))
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE))
+                    .anchor(0.5f, 0.5f));
+        }
+        final long duration = Math.max(80L, tickIntervalMs());
+        final long startAt = System.currentTimeMillis();
+        final int[] frameCount = {0}; // 用于相机跟随节流
+        final Runnable frame = new Runnable() {
+            @Override
+            public void run() {
+                if (!playing) return;
+                float t = Math.min(1f, (System.currentTimeMillis() - startAt) / (float) duration);
+                double lat = from.lat + (to.lat - from.lat) * t;
+                double lng = from.lng + (to.lng - from.lng) * t;
+                playMarker.setPosition(new LatLng(lat, lng));
+                if (t >= 1f) {
+                    drawPolylineUpTo(idx);
+                    updateProgress();
+                    if (idx + 1 >= points.size()) {
+                        finishPlayback();
+                    } else {
+                        handler.postDelayed(tickRunnable, 0);
+                    }
+                    return;
+                }
+                // 相机平滑跟随（约每 100ms 一次，避免每帧触发动画堆积）
+                frameCount[0]++;
+                if (frameCount[0] % 6 == 0) {
+                    aMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, lng)), 100, null);
+                }
+                handler.postDelayed(this, 16L);
+            }
+        };
+        handler.postDelayed(frame, 0);
+    }
 
     private final Runnable resetRunnable = new Runnable() {
         @Override
@@ -369,8 +408,27 @@ public class TrackReplayActivity extends AppCompatActivity {
             return;
         }
         fitCameraToTracks();
+        // 进入页面即显示对方该时间段内最近位置（未播放也可见，提升体验）
+        showInitialPosition();
         tvProgress.setText(getString(R.string.track_progress, 0, points.size()));
         Log.i(TAG, "轨迹点已加载: " + points.size() + " 个 (start=" + rangeStart + ", end=" + rangeEnd + ")");
+    }
+
+    /** 进入即展示对方最近位置 marker 并聚焦（不播放也可见） */
+    private void showInitialPosition() {
+        if (points.isEmpty()) return;
+        TrackPoint last = points.get(points.size() - 1);
+        LatLng pos = new LatLng(last.lat, last.lng);
+        if (playMarker == null) {
+            playMarker = aMap.addMarker(new MarkerOptions()
+                    .position(pos)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE))
+                    .anchor(0.5f, 0.5f));
+        } else {
+            playMarker.setPosition(pos);
+        }
+        aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos,
+                Math.max(aMap.getCameraPosition().zoom, 15f)), 300, null);
     }
 
     private void showEmptyState() {
@@ -410,7 +468,6 @@ public class TrackReplayActivity extends AppCompatActivity {
         playing = true;
         btnPlayPause.setText(R.string.track_pause);
         drawPolylineUpTo(currentIndex);
-        updatePlayMarker(currentIndex);
         updateProgress();
         handler.removeCallbacks(tickRunnable);
         handler.removeCallbacks(resetRunnable);

@@ -41,15 +41,69 @@
             android:layout_marginStart="10dp" />
     </LinearLayout>
 
-    <!-- 设围栏入口（底部居中悬浮） -->
-    <Button
-        android:id="@+id/btn_set_fence"
-        style="@style/Widget.EyeMonitor.Button.Primary"
+    <!-- 头像下小菜单（原头像点击菜单提取至此 + 设围栏入口） -->
+    <LinearLayout
+        android:id="@+id/top_tools_menu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/fence_set_entry"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="28dp" />
+        android:orientation="horizontal"
+        android:background="@drawable/bg_card"
+        android:elevation="4dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:gravity="center_vertical"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="86dp">
+
+        <TextView
+            android:id="@+id/btn_menu_self"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/menu_my_location"
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:background="@color/text_secondary"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/btn_menu_peer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/menu_go_to_peer"
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:background="@color/text_secondary"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/btn_menu_set_fence"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/fence_set_entry"
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
 
     <!-- 设围栏面板（进入设围栏模式后显示） -->
     <LinearLayout

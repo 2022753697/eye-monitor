@@ -21,6 +21,7 @@
     <color name="status_ok">#4CAF8A</color>
     <color name="status_warn">#E0913C</color>
     <color name="status_error">#D9604F</color>
+    <color name="status_success">#4CD97B</color>
 
     <!-- 其他 -->
     <color name="divider">#F0E0DC</color>

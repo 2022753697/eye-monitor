@@ -16,7 +16,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,7 +71,9 @@ public class MapActivity extends AppCompatActivity {
     private static final int MIN_FENCE_RADIUS_M = 100;
     private static final int MAX_FENCE_RADIUS_M = 50_000;
 
-    private Button btnSetFence;
+    private TextView btnMenuSelf;
+    private TextView btnMenuPeer;
+    private TextView btnMenuSetFence;
     private LinearLayout fenceSetupPanel;
     private TextView fenceCenterHint;
     private TextView fenceRadiusLabel;
@@ -141,8 +142,10 @@ public class MapActivity extends AppCompatActivity {
         ivAvatarSelf = findViewById(R.id.iv_avatar_self);
         ivAvatarPeer = findViewById(R.id.iv_avatar_peer);
 
-        // 设围栏入口 + 设围栏面板
-        btnSetFence = findViewById(R.id.btn_set_fence);
+        // 头像下小菜单（我的位置 / 去找他 / 设围栏）+ 设围栏面板
+        btnMenuSelf = findViewById(R.id.btn_menu_self);
+        btnMenuPeer = findViewById(R.id.btn_menu_peer);
+        btnMenuSetFence = findViewById(R.id.btn_menu_set_fence);
         fenceSetupPanel = findViewById(R.id.fence_setup_panel);
         fenceCenterHint = findViewById(R.id.fence_center_hint);
         fenceRadiusLabel = findViewById(R.id.fence_radius_label);
@@ -150,7 +153,9 @@ public class MapActivity extends AppCompatActivity {
         fenceNameInput = findViewById(R.id.fence_name_input);
         fenceCancelBtn = findViewById(R.id.fence_cancel_btn);
         fenceConfirmBtn = findViewById(R.id.fence_confirm_btn);
-        btnSetFence.setOnClickListener(v -> enterFenceMode());
+        btnMenuSelf.setOnClickListener(v -> goToSelf());
+        btnMenuPeer.setOnClickListener(v -> goToPeer());
+        btnMenuSetFence.setOnClickListener(v -> enterFenceMode());
         fenceCancelBtn.setOnClickListener(v -> exitFenceMode());
         fenceConfirmBtn.setOnClickListener(v -> confirmFenceCreate());
         fenceRadiusSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -170,8 +175,6 @@ public class MapActivity extends AppCompatActivity {
         });
 
         // 顶部头像：点击弹菜单（自己=我的位置，对方=去找他）
-        ivAvatarSelf.setOnClickListener(v -> showSelfMenu());
-        ivAvatarPeer.setOnClickListener(v -> showPeerMenu());
 
         initMap();
         requestLocationPermission();
@@ -682,7 +685,6 @@ public class MapActivity extends AppCompatActivity {
                 fenceCenterHint.setText(R.string.fence_hint_pick_center);
                 updateFenceRadiusLabel();
                 fenceSetupPanel.setVisibility(View.VISIBLE);
-                btnSetFence.setVisibility(View.GONE);
             });
         });
     }
@@ -692,11 +694,19 @@ public class MapActivity extends AppCompatActivity {
         fenceMode = false;
         fenceCenter = null;
         fenceSetupPanel.setVisibility(View.GONE);
-        btnSetFence.setVisibility(View.VISIBLE);
         if (fencePreviewCircle != null) {
             fencePreviewCircle.remove();
             fencePreviewCircle = null;
         }
+    }
+
+    /** 创建成功后聚焦新围栏范围（视觉确认，仍停留在地图页） */
+    private void focusOnFence(double centerLat, double centerLng, double radius) {
+        double delta = radius * 2.4 / 111_320.0;
+        com.amap.api.maps.model.LatLngBounds.Builder b = new com.amap.api.maps.model.LatLngBounds.Builder();
+        b.include(new com.amap.api.maps.model.LatLng(centerLat + delta, centerLng + delta));
+        b.include(new com.amap.api.maps.model.LatLng(centerLat - delta, centerLng - delta));
+        aMap.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 90), 600, null);
     }
 
     /** 设围栏模式下点击地图选择围栏中心 */
@@ -783,6 +793,8 @@ public class MapActivity extends AppCompatActivity {
                         exitFenceMode();
                         Toast.makeText(MapActivity.this, R.string.fence_created, Toast.LENGTH_SHORT).show();
                         loadFenceCircles();
+                        // 停留在地图页并聚焦新围栏（可视化确认“已设置”），不返回聊天页
+                        focusOnFence(centerLat, centerLng, radius);
                     });
                 }
 
@@ -864,28 +876,6 @@ public class MapActivity extends AppCompatActivity {
     /** 半透明填充色（约 15% 不透明度） */
     private int fenceFillColor(int opaque) {
         return (0x26 << 24) | (opaque & 0xFFFFFF);
-    }
-
-    // --- 顶部头像菜单 ---
-
-    private void showSelfMenu() {
-        PopupMenu menu = new PopupMenu(this, ivAvatarSelf);
-        menu.getMenu().add(0, 1, 0, R.string.menu_my_location);
-        menu.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == 1) goToSelf();
-            return true;
-        });
-        menu.show();
-    }
-
-    private void showPeerMenu() {
-        PopupMenu menu = new PopupMenu(this, ivAvatarPeer);
-        menu.getMenu().add(0, 1, 0, R.string.menu_go_to_peer);
-        menu.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == 1) goToPeer();
-            return true;
-        });
-        menu.show();
     }
 
     /** 聚焦到自己位置 */
