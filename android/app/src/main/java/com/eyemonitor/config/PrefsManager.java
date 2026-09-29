@@ -29,6 +29,9 @@ public class PrefsManager {
     private static final String KEY_PEER_GENDER = "peer_gender";
     private static final String KEY_PEER_BIRTHDAY = "peer_birthday";
     private static final String KEY_PEER_BIO = "peer_bio";
+    // 纪念日到期提醒去重（当天只提示一次）
+    private static final String KEY_ANNIVERSARY_REMINDER_DATE = "anniversary_reminder_date";
+    private static final String KEY_ANNIVERSARY_REMINDER_IDS = "anniversary_reminder_ids";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -246,6 +249,24 @@ public class PrefsManager {
     /** 是否女性（未设置时默认按女性粉色显示） */
     public boolean isFemale() {
         return !"male".equals(getGender());
+    }
+
+    /** 纪念日提醒去重：最近一次已提示的日期（yyyy-MM-dd，空串表示从未） */
+    public String getAnniversaryReminderDate() {
+        return prefs.getString(KEY_ANNIVERSARY_REMINDER_DATE, "");
+    }
+
+    public void setAnniversaryReminderDate(String date) {
+        prefs.edit().putString(KEY_ANNIVERSARY_REMINDER_DATE, date).apply();
+    }
+
+    /** 纪念日提醒去重：当天已提示过的 serverId（逗号分隔） */
+    public String getAnniversaryReminderIds() {
+        return prefs.getString(KEY_ANNIVERSARY_REMINDER_IDS, "");
+    }
+
+    public void setAnniversaryReminderIds(String ids) {
+        prefs.edit().putString(KEY_ANNIVERSARY_REMINDER_IDS, ids).apply();
     }
 
     /** 是否已配对 */

@@ -162,4 +162,32 @@
     <string name="auth_error_network">网络错误</string>
     <string name="auth_error_expired">登录已过期</string>
     <string name="auth_error_response">服务器响应异常</string>
+
+    <!-- 纪念日（Wave2） -->
+    <string name="anniversary_title">纪念日</string>
+    <string name="anniversary_add">添加纪念日</string>
+    <string name="anniversary_edit">编辑</string>
+    <string name="anniversary_delete">删除</string>
+    <string name="anniversary_empty">还没有纪念日，点下方按钮添加第一个吧</string>
+    <string name="anniversary_dialog_add_title">添加纪念日</string>
+    <string name="anniversary_dialog_edit_title">编辑纪念日</string>
+    <string name="anniversary_name_hint">纪念日名称（如：在一起的日子）</string>
+    <string name="anniversary_date_hint">选择日期</string>
+    <string name="anniversary_repeat_label">每年重复</string>
+    <string name="anniversary_repeat_badge">每年重复</string>
+    <string name="anniversary_save">保存</string>
+    <string name="anniversary_name_empty">请输入纪念日名称</string>
+    <string name="anniversary_date_empty">请选择日期</string>
+    <string name="anniversary_save_ok">已保存</string>
+    <string name="anniversary_delete_ok">已删除</string>
+    <string name="anniversary_op_failed">操作失败：%1$s</string>
+    <string name="anniversary_delete_confirm_title">删除纪念日</string>
+    <string name="anniversary_delete_confirm_message">确定删除「%1$s」吗？对方也将同步移除。</string>
+    <string name="anniversary_countdown_days">距离 %1$s 还有 %2$d 天</string>
+    <string name="anniversary_countdown_today">今天是 %1$s ❤</string>
+    <string name="anniversary_countdown_days_short">还有 %1$d 天</string>
+    <string name="anniversary_countdown_today_short">今天</string>
+    <string name="anniversary_card_title">最近纪念日</string>
+    <string name="anniversary_card_hint">查看全部 ›</string>
+    <string name="anniversary_today_chat">今天是你和 TA 的 %1$s 纪念日❤</string>
 </resources>

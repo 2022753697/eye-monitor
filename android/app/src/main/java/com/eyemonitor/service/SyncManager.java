@@ -61,7 +61,8 @@ public final class SyncManager {
         }
     }
 
-    private static void syncAnniversaries(Context context) {
+    /** 纪念日全量拉取到 Room 缓存（AnniversaryActivity 变更成功后主动刷新） */
+    public static void syncAnniversaries(Context context) {
         AuthManager.i(context).get(context, "/api/anniversaries", new AuthManager.Callback() {
             @Override
             public void onSuccess(JsonObject data) {
