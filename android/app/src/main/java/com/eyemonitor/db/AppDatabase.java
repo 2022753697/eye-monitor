@@ -22,10 +22,20 @@ import java.util.concurrent.Executors;
         AnniversaryCacheEntity.class,
         LocationCacheEntity.class,
         FenceCacheEntity.class,
-        MediaCacheEntity.class}, version = 2, exportSchema = false)
+        MediaCacheEntity.class,
+        AppNameCacheEntity.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
-    /** v1 -> v2：新增四张缓存表（CREATE TABLE 与原实体字段对齐） */
+    /** v2 -> v3：新增应用名映射缓存表（包名→应用名） */
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `app_name_cache` (" +
+                    "`package_name` TEXT NOT NULL, `app_name` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`package_name`))");
+        }
+    };
+
     public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
         @Override
         public void migrate(SupportSQLiteDatabase db) {
@@ -63,7 +73,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
-                            .addMigrations(MIGRATION_1_2)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

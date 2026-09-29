@@ -6,12 +6,14 @@ import android.util.Log;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
+import com.eyemonitor.db.AppNameCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.db.LocationCacheEntity;
 import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.util.AppNameResolver;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -31,9 +33,11 @@ public final class SyncManager {
     /** 登录/重连后全量拉取配对相关的 聊天/纪念日/围栏 到本地缓存（失败静默，等待下轮触发） */
     public static void syncAll(Context context) {
         PrefsManager prefs = new PrefsManager(context);
+        // 应用名映射是全局数据，不依赖配对，先同步（WS 连上即可刷新）
+        syncAppNames(context);
         String pairCode = prefs.getPairCode();
         if (!prefs.isLoggedIn() || pairCode == null || pairCode.isEmpty()) {
-            Log.d(TAG, "未登录或未配对，跳过同步");
+            Log.d(TAG, "未登录或未配对，跳过配对数据同步");
             return;
         }
         syncAnniversaries(context);
@@ -50,6 +54,47 @@ public final class SyncManager {
             db.cacheDao().deleteLocationsBefore(cutoff);
             db.chatDao().deleteBefore(cutoff);
             Log.d(TAG, "本地缓存 30 天保留清理完成");
+        });
+    }
+
+    /** 同步应用名映射（GET /api/app-names）：写 Room 缓存 + 刷新 AppNameResolver 内存表 */
+    public static void syncAppNames(Context context) {
+        AuthManager.i(context).getElement(context, "/api/app-names", new AuthManager.ElementCallback() {
+            @Override
+            public void onSuccess(com.google.gson.JsonElement data) {
+                if (data == null || !data.isJsonArray()) {
+                    Log.w(TAG, "app-names 响应非数组，跳过");
+                    return;
+                }
+                JsonArray arr = data.getAsJsonArray();
+                final java.util.List<AppNameCacheEntity> list = new java.util.ArrayList<>();
+                final java.util.Map<String, String> map = new java.util.HashMap<>();
+                for (int i = 0; i < arr.size(); i++) {
+                    JsonObject o = arr.get(i).getAsJsonObject();
+                    String pkg = o.has("packageName") && !o.get("packageName").isJsonNull()
+                            ? o.get("packageName").getAsString() : null;
+                    String name = o.has("appName") && !o.get("appName").isJsonNull()
+                            ? o.get("appName").getAsString() : null;
+                    if (pkg != null && !pkg.isEmpty() && name != null) {
+                        list.add(new AppNameCacheEntity(pkg, name));
+                        map.put(pkg, name);
+                    }
+                }
+                AppDatabase db = AppDatabase.getInstance(context);
+                AppDatabase.dbExecutor.execute(() -> {
+                    if (!list.isEmpty()) {
+                        db.cacheDao().upsertAppNames(list);
+                    }
+                    // 内存表即时生效（App 切换事件展示用）
+                    AppNameResolver.updateFromCache(map);
+                    Log.d(TAG, "应用名映射同步完成: " + map.size() + " 条");
+                });
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                Log.d(TAG, "app-names 同步失败: " + code + " " + msg);
+            }
         });
     }
 

@@ -85,4 +85,12 @@ public interface CacheDao {
     /** 本地最大聊天时间戳（增量同步 afterTs 用） */
     @Query("SELECT MAX(timestamp) FROM chat")
     long getMaxChatTs();
+
+    // --- 应用名映射 ---
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    void upsertAppNames(List<AppNameCacheEntity> entities);
+
+    @Query("SELECT * FROM app_name_cache")
+    List<AppNameCacheEntity> getAppNames();
 }
