@@ -29,4 +29,7 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="black_60">#99000000</color>
+
+    <!-- 媒体：时间角标覆盖层（10% 透明度珊瑚，承接原 #59FF6B6B） -->
+    <color name="media_overlay_tint">#59FF6B6B</color>
 </resources>

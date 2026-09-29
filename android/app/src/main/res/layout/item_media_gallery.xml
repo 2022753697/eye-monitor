@@ -16,7 +16,7 @@
         android:id="@+id/v_batch_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#59FF6B6B"
+        android:background="@color/media_overlay_tint"
         android:visibility="gone" />
 
     <FrameLayout

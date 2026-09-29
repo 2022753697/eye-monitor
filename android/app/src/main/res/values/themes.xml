@@ -16,10 +16,25 @@
         <item name="android:colorBackground">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
 
+        <!-- 语义色令牌（皮肤预留：换肤时替换此处实现） -->
+        <item name="textPrimary">@color/text_primary</item>
+        <item name="textSecondary">@color/text_secondary</item>
+        <item name="textMuted">@color/text_secondary</item>
+        <item name="dividerColor">@color/divider</item>
+        <item name="statusOk">@color/status_ok</item>
+        <item name="statusWarn">@color/status_warn</item>
+        <item name="statusError">@color/status_error</item>
+        <item name="statusSuccess">@color/status_success</item>
+
         <!-- 控件色 -->
         <item name="colorControlNormal">@color/text_secondary</item>
         <item name="colorControlActivated">@color/primary</item>
         <item name="colorControlHighlight">@color/white_translucent</item>
+
+        <!-- 控件默认样式（防呆：裸 Button / RadioButton 也统一为设计体系形态） -->
+        <item name="materialButtonStyle">@style/Widget.EyeMonitor.Button.Default</item>
+        <item name="radioButtonStyle">@style/Widget.EyeMonitor.RadioButton</item>
+        <item name="editTextStyle">@style/Widget.EyeMonitor.EditText</item>
 
         <!-- 系统栏 -->
         <item name="android:statusBarColor">@color/primary</item>

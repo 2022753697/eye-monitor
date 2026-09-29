@@ -11,18 +11,16 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/bg_header_gradient"
-        android:padding="16dp"
+        android:padding="@dimen/space_16"
         android:gravity="center_vertical">
 
         <TextView
             android:id="@+id/tv_title"
+            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/device_status_title"
-            android:textColor="@color/text_on_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:text="@string/device_status_title" />
 
         <Button
             android:id="@+id/btn_back"
@@ -38,9 +36,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_card_alt"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:layout_margin="12dp">
+        android:paddingStart="@dimen/space_16"
+        android:paddingEnd="@dimen/space_16"
+        android:layout_margin="@dimen/space_12">
 
         <!-- 在线状态 -->
         <LinearLayout
@@ -48,8 +46,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14">
 
             <TextView
                 android:layout_width="0dp"
@@ -57,7 +55,7 @@
                 android:layout_weight="1"
                 android:text="@string/label_online"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_device_online"
@@ -65,7 +63,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/status_offline"
                 android:textColor="@color/text_secondary"
-                android:textSize="15sp"
+                android:textSize="@dimen/text_15"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -80,8 +78,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14">
 
             <TextView
                 android:layout_width="0dp"
@@ -89,7 +87,7 @@
                 android:layout_weight="1"
                 android:text="@string/label_battery"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_device_battery"
@@ -97,7 +95,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/status_unknown"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
         </LinearLayout>
 
         <View
@@ -111,8 +109,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14">
 
             <TextView
                 android:layout_width="0dp"
@@ -120,7 +118,7 @@
                 android:layout_weight="1"
                 android:text="@string/label_charging"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_device_charging"
@@ -128,7 +126,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/status_not_charging"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
         </LinearLayout>
 
         <View
@@ -142,8 +140,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14">
 
             <TextView
                 android:layout_width="0dp"
@@ -151,7 +149,7 @@
                 android:layout_weight="1"
                 android:text="@string/label_network"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_device_network"
@@ -159,7 +157,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/status_unknown"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
         </LinearLayout>
 
         <View
@@ -173,8 +171,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14">
 
             <TextView
                 android:layout_width="0dp"
@@ -182,7 +180,7 @@
                 android:layout_weight="1"
                 android:text="@string/label_bluetooth"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_device_bluetooth"
@@ -190,16 +188,15 @@
                 android:layout_height="wrap_content"
                 android:text="@string/status_off"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
         </LinearLayout>
     </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Label"
         android:text="@string/device_status_tip"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp" />
+        android:paddingStart="@dimen/space_16"
+        android:paddingEnd="@dimen/space_16" />
 </LinearLayout>

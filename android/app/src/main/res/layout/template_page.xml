@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ============================================================
+     新页面布局模板（UI 护栏 v1）
+     复制本文件改：头栏标题字符串、内容区（ScrollView 内）即可。
+     约定：
+     - 头栏 = 渐变 + HeaderTitle + Header 按钮（本模板已就位）
+     - 内容区统一 @dimen/space_16 外边距；控件间距用 8dp 步进令牌
+     - 颜色一律 ?attr/ 语义令牌，禁止写死 #RRGGBB
+     - 字符串进 strings.xml，禁止硬编码中文
+     ============================================================ -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- 渐变头栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_header_gradient"
+        android:padding="@dimen/space_16"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
+            android:text="@string/app_name" />
+
+        <Button
+            style="@style/Widget.EyeMonitor.Button.Header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back" />
+    </LinearLayout>
+
+    <!-- 内容区 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
+
+            <!-- 在此放置内容；按钮用 Button.Primary/Outlined/Danger -->
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

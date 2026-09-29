@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============================================================
+         语义色令牌（皮肤预留结构）
+         换肤 = 替换 Theme 中这些 attr 的实现（theme overlay），
+         布局/样式一律引用 ?attr/xxx，禁止直接写死 #RRGGBB。
+         ============================================================ -->
+
+    <!-- 文本 -->
+    <attr name="textPrimary" format="color" />
+    <attr name="textSecondary" format="color" />
+    <attr name="textMuted" format="color" />
+
+    <!-- 分隔线 -->
+    <attr name="dividerColor" format="color" />
+
+    <!-- 状态语义色 -->
+    <attr name="statusOk" format="color" />
+    <attr name="statusWarn" format="color" />
+    <attr name="statusError" format="color" />
+    <attr name="statusSuccess" format="color" />
+</resources>

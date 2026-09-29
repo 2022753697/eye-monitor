@@ -56,3 +56,61 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 }
+
+// ============================================================
+// UI 样式护栏 v1：checkUiStyle
+// 用法：./gradlew checkUiStyle（已挂接 preBuild，违规即构建失败）
+// 规则（元素块级解析，吸取行级 grep 误判换行属性的教训）：
+//  1. layout/*.xml 中裸 <Button>（元素块内无 style= 且无自绘 android:background=）→ FAIL
+//  2. layout/*.xml 中硬编码 #RRGGBB / #AARRGGBB 色值 → FAIL（drawable/ values/ 除外）
+//  3. java/ 中 Color.parseColor("#...") 或 0x.. 硬编码 → WARN（MapActivity 性别色为刻意例外）
+// 白名单：确实需要自绘背景的控件保留 android:background= 即视为合规。
+// ============================================================
+tasks.register('checkUiStyle') {
+    group = 'verification'
+    description = 'UI 样式护栏：拦截裸 Button 与布局硬编码色值'
+    doLast {
+        def layoutDir = file('src/main/res/layout')
+        def javaDir = file('src/main/java')
+        def failures = []
+        def warns = []
+
+        // 规则 1 + 2：布局检查
+        layoutDir.eachFileMatch(~/.*\.xml$/) { f ->
+            def text = f.getText('UTF-8')
+            def matcher = text =~ /(?s)<Button\b[^>]*>/
+            matcher.each { block ->
+                if (!block.contains('style=') && !block.contains('android:background=')) {
+                    failures << "裸 Button（无 style）：${f.name}: ${block.replaceAll(/\s+/, ' ').take(70)}"
+                }
+            }
+            def hexMatcher = text =~ /#[0-9A-Fa-f]{6,8}\b/
+            hexMatcher.each { hex ->
+                failures << "布局硬编码色：${f.name}: ${hex}"
+            }
+        }
+
+        // 规则 3：Java 硬编码色（warn）
+        javaDir.eachFileRecurse { jf ->
+            if (!jf.name.endsWith('.java')) return
+            jf.getText('UTF-8').split('\n').eachWithIndex { line, i ->
+                if (line =~ /Color\.parseColor\("#[0-9A-Fa-f]+"\)/ || line =~ /\b0x[0-9A-Fa-f]{6,8}\b/) {
+                    warns << "${jf.name}:${i + 1}: ${line.trim().take(80)}"
+                }
+            }
+        }
+
+        if (warns) {
+            warns.each { println "[checkUiStyle] WARN: $it" }
+            println '[checkUiStyle] WARN: MapActivity 性别 marker 色为刻意例外，可忽略'
+        }
+        if (failures.isEmpty()) {
+            println "[checkUiStyle] PASS（${layoutDir.listFiles().length} 个布局已检查）"
+        } else {
+            failures.each { println "[checkUiStyle] FAIL: $it" }
+            throw new GradleException("checkUiStyle 未通过：${failures.size()} 处违规")
+        }
+    }
+}
+
+preBuild.dependsOn 'checkUiStyle'
