@@ -35,12 +35,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.eyemonitor.R;
 import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.AppUsageTracker;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
+import com.eyemonitor.util.AnniversaryUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -79,6 +81,10 @@ public class MainActivity extends AppCompatActivity {
     private ChatAdapter chatAdapter;
     private View bottomBar;
     private View morePanel;
+
+    // 纪念日倒计时卡片
+    private View viewAnniversaryCard;
+    private TextView tvAnniversaryCardCountdown;
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -229,6 +235,11 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setLayoutManager(new LinearLayoutManager(this));
         rvChat.setAdapter(chatAdapter);
 
+        // 首页纪念日倒计时卡片（点击进入纪念日页）
+        viewAnniversaryCard = findViewById(R.id.view_anniversary_card);
+        tvAnniversaryCardCountdown = findViewById(R.id.tv_anniversary_card_countdown);
+        viewAnniversaryCard.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
+
         switchView(prefs.isPaired());
         checkMonitorPermission();
         requestMissingRuntimePermissions();
@@ -270,6 +281,7 @@ public class MainActivity extends AppCompatActivity {
             updateChatHeader();
             loadChatHistory();
         }
+        refreshAnniversaryCard();
     }
 
     @Override
@@ -414,6 +426,12 @@ public class MainActivity extends AppCompatActivity {
                         ? (String) message.getPayload().get("appName") : null;
                 appendSystemItem(appName);
                 break;
+            case "anniversary_sync":
+                refreshAnniversaryCard();
+                break;
+            case "system_tip":
+                handleSystemTip(message);
+                break;
             case "error":
                 handleError(message);
                 break;
@@ -467,6 +485,36 @@ public class MainActivity extends AppCompatActivity {
         long now = System.currentTimeMillis();
         // 持久化已在 MonitorService（服务层）完成，这里只渲染
         chatAdapter.addItem(new ChatItem(TYPE_SYSTEM, text, null,
+                TIME_FORMAT.format(new Date(now)), now));
+        scrollToBottom();
+    }
+
+    /** 刷新首页纪念日倒计时卡片：读 Room 缓存找最近一个，无数据隐藏卡片 */
+    private void refreshAnniversaryCard() {
+        AppDatabase.dbExecutor.execute(() -> {
+            List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
+                    .cacheDao().getAnniversaries();
+            runOnUiThread(() -> {
+                AnniversaryCacheEntity nearest = AnniversaryUtils.findNearest(list);
+                if (nearest == null || nearest.name == null) {
+                    viewAnniversaryCard.setVisibility(View.GONE);
+                    return;
+                }
+                long days = AnniversaryUtils.daysUntilNext(nearest, AnniversaryUtils.today());
+                tvAnniversaryCardCountdown.setText(days == 0
+                        ? getString(R.string.anniversary_countdown_today, nearest.name)
+                        : getString(R.string.anniversary_countdown_days, nearest.name, days));
+                viewAnniversaryCard.setVisibility(View.VISIBLE);
+            });
+        });
+    }
+
+    /** 纪念日到期系统提示（服务层已入库 Room，这里只渲染） */
+    private void handleSystemTip(WsMessage message) {
+        Object text = message.getPayload() != null ? message.getPayload().get("text") : null;
+        if (!(text instanceof String) || ((String) text).isEmpty()) return;
+        long now = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        chatAdapter.addItem(new ChatItem(TYPE_SYSTEM, (String) text, null,
                 TIME_FORMAT.format(new Date(now)), now));
         scrollToBottom();
     }

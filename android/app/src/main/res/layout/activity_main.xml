@@ -160,6 +160,9 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- 纪念日倒计时卡片（最近一个，无数据时隐藏） -->
+        <include layout="@layout/view_anniversary_card" />
+
         <!-- 消息列表 -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_chat"
