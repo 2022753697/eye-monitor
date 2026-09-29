@@ -8,6 +8,8 @@ import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
@@ -17,6 +19,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
@@ -90,6 +93,42 @@ public class MainActivity extends AppCompatActivity {
 
     private PrefsManager prefs;
     private boolean serviceRunning;
+
+    // SOS 紧急求助：长按 3 秒触发 + 60s 冷却倒计时
+    private ImageButton btnSos;
+    private TextView tvSosCountdown;
+    private static final long SOS_COOLDOWN_MS = 60_000L;
+    private static final long SOS_PRESS_HOLD_MS = 3_000L;
+    private final Handler sosHandler = new Handler(Looper.getMainLooper());
+    private boolean sosPressed;
+    private boolean sosFired;
+    private boolean sosDialogShowing;
+
+    /** 长按 3 秒到期且手指未抬起时触发 SOS */
+    private final Runnable sosPressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (sosPressed) {
+                sosFired = true;
+                triggerSos();
+            }
+        }
+    };
+
+    /** 冷却倒计时：每秒刷新按钮旁剩余秒数，结束后恢复可触发 */
+    private final Runnable sosCooldownTicker = new Runnable() {
+        @Override
+        public void run() {
+            long remaining = remainingSosCooldown();
+            if (remaining > 0) {
+                tvSosCountdown.setText(String.format(Locale.getDefault(), "%d",
+                        (remaining + 999) / 1000));
+                sosHandler.postDelayed(this, 1000L);
+            } else {
+                finishSosCooldown();
+            }
+        }
+    };
 
     private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
         @Override
@@ -174,6 +213,7 @@ public class MainActivity extends AppCompatActivity {
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 顶栏状态行点击进对方设备状态详情页
         tvPeerStatus.setOnClickListener(v -> startActivity(new Intent(this, DeviceStatusActivity.class)));
+        setupSosButton();
 
         // 更多面板：格子绑定
         bottomBar = findViewById(R.id.bottom_bar);
@@ -291,12 +331,15 @@ public class MainActivity extends AppCompatActivity {
             updateChatHeader();
             refreshPeerStatus();
             loadChatHistory();
+            syncSosCooldownUi();
         }
         refreshAnniversaryCard();
     }
 
     @Override
     protected void onDestroy() {
+        sosHandler.removeCallbacks(sosPressRunnable);
+        sosHandler.removeCallbacks(sosCooldownTicker);
         unregisterReceiver(eventReceiver);
         try {
             unregisterReceiver(kickedReceiver);
@@ -479,11 +522,20 @@ public class MainActivity extends AppCompatActivity {
                         ? (String) message.getPayload().get("appName") : null;
                 appendSystemItem(appName);
                 break;
+<<<<<<< HEAD
             case "anniversary_sync":
                 refreshAnniversaryCard();
                 break;
             case "system_tip":
                 handleSystemTip(message);
+                break;
+            case "sos":
+                // 聊天内快捷回执：弹窗「我没事」（通知按钮也会发回执）
+                showSosIncomingDialog(message);
+                break;
+            case "sos_ack":
+                // 对方已确认安全：居中系统提示
+                appendSystemText(getString(R.string.sos_ack_chat));
                 break;
             case "error":
                 handleError(message);
@@ -534,9 +586,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void appendSystemItem(String appName) {
         String name = appName != null ? appName : getString(R.string.toast_unknown_app);
-        String text = getString(R.string.chat_peer_opened, name);
+        appendSystemText(getString(R.string.chat_peer_opened, name));
+    }
+
+    /** 插一条居中系统提示到聊天列表 */
+    private void appendSystemText(String text) {
         long now = System.currentTimeMillis();
-        // 持久化已在 MonitorService（服务层）完成，这里只渲染
         chatAdapter.addItem(new ChatItem(TYPE_SYSTEM, text, null,
                 TIME_FORMAT.format(new Date(now)), now));
         scrollToBottom();
@@ -658,6 +713,124 @@ public class MainActivity extends AppCompatActivity {
         if (imm != null) {
             imm.hideSoftInputFromWindow(etChatInput.getWindowToken(), 0);
         }
+    }
+
+    // --- SOS 紧急求助 ---
+
+    /** 绑定 SOS 按钮：长按 3 秒触发（按住期间有效，松手取消） */
+    private void setupSosButton() {
+        btnSos = findViewById(R.id.btn_sos);
+        tvSosCountdown = findViewById(R.id.tv_sos_countdown);
+        if (btnSos == null) return;
+        btnSos.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    sosPressed = true;
+                    sosFired = false;
+                    v.setPressed(true);
+                    sosHandler.removeCallbacks(sosPressRunnable);
+                    sosHandler.postDelayed(sosPressRunnable, SOS_PRESS_HOLD_MS);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    sosPressed = false;
+                    sosHandler.removeCallbacks(sosPressRunnable);
+                    v.setPressed(false);
+                    if (sosFired) {
+                        sosFired = false;
+                        v.performClick();
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+        });
+    }
+
+    /** 长按 3 秒到期：未配对提示 / 冷却中提示 / 确认弹窗 */
+    private void triggerSos() {
+        if (!prefs.isPaired()) {
+            Toast.makeText(this, R.string.sos_need_pair, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        long remaining = remainingSosCooldown();
+        if (remaining > 0) {
+            Toast.makeText(this,
+                    getString(R.string.sos_cooldown, (remaining + 999) / 1000),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sos_confirm_title)
+                .setMessage(R.string.sos_confirm_message)
+                .setPositiveButton(R.string.sos_confirm_send, (d, w) -> sendSosNow())
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /** 确认后发送：记录冷却时间（跨重启持久化）→ 借道服务发送 → 进入冷却倒计时 */
+    private void sendSosNow() {
+        prefs.setSosLastTrigger(System.currentTimeMillis());
+        MonitorService.sendSos(this, getString(R.string.sos_help_me));
+        Toast.makeText(this, R.string.sos_sent, Toast.LENGTH_SHORT).show();
+        startSosCooldown();
+    }
+
+    /** 剩余冷却毫秒（0 = 不在冷却） */
+    private long remainingSosCooldown() {
+        long last = prefs.getSosLastTrigger();
+        if (last <= 0) return 0L;
+        long remaining = last + SOS_COOLDOWN_MS - System.currentTimeMillis();
+        return Math.max(0L, remaining);
+    }
+
+    /** 进入冷却：按钮禁用变灰 + 显示剩余秒数，每秒刷新 */
+    private void startSosCooldown() {
+        btnSos.setEnabled(false);
+        btnSos.setAlpha(0.45f);
+        btnSos.setImageTintList(ColorStateList.valueOf(getColor(R.color.text_secondary)));
+        tvSosCountdown.setVisibility(View.VISIBLE);
+        sosHandler.removeCallbacks(sosCooldownTicker);
+        sosHandler.post(sosCooldownTicker);
+    }
+
+    /** 冷却结束：恢复按钮可触发并隐藏倒计时 */
+    private void finishSosCooldown() {
+        sosHandler.removeCallbacks(sosCooldownTicker);
+        if (btnSos != null) {
+            btnSos.setEnabled(true);
+            btnSos.setAlpha(1f);
+            btnSos.setImageTintList(ColorStateList.valueOf(getColor(R.color.status_error)));
+        }
+        tvSosCountdown.setVisibility(View.GONE);
+    }
+
+    /** 同步冷却 UI（启动/回到前台时基于持久化状态恢复） */
+    private void syncSosCooldownUi() {
+        if (btnSos == null) return;
+        if (remainingSosCooldown() > 0) {
+            startSosCooldown();
+        } else {
+            finishSosCooldown();
+        }
+    }
+
+    /** 收到对方 SOS：前台时弹聊天内快捷回执弹窗（后台靠高优先级通知） */
+    private void showSosIncomingDialog(WsMessage message) {
+        if (isFinishing() || isDestroyed() || !hasWindowFocus() || sosDialogShowing) return;
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object t = payload != null ? payload.get("text") : null;
+        String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.sos_notification_title)
+                .setMessage(getString(R.string.sos_peer_alert, text))
+                .setPositiveButton(R.string.sos_ack_action,
+                        (d, w) -> MonitorService.sendSosAck(this))
+                .setNegativeButton(R.string.cancel, null)
+                .setOnDismissListener(d -> sosDialogShowing = false)
+                .create();
+        sosDialogShowing = true;
+        dialog.show();
     }
 
     private void openPermissionSettings() {

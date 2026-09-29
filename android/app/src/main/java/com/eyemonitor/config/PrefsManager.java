@@ -38,6 +38,7 @@ public class PrefsManager {
     private static final String KEY_PEER_NETWORK = "peer_network";
     private static final String KEY_PEER_BLUETOOTH = "peer_bluetooth";
     private static final String KEY_PEER_ONLINE = "peer_online";
+    private static final String KEY_SOS_LAST_TRIGGER = "sos_last_trigger";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -257,6 +258,7 @@ public class PrefsManager {
         return !"male".equals(getGender());
     }
 
+<<<<<<< HEAD
     /** 纪念日提醒去重：最近一次已提示的日期（yyyy-MM-dd，空串表示从未） */
     public String getAnniversaryReminderDate() {
         return prefs.getString(KEY_ANNIVERSARY_REMINDER_DATE, "");
@@ -322,6 +324,15 @@ public class PrefsManager {
 
     public void setPeerOnline(boolean online) {
         prefs.edit().putBoolean(KEY_PEER_ONLINE, online).apply();
+    }
+
+    /** 上次 SOS 触发时间（epoch ms，用于 60s 冷却跨重启持久化） */
+    public long getSosLastTrigger() {
+        return prefs.getLong(KEY_SOS_LAST_TRIGGER, 0L);
+    }
+
+    public void setSosLastTrigger(long ts) {
+        prefs.edit().putLong(KEY_SOS_LAST_TRIGGER, ts).apply();
     }
 
     /** 是否已配对 */

@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -31,6 +32,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,8 +51,10 @@ public class MonitorService extends Service {
 
     private static final String TAG = "MonitorService";
     private static final String CHANNEL_ID = "eye_monitor_channel";
+    private static final String SOS_CHANNEL_ID = CHANNEL_ID + "_sos";
     private static final int NOTIFICATION_ID_FOREGROUND = 1;
     private static final int NOTIFICATION_ID_EVENT = 2;
+    private static final int NOTIFICATION_ID_SOS = 3;
 
     public static final String ACTION_EVENT = "com.eyemonitor.EVENT";
     public static final String EXTRA_EVENT_JSON = "event_json";
@@ -66,6 +70,10 @@ public class MonitorService extends Service {
     public static final String ACTION_KICKED = "com.eyemonitor.KICKED";
     // 资料变更后广播 user_profile 给对方
     public static final String ACTION_BROADCAST_PROFILE = "com.eyemonitor.BROADCAST_PROFILE";
+    // SOS 紧急求助：发送 / 回执（「我没事」）
+    public static final String ACTION_SEND_SOS = "com.eyemonitor.SEND_SOS";
+    public static final String EXTRA_SOS_TEXT = "sos_text";
+    public static final String ACTION_SEND_SOS_ACK = "com.eyemonitor.SEND_SOS_ACK";
     public static final String EXTRA_PROFILE_NICKNAME = "profile_nickname";
     public static final String EXTRA_PROFILE_AVATAR = "profile_avatar";
     public static final String EXTRA_PROFILE_GENDER = "profile_gender";
@@ -144,6 +152,23 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 发送 SOS 求助（借道 MonitorService 的 WebSocket，附最近定位，无定位则不带） */
+    public static void sendSos(Context context, String text) {
+        if (context == null || text == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_SOS);
+        intent.putExtra(EXTRA_SOS_TEXT, text);
+        context.startService(intent);
+    }
+
+    /** 发送 SOS 回执「我没事」（通知按钮 / 聊天内快捷按钮） */
+    public static void sendSosAck(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_SOS_ACK);
+        context.startService(intent);
+    }
+
     /** 地图打开时请求立即上报一次本机位置 */
     public static void sendRequestSelfLocation(Context context) {
         if (context == null) return;
@@ -198,6 +223,19 @@ public class MonitorService extends Service {
         if (intent != null && ACTION_REQUEST_SELF_LOCATION.equals(intent.getAction())) {
             Log.i(TAG, "地图请求本机位置上报");
             sendLocation();
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_SOS.equals(intent.getAction())) {
+            String text = intent.getStringExtra(EXTRA_SOS_TEXT);
+            Log.i(TAG, "收到 SOS 发送请求");
+            sendSosMessage(text);
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_SOS_ACK.equals(intent.getAction())) {
+            Log.i(TAG, "收到 SOS 回执发送请求（我没事）");
+            sendSosAckMessage();
             return START_NOT_STICKY;
         }
 
@@ -639,6 +677,14 @@ public class MonitorService extends Service {
             case "user_profile":
                 handleUserProfile(message);
                 break;
+            case "sos":
+                // 对方紧急求助：高优先级通知（含求救语+位置）+ 广播 UI 提供快捷回执
+                handleSos(message);
+                break;
+            case "sos_ack":
+                // 对方回执「我没事」：落库 system 提示 + 广播 UI
+                handleSosAck(message);
+                break;
             case "anniversary_sync":
             case "fence_sync":
             case "media":
@@ -685,6 +731,71 @@ public class MonitorService extends Service {
                 handleKicked();
             }
         });
+    }
+
+    /** 发送 SOS 求助：附最近定位（无定位则不带 lat/lng） */
+    private void sendSosMessage(String text) {
+        if (wsClient == null || !wsClient.isConnected()) {
+            Log.w(TAG, "SOS 发送失败: WebSocket 未连接");
+            return;
+        }
+        if (prefs.getPairCode() == null || prefs.getPairCode().isEmpty()) {
+            Log.w(TAG, "SOS 发送失败: 未配对");
+            return;
+        }
+        Double lat = null;
+        Double lng = null;
+        if (locationTracker != null && locationTracker.hasLocation()) {
+            lat = locationTracker.getLastLat();
+            lng = locationTracker.getLastLng();
+        }
+        WsMessage sos = WsMessage.createSos(prefs.getDeviceId(), prefs.getPairCode(), text, lat, lng);
+        boolean sent = wsClient.send(sos);
+        Log.i(TAG, "SOS 消息发送结果: " + sent + ", lat=" + lat + ", lng=" + lng);
+    }
+
+    /** 发送 SOS 回执「我没事」 */
+    private void sendSosAckMessage() {
+        if (wsClient == null || !wsClient.isConnected()) {
+            Log.w(TAG, "SOS 回执发送失败: WebSocket 未连接");
+            return;
+        }
+        if (prefs.getPairCode() == null || prefs.getPairCode().isEmpty()) {
+            Log.w(TAG, "SOS 回执发送失败: 未配对");
+            return;
+        }
+        WsMessage ack = WsMessage.createSosAck(
+                prefs.getDeviceId(), prefs.getPairCode(),
+                prefs.getNickname() != null ? prefs.getNickname() : getString(R.string.chat_title_default));
+        boolean sent = wsClient.send(ack);
+        Log.i(TAG, "SOS 回执发送结果: " + sent);
+    }
+
+    /** 收到对方 SOS：高优先级通知（含求救语+位置）+ 广播 UI */
+    private void handleSos(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object t = payload != null ? payload.get("text") : null;
+        String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
+
+        Object latObj = payload != null ? payload.get("lat") : null;
+        Object lngObj = payload != null ? payload.get("lng") : null;
+        String locationText = getString(R.string.sos_no_location);
+        if (latObj instanceof Number && lngObj instanceof Number) {
+            locationText = String.format(Locale.getDefault(), "%.6f, %.6f",
+                    ((Number) latObj).doubleValue(), ((Number) lngObj).doubleValue());
+        }
+
+        showSosNotification(text, locationText);
+        broadcastEvent(message);
+    }
+
+    /** 收到对方回执「我没事」：落库 system 提示 + 广播 UI */
+    private void handleSosAck(WsMessage message) {
+        long ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(
+                new ChatEntity("system", getString(R.string.sos_ack_chat), null, false, ts)));
+        broadcastEvent(message);
     }
 
     /** 对方资料变更：更新本地缓存并广播（聊天页头像/昵称/详情刷新） */
@@ -844,7 +955,58 @@ public class MonitorService extends Service {
             );
             eventChannel.setDescription("对方 App 切换通知");
             notificationManager.createNotificationChannel(eventChannel);
+
+            NotificationChannel sosChannel = new NotificationChannel(
+                    SOS_CHANNEL_ID,
+                    getString(R.string.sos_channel_name),
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            sosChannel.setDescription(getString(R.string.sos_channel_desc));
+            sosChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
+                    Notification.AUDIO_ATTRIBUTES_DEFAULT);
+            sosChannel.enableVibration(true);
+            sosChannel.setVibrationPattern(new long[]{0, 500, 300, 500});
+            notificationManager.createNotificationChannel(sosChannel);
         }
+    }
+
+    /** SOS 高优先级通知：标题+求救语+位置，「我没事」按钮发送回执 */
+    private void showSosNotification(String sosText, String locationText) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "缺少 POST_NOTIFICATIONS 权限，无法发送 SOS 通知");
+                return;
+            }
+        }
+
+        Intent open = new Intent(this, MainActivity.class);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent openPi = PendingIntent.getActivity(
+                this, (int) System.currentTimeMillis(), open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // 通知上的「我没事」按钮：借道服务发 sos_ack
+        Intent ack = new Intent(this, MonitorService.class);
+        ack.setAction(ACTION_SEND_SOS_ACK);
+        PendingIntent ackPi = PendingIntent.getService(
+                this, (int) System.currentTimeMillis(), ack,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new NotificationCompat.Builder(this, SOS_CHANNEL_ID)
+                .setContentTitle(getString(R.string.sos_notification_title))
+                .setContentText(getString(R.string.sos_notification_text, sosText, locationText))
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentIntent(openPi)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .addAction(R.drawable.ic_sos, getString(R.string.sos_ack_action), ackPi)
+                .build();
+
+        notificationManager.notify(NOTIFICATION_ID_SOS, notification);
+        Log.i(TAG, "SOS 通知已发送; 求救语=" + sosText + ", 位置=" + locationText);
     }
 
     private Notification createForegroundNotification() {
