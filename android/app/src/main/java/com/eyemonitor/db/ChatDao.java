@@ -23,6 +23,10 @@ public interface ChatDao {
     @Query("DELETE FROM chat")
     void clear();
 
+    /** 删除 timestamp 早于 beforeTs 的记录（30 天本地缓存保留清理） */
+    @Query("DELETE FROM chat WHERE timestamp < :beforeTs")
+    void deleteBefore(long beforeTs);
+
     /** 删除指定媒体的聊天气泡（media_deleted 双向同步时清理本地） */
     @Query("DELETE FROM chat WHERE kind = 'media' AND text = :fileId")
     void deleteMediaChat(String fileId);

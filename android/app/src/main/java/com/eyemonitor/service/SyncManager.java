@@ -39,6 +39,18 @@ public final class SyncManager {
         syncAnniversaries(context);
         syncFences(context);
         syncChats(context);
+        pruneLocalCaches(context);
+    }
+
+    /** 30 天保留清理（与服务器策略一致；媒体缓存不清理——媒体永久保留） */
+    public static void pruneLocalCaches(Context context) {
+        long cutoff = System.currentTimeMillis() - 30L * 24 * 3600 * 1000;
+        AppDatabase db = AppDatabase.getInstance(context);
+        AppDatabase.dbExecutor.execute(() -> {
+            db.cacheDao().deleteLocationsBefore(cutoff);
+            db.chatDao().deleteBefore(cutoff);
+            Log.d(TAG, "本地缓存 30 天保留清理完成");
+        });
     }
 
     /** 处理服务器推送的缓存级消息，保持本地缓存与服务器一致 */

@@ -10,4 +10,7 @@ public interface ChatMessageRepo extends JpaRepository<ChatMessageEntity, Long> 
     List<ChatMessageEntity> findByPairCodeAndTsGreaterThanOrderByTsAsc(String pairCode, long afterTs);
 
     void deleteByPairCode(String pairCode);
+
+    /** 删除 ts 早于 cutoff 的记录（30 天保留清理） */
+    long deleteByTsBefore(long cutoff);
 }

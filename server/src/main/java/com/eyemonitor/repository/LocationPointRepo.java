@@ -11,4 +11,7 @@ public interface LocationPointRepo extends JpaRepository<LocationPointEntity, Lo
             String pairCode, String deviceId, long start, long end);
 
     void deleteByPairCode(String pairCode);
+
+    /** 删除 ts 早于 cutoff 的记录（30 天保留清理） */
+    long deleteByTsBefore(long cutoff);
 }
