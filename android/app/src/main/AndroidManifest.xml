@@ -55,6 +55,21 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".ui.GalleryActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.MediaViewActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.VideoPlayerActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".ui.MonitorActivity"
             android:exported="false"
             android:launchMode="singleTop" />

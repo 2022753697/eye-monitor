@@ -162,4 +162,24 @@
     <string name="auth_error_network">网络错误</string>
     <string name="auth_error_expired">登录已过期</string>
     <string name="auth_error_response">服务器响应异常</string>
+
+    <!-- 媒体与共享图库（Wave2 多媒体） -->
+    <string name="gallery_title">共享图库</string>
+    <string name="menu_img_btn">图片</string>
+    <string name="media_download_hint">点击下载</string>
+    <string name="media_downloading">下载中…</string>
+    <string name="media_uploading">发送中…</string>
+    <string name="media_send_success">已发送</string>
+    <string name="media_upload_failed">发送失败：%1$s</string>
+    <string name="media_not_paired">请先配对</string>
+    <string name="media_download_failed">下载失败</string>
+    <string name="media_download_empty">下载内容为空</string>
+    <string name="media_file_missing">本地文件不存在</string>
+    <string name="media_play_failed">视频播放失败</string>
+    <string name="media_pick_failed">无法读取所选文件</string>
+    <string name="media_delete_title">删除媒体</string>
+    <string name="media_delete_confirm">确定删除该文件吗？双方共享图库都会同步删除。</string>
+    <string name="media_delete_failed">删除失败：%1$s</string>
+    <string name="video">视频</string>
+    <string name="gallery_empty">暂无共享媒体</string>
 </resources>
