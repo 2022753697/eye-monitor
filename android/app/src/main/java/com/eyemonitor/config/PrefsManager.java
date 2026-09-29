@@ -39,6 +39,7 @@ public class PrefsManager {
     private static final String KEY_PEER_BLUETOOTH = "peer_bluetooth";
     private static final String KEY_PEER_ONLINE = "peer_online";
     private static final String KEY_SOS_LAST_TRIGGER = "sos_last_trigger";
+    private static final String KEY_PAIR_AWAITING_PEER = "pair_awaiting_peer";
     private static final String KEY_PEER_DEVICE_ID = "peer_device_id";
     private final SharedPreferences prefs;
 
@@ -345,6 +346,15 @@ public class PrefsManager {
 
     public void setSosLastTrigger(long ts) {
         prefs.edit().putLong(KEY_SOS_LAST_TRIGGER, ts).apply();
+    }
+
+    /** 已创建配对码、等待对方加入（内存/持久化，创建后重启仍停留在配对面板显示码） */
+    public boolean isPairAwaitingPeer() {
+        return prefs.getBoolean(KEY_PAIR_AWAITING_PEER, false);
+    }
+
+    public void setPairAwaitingPeer(boolean awaiting) {
+        prefs.edit().putBoolean(KEY_PAIR_AWAITING_PEER, awaiting).apply();
     }
 
     /** 是否已配对 */

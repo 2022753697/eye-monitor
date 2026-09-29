@@ -93,6 +93,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:text="@string/btn_create_pair_code" />
+
+                <TextView
+                    android:id="@+id/tv_pair_result"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:paddingTop="12dp"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

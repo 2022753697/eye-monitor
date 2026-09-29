@@ -89,6 +89,16 @@ public class MainActivity extends AppCompatActivity {
     private EditText etPairCode;
     private Button btnJoinPair;
     private Button btnCreatePair;
+    private TextView tvPairResult;
+
+    // 内联配对状态（原 PairActivity 逻辑迁移到本页，不再跳独立页面）
+    private com.eyemonitor.websocket.WSClient pairWsClient;
+    private String pendingPairCode;
+    private boolean pendingPairJoin;
+    private boolean pairingComplete;
+    /** 已创建配对码、等待对方加入：期间停留在配对面板显示码，不切聊天页 */
+    private boolean pairAwaitingPeer;
+    private final android.os.Handler pairHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     // 聊天面板
     private View viewPairPanel;
@@ -200,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         etPairCode = findViewById(R.id.et_pair_code);
         btnJoinPair = findViewById(R.id.btn_join_pair);
         btnCreatePair = findViewById(R.id.btn_create_pair);
+        tvPairResult = findViewById(R.id.tv_pair_result);
 
         // 聊天面板
         viewChatPanel = findViewById(R.id.view_chat_panel);
@@ -230,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         btnJoinPair.setOnClickListener(v -> joinPair());
-        btnCreatePair.setOnClickListener(v -> startActivity(new Intent(this, PairActivity.class)));
+        btnCreatePair.setOnClickListener(v -> createPair());
         btnChatMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
         btnChatGallery.setOnClickListener(v -> startActivity(new Intent(this, GalleryActivity.class)));
         btnChatMore.setOnClickListener(v -> toggleMorePanel());
@@ -311,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
         tvAnniversaryCardCountdown = findViewById(R.id.tv_anniversary_card_countdown);
         viewAnniversaryCard.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
 
-        switchView(prefs.isPaired());
+        switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
         requestMissingRuntimePermissions();
     }
@@ -347,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        switchView(prefs.isPaired());
+        switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 配对成功后自动启动监控服务（实时检测服务运行状态）
         if (prefs.isPaired() && !isServiceRunning()) {
             startMonitoringService();
@@ -372,12 +383,18 @@ public class MainActivity extends AppCompatActivity {
         try {
             unregisterReceiver(kickedReceiver);
         } catch (Exception ignored) {}
+        // 配对未完成时断开配对 WS（配对成功后已移交 MonitorService，勿断开）
+        if (!pairingComplete) {
+            disconnectPairWs();
+        }
         super.onDestroy();
     }
 
     // --- 视图切换 ---
 
     private void switchView(boolean paired) {
+        Log.e(TAG, "*** switchView(paired=" + paired + ") awaiting=" + isPairAwaitingPeer()
+                + "\n" + Log.getStackTraceString(new Throwable()));
         if (paired) {
             viewPairPanel.setVisibility(View.GONE);
             viewChatPanel.setVisibility(View.VISIBLE);
@@ -456,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    // --- 配对面板逻辑（委托 PairActivity 执行配对） ---
+    // --- 配对面板逻辑（内联，不再跳转 PairActivity） ---
 
     private void joinPair() {
         String code = etPairCode.getText().toString().trim();
@@ -468,9 +485,166 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.pair_input_invalid, Toast.LENGTH_SHORT).show();
             return;
         }
-        Intent intent = new Intent(this, PairActivity.class);
-        intent.putExtra(PairActivity.EXTRA_PAIR_CODE, code);
-        startActivity(intent);
+        connectPairWs(code, true);
+    }
+
+    /** 创建配对：连 WS → 发 pair_request（不带码，服务端生成 6 位码） */
+    private void createPair() {
+        // 乐观置等待态：防止 monitor 的 pair_recover 广播抢先触发 switchView 切聊天页
+        pairAwaitingPeer = true;
+        prefs.setPairAwaitingPeer(true);
+        connectPairWs(null, false);
+    }
+
+    /** 统一配对连接入口；握手 401/403 时无感刷新 token 后重连一次 */
+    private void connectPairWs(String pairCode, boolean joining) {
+        disconnectPairWs();
+        pendingPairCode = pairCode;
+        pendingPairJoin = joining;
+        pairingComplete = false;
+        setPairResultVisible(getString(R.string.pair_connecting));
+
+        String serverUrl = prefs.getServerUrl();
+        pairWsClient = new com.eyemonitor.websocket.WSClient(serverUrl, new com.eyemonitor.websocket.WSClient.WsCallback() {
+            @Override
+            public void onConnected() {
+                Log.d(TAG, "WS 已连接（配对）");
+                setPairResultVisible(getString(R.string.pair_connecting));
+                WsMessage req = WsMessage.createPairRequest(prefs.getDeviceId(), pendingPairCode);
+                pairWsClient.send(req);
+            }
+
+            @Override
+            public void onMessage(com.eyemonitor.model.WsMessage message) {
+                runOnUiThread(() -> handlePairMessage(message));
+            }
+
+            @Override
+            public void onDisconnected() {
+                runOnUiThread(() -> {
+                    if (!pairingComplete) {
+                        setPairResultVisible(getString(R.string.pair_disconnected));
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String msg) {
+                runOnUiThread(() -> setPairResultVisible(getString(R.string.pair_connect_failed, msg)));
+            }
+
+            @Override
+            public void onAuthExpired() {
+                runOnUiThread(() -> refreshPairTokenAndRetry());
+            }
+        });
+
+        pairWsClient.setAuthToken(prefs.getAccessToken());
+        pairWsClient.connect();
+    }
+
+    /** 握手 401/403：无感刷新 token 后携带新 token 重连（token 过期/被踢场景） */
+    private void refreshPairTokenAndRetry() {
+        setPairResultVisible(getString(R.string.pair_connecting));
+        AuthManager.i(this).refresh(this, new AuthManager.Callback() {
+            @Override
+            public void onSuccess(com.google.gson.JsonObject data) {
+                Log.d(TAG, "配对握手 token 已无感刷新，重连");
+                if (pairWsClient != null) {
+                    pairWsClient.setAuthToken(new PrefsManager(MainActivity.this).getAccessToken());
+                    pairWsClient.connect();
+                }
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                setPairResultVisible(getString(R.string.auth_error_expired));
+                Log.w(TAG, "配对握手 token 刷新失败（token 族已吊销/过期）: " + code + " " + msg);
+                // 单设备登录吊销或 refresh 过期：清空登录态，回登录页（用户重新登录换新 token）
+                new PrefsManager(MainActivity.this).clearAuth();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                finish();
+            }
+        });
+    }
+
+    private void handlePairMessage(com.eyemonitor.model.WsMessage message) {
+        switch (message.getType()) {
+            case "pair_confirm":
+                pairingComplete = true;
+                String code = message.getPayload() != null
+                        ? (String) message.getPayload().get("pairCode") : null;
+                Object peerOnlineObj = message.getPayload() != null
+                        ? message.getPayload().get("peerOnline") : null;
+                boolean peerOnline = peerOnlineObj instanceof Boolean ? (Boolean) peerOnlineObj : false;
+                if (code != null) {
+                    prefs.setPairCode(code);
+                    if (peerOnline) {
+                        // 配对真正完成（对方已加入）：结束等待态
+                        pairAwaitingPeer = false;
+                        prefs.setPairAwaitingPeer(false);
+                        setPairResultVisible(getString(R.string.pair_success_with_code, code));
+                        Toast.makeText(this, R.string.pair_success, Toast.LENGTH_SHORT).show();
+                    } else {
+                        // 已创建 / 已恢复配对：等待对方加入，停留在配对面板（码本页可见）
+                        pairAwaitingPeer = true;
+                        prefs.setPairAwaitingPeer(true);
+                        // 直接强制停留配对面板（覆盖可能已发生的 switchView(true)），码内联显示
+                        viewPairPanel.setVisibility(android.view.View.VISIBLE);
+                        viewChatPanel.setVisibility(android.view.View.GONE);
+                        setPairResultVisible(getString(R.string.pair_code_share, code));
+                        Toast.makeText(this, R.string.pair_created_share, Toast.LENGTH_LONG).show();
+                    }
+                    // 启动监控服务，由它管理 WebSocket 与 App 切换监控
+
+                    startMonitorAfterPair();
+                }
+                break;
+
+            case "error":
+                String errMsg = message.getPayload() != null
+                        ? (String) message.getPayload().get("message") : getString(R.string.pair_failed, "");
+                setPairResultVisible(getString(R.string.pair_failed, errMsg));
+                Toast.makeText(this, errMsg, Toast.LENGTH_LONG).show();
+                pairAwaitingPeer = false;
+                prefs.setPairAwaitingPeer(false);
+                disconnectPairWs();
+                break;
+
+            default:
+                setPairResultVisible(getString(R.string.pair_unknown_response, message.getType()));
+        }
+    }
+
+    /** 创建配对后等待对方加入（配对面板停留态）：优先内存标志，其次 prefs 持久值 */
+    private boolean isPairAwaitingPeer() {
+        return pairAwaitingPeer || prefs.isPairAwaitingPeer();
+    }
+
+    private void setPairResultVisible(String text) {
+        if (tvPairResult != null) {
+            tvPairResult.setText(text);
+            tvPairResult.setVisibility(android.view.View.VISIBLE);
+        }
+    }
+
+    private void disconnectPairWs() {
+        pairHandler.removeCallbacksAndMessages(null);
+        if (pairWsClient != null) {
+            pairWsClient.disconnect();
+            pairWsClient = null;
+        }
+    }
+
+    /** 配对成功后：WSClient 交给 MonitorService 管理并启动前台服务 */
+    private void startMonitorAfterPair() {
+        MonitorService.setSharedWSClient(pairWsClient);
+        Intent intent = new Intent(this, MonitorService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
     }
 
     // --- 聊天逻辑 ---
@@ -701,8 +875,14 @@ public class MainActivity extends AppCompatActivity {
                         ? message.getPayload().get("peerOnline") : null;
                 if (peerOnlineObj instanceof Boolean) {
                     prefs.setPeerOnline((Boolean) peerOnlineObj);
+                    // 对方已加入（配对真正完成）：结束等待态，切聊天页
+                    if ((Boolean) peerOnlineObj) {
+                        pairAwaitingPeer = false;
+                        prefs.setPairAwaitingPeer(false);
+                    }
                 }
-                switchView(prefs.isPaired());
+                boolean showChat = prefs.isPaired() && !isPairAwaitingPeer();
+                switchView(showChat);
                 refreshPeerStatus();
                 break;
             case "device_status":
@@ -1081,6 +1261,9 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(R.string.dialog_unpair_message)
                 .setPositiveButton(R.string.ok, (d, w) -> {
                     prefs.clearPairCode();
+                    // 清除“等对方加入”停留态，避免残留影响后续流程
+                    pairAwaitingPeer = false;
+                    prefs.setPairAwaitingPeer(false);
                     stopService(new Intent(this, MonitorService.class));
                     AppDatabase.dbExecutor.execute(() ->
                             AppDatabase.getInstance(this).chatDao().clear());

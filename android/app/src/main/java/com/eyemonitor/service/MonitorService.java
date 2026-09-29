@@ -1260,7 +1260,10 @@ public class MonitorService extends Service {
 
     /** 本地 WS 连接恢复：向 UI 广播对方在线（服务器随后会推送 pair_confirm 修正） */
     private void broadcastPeerOnline() {
-        broadcastPeerState(true);
+        // 本机仍处于“等待对方加入”阶段时，对端并未上线：合成 false，
+        // 避免 MainActivity 误把 awaiting 清掉、提前切到聊天页（配对码还没看就不见了）
+        boolean online = !prefs.isPairAwaitingPeer();
+        broadcastPeerState(online);
     }
 
     /** 本地 WS 断开：广播对方离线（UI 顶栏置灰，连接恢复前无法获知对方状态） */

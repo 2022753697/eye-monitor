@@ -90,11 +90,6 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.PairActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-
-        <activity
             android:name=".ui.DeviceStatusActivity"
             android:exported="false"
             android:launchMode="singleTop" />
