@@ -155,7 +155,7 @@
 
                     <ImageView
                         android:id="@+id/iv_peer_battery"
-                        android:layout_width="16dp"
+                        android:layout_width="12dp"
                         android:layout_height="16dp"
                         android:src="@drawable/ic_battery_lv2"
                         android:contentDescription="电量" />
@@ -165,13 +165,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="12sp"
-                        android:layout_marginStart="3dp" />
+                        android:textSize="10sp"
+                        android:layout_marginStart="2dp" />
 
                     <ImageView
                         android:id="@+id/iv_peer_charging"
-                        android:layout_width="13dp"
-                        android:layout_height="13dp"
+                        android:layout_width="10dp"
+                        android:layout_height="12dp"
                         android:src="@drawable/ic_charging_off"
                         android:contentDescription="充电状态"
                         android:layout_marginStart="6dp" />
@@ -181,13 +181,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="12sp"
-                        android:layout_marginStart="6dp" />
+                        android:textSize="10sp"
+                        android:layout_marginStart="4dp" />
 
                     <ImageView
                         android:id="@+id/iv_peer_bluetooth"
-                        android:layout_width="13dp"
-                        android:layout_height="13dp"
+                        android:layout_width="10dp"
+                        android:layout_height="12dp"
                         android:src="@drawable/ic_bluetooth_off"
                         android:contentDescription="蓝牙"
                         android:layout_marginStart="6dp" />
@@ -197,23 +197,39 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="12sp"
-                        android:layout_marginStart="6dp" />
+                        android:textSize="10sp"
+                        android:layout_marginStart="4dp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- SOS 冷却倒计时（触发后显示剩余秒数） -->
-            <TextView
-                android:id="@+id/tv_sos_countdown"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_on_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:minWidth="22dp"
-                android:gravity="center"
-                android:visibility="gone"
-                android:layout_marginEnd="2dp" />
+            <!-- 纪念日：爱心图标，内嵌倒计时天数（中间、适中），点击进纪念日页 -->
+            <FrameLayout
+                android:id="@+id/view_anniversary_heart"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="2dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_heart"
+                    android:contentDescription="纪念日" />
+
+                <TextView
+                    android:id="@+id/tv_anniversary_heart_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:gravity="center" />
+            </FrameLayout>
 
             <!-- 共享地图（图标 + 文字） -->
             <LinearLayout
@@ -273,8 +289,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 纪念日倒计时卡片（最近一个，无数据时隐藏） -->
-        <include layout="@layout/view_anniversary_card" />
 
         <!-- 消息列表 -->
         <androidx.recyclerview.widget.RecyclerView

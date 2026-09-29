@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
+    android:width="14dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <!-- 电量图标 Lv0（近乎空） -->
+    <!-- 竖版电量图标 lv0 -->
+    <path android:fillColor="#9A8B8D" android:pathData="M10.5,3h3v3.5h-3z" />
     <path android:fillColor="#9A8B8D"
-        android:pathData="M5,8h13a2,2 0 0 1 2,2v4a2,2 0 0 1 -2,2h-13a2,2 0 0 1 -2,-2v-4a2,2 0 0 1 2,-2z" />
-    <path android:fillColor="#9A8B8D" android:pathData="M20,10.5h2v3h-2z" />
-    <path android:fillColor="#FFB4A2" android:pathData="M6.5,9.5h1.8v5h-1.8z" />
+        android:pathData="M8.5,6.5h7a2,2 0 0 1 2,2v10a2,2 0 0 1 -2,2h-7a2,2 0 0 1 -2,-2v-10a2,2 0 0 1 2,-2z" />
+    <path android:fillColor="#FFB4A2" android:pathData="M7.5,18h9v1.5h-9z" />
 </vector>

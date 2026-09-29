@@ -122,9 +122,9 @@ public class MainActivity extends AppCompatActivity {
     private View bottomBar;
     private View morePanel;
 
-    // 纪念日倒计时卡片
-    private View viewAnniversaryCard;
-    private TextView tvAnniversaryCardCountdown;
+    // 纪念日：头栏爱心（内嵌倒计时天数）
+    private View viewAnniversaryHeart;
+    private TextView tvAnniversaryHeartCount;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
 
@@ -308,10 +308,10 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setLayoutManager(new LinearLayoutManager(this));
         rvChat.setAdapter(chatAdapter);
 
-        // 首页纪念日倒计时卡片（点击进入纪念日页）
-        viewAnniversaryCard = findViewById(R.id.view_anniversary_card);
-        tvAnniversaryCardCountdown = findViewById(R.id.tv_anniversary_card_countdown);
-        viewAnniversaryCard.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
+        // 纪念日：头栏爱心（点击进纪念日页）
+        viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
+        tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
+        viewAnniversaryHeart.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
@@ -971,6 +971,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** 刷新首页纪念日倒计时卡片：读 Room 缓存找最近一个，无数据隐藏卡片 */
+    /** 刷新头栏爱心：显示最近纪念日倒计时天数；无数据显示「+」引导 */
     private void refreshAnniversaryCard() {
         AppDatabase.dbExecutor.execute(() -> {
             List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
@@ -978,16 +979,12 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 AnniversaryCacheEntity nearest = AnniversaryUtils.findNearest(list);
                 if (nearest == null || nearest.name == null) {
-                    // 空态：卡片常驻显示引导入口（无数据时用户也能找到纪念日功能）
-                    tvAnniversaryCardCountdown.setText(R.string.anniversary_card_empty);
-                    viewAnniversaryCard.setVisibility(View.VISIBLE);
+                    // 无数据：爱心内显示「+」，点击添加
+                    tvAnniversaryHeartCount.setText("+");
                     return;
                 }
                 long days = AnniversaryUtils.daysUntilNext(nearest, AnniversaryUtils.today());
-                tvAnniversaryCardCountdown.setText(days == 0
-                        ? getString(R.string.anniversary_countdown_today, nearest.name)
-                        : getString(R.string.anniversary_countdown_days, nearest.name, days));
-                viewAnniversaryCard.setVisibility(View.VISIBLE);
+                tvAnniversaryHeartCount.setText(String.valueOf(days));
             });
         });
     }
