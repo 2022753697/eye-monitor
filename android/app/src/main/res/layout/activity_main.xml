@@ -397,7 +397,7 @@
                 android:maxWidth="200dp"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="-8dp" />
+                android:layout_marginTop="3dp" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>
