@@ -392,8 +392,9 @@ public class AuthManager {
             String msg = obj.has("msg") && !obj.get("msg").isJsonNull()
                     ? obj.get("msg").getAsString() : "";
             JsonElement data = obj.get("data");
-            if (code == 0 && data != null && !data.isJsonNull() && data.isJsonObject()) {
-                cb.onSuccess(data.getAsJsonObject());
+            if (code == 0 && (data == null || data.isJsonNull() || data.isJsonObject())) {
+                // 部分接口（如 DELETE /api/fences/{id} 等）成功响应 data 为 null，仍视为成功
+                cb.onSuccess(data != null && data.isJsonObject() ? data.getAsJsonObject() : new JsonObject());
             } else {
                 cb.onError(code, msg != null && !msg.isEmpty() ? msg : raw);
             }
