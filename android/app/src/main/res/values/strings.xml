@@ -117,4 +117,49 @@
     <string name="btn_open_accessibility">开启无障碍服务</string>
     <string name="btn_open_usage_stats">开启使用情况访问</string>
     <string name="dialog_monitor_permission_fallback">请前往系统设置 → 应用 → 眼互 → 使用情况访问中开启</string>
+
+    <!-- 登录 / 注册（R29 账户体系） -->
+    <string name="login_title">登录</string>
+    <string name="login_subtitle">眼互 · 恋爱守护</string>
+    <string name="login_username_hint">用户名</string>
+    <string name="login_password_hint">密码</string>
+    <string name="login_button">登录</string>
+    <string name="login_go_register">没有账号？去注册</string>
+    <string name="login_loading">登录中…</string>
+    <string name="login_failed">登录失败：%1$s</string>
+    <string name="login_required_tip">请先登录</string>
+    <string name="reg_title">注册</string>
+    <string name="reg_nickname_hint">昵称（对方看到的名字）</string>
+    <string name="reg_birthday_hint">生日（可选，如 2000-01-01）</string>
+    <string name="reg_bio_hint">个性签名（可选）</string>
+    <string name="reg_gender_label">性别</string>
+    <string name="reg_button">注册</string>
+    <string name="reg_go_login">已有账号？去登录</string>
+    <string name="reg_failed">注册失败：%1$s</string>
+    <string name="gender_option_female">女</string>
+    <string name="gender_option_male">男</string>
+
+    <!-- 被顶替下线 -->
+    <string name="kicked_toast">账号已在其他设备登录，请重新登录</string>
+
+    <!-- 我的主页（R29 资料与头像） -->
+    <string name="profile_title">我的主页</string>
+    <string name="menu_profile">我的主页</string>
+    <string name="profile_avatar_hint">点击更换头像</string>
+    <string name="profile_nickname_label">昵称</string>
+    <string name="profile_gender_label">性别</string>
+    <string name="profile_birthday_label">生日</string>
+    <string name="profile_birthday_hint">如 2000-01-01</string>
+    <string name="profile_bio_label">个性签名</string>
+    <string name="profile_bio_hint">写点什么…</string>
+    <string name="profile_save">保存</string>
+    <string name="profile_saved">资料已保存</string>
+    <string name="profile_save_failed">保存失败：%1$s</string>
+    <string name="profile_loading">加载中…</string>
+    <string name="profile_avatar_upload_failed">头像上传失败</string>
+
+    <!-- AuthManager 通用错误 -->
+    <string name="auth_error_network">网络错误</string>
+    <string name="auth_error_expired">登录已过期</string>
+    <string name="auth_error_response">服务器响应异常</string>
 </resources>

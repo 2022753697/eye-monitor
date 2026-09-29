@@ -42,12 +42,19 @@ public class WSClient {
         void onDisconnected();
         /** 发生错误 */
         void onError(String message);
+        /** 被顶替下线（服务端 error{KICKED}）——默认空实现，不强制实现方改 */
+        default void onKicked(WsMessage message) {}
+        /** token 失效未通过鉴权（握手 401/403）——由监听方触发无感刷新后重连 */
+        default void onAuthExpired() {}
     }
 
     private final OkHttpClient client;
     private final String serverUrl;
     private WsCallback callback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    /** 握手令牌（可热更新：无感刷新后 setAuthToken + connect 重连） */
+    private volatile String authToken;
 
     private WebSocket webSocket;
     private boolean connected;
@@ -110,6 +117,11 @@ public class WSClient {
         return callback;
     }
 
+    /** 设置握手令牌（无感刷新后调用 connect() 携带新 token 重连） */
+    public void setAuthToken(String token) {
+        this.authToken = token;
+    }
+
     // --- 内部方法 ---
 
     private void doConnect() {
@@ -118,9 +130,14 @@ public class WSClient {
         cancelReconnect();
         closeWebSocket();
 
-        Log.d(TAG, "正在连接: " + serverUrl);
+        String url = serverUrl;
+        if (authToken != null && !authToken.isEmpty()) {
+            url = url + (url.contains("?") ? "&token=" : "?token=") + authToken;
+            Log.d(TAG, "连接携带 token: " + url.replace(authToken, "***"));
+        }
+        Log.d(TAG, "正在连接: " + url);
         Request request = new Request.Builder()
-                .url(serverUrl)
+                .url(url)
                 .build();
         webSocket = client.newWebSocket(request, new WsListener());
     }
@@ -207,6 +224,12 @@ public class WSClient {
             // 直接调用回调（OkHttp在后台线程调用，但broadcast不依赖主线程）
             if (callback != null) {
                 try {
+                    // 被顶替下线：先通知 onKicked，再由调用方决定收发与清理
+                    if ("error".equals(msg.getType()) && msg.getPayload() != null
+                            && "KICKED".equals(msg.getPayload().get("code"))) {
+                        Log.w(TAG, "收到 KICKED，触发 onKicked 回调");
+                        callback.onKicked(msg);
+                    }
                     Log.i(TAG, "调用回调 onMessage, thread=" + Thread.currentThread().getName());
                     callback.onMessage(msg);
                     Log.i(TAG, "回调完成");
@@ -238,11 +261,18 @@ public class WSClient {
 
         @Override
         public void onFailure(WebSocket ws, Throwable t, Response response) {
-            Log.e(TAG, "连接失败: " + (t != null ? t.getMessage() : "未知错误"));
+            Log.e(TAG, "连接失败: " + (t != null ? t.getMessage() : "未知错误")
+                    + ", httpCode=" + (response != null ? response.code() : -1));
             mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     notifyDisconnected();
+                    // 握手鉴权失败（token 过期/吊销）：交回上层无感刷新，不再盲目重连带旧 token
+                    if (response != null && (response.code() == 401 || response.code() == 403)) {
+                        Log.w(TAG, "握手鉴权失败，触发 onAuthExpired");
+                        if (callback != null) callback.onAuthExpired();
+                        return;
+                    }
                     if (callback != null) {
                         callback.onError(t != null ? t.getMessage() : "连接失败");
                     }

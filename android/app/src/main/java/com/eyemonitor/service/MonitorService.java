@@ -17,6 +17,7 @@ import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
 
 import com.eyemonitor.R;
+import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
@@ -52,6 +53,15 @@ public class MonitorService extends Service {
     public static final String EXTRA_CHAT_FROM = "chat_from";
     // 地图打开时主动触发一次本机位置上报（让 selfMarker 尽快创建并聚焦）
     public static final String ACTION_REQUEST_SELF_LOCATION = "com.eyemonitor.REQUEST_SELF_LOCATION";
+    // 被顶替下线（单设备登录）：通知 UI 清登录态回登录页
+    public static final String ACTION_KICKED = "com.eyemonitor.KICKED";
+    // 资料变更后广播 user_profile 给对方
+    public static final String ACTION_BROADCAST_PROFILE = "com.eyemonitor.BROADCAST_PROFILE";
+    public static final String EXTRA_PROFILE_NICKNAME = "profile_nickname";
+    public static final String EXTRA_PROFILE_AVATAR = "profile_avatar";
+    public static final String EXTRA_PROFILE_GENDER = "profile_gender";
+    public static final String EXTRA_PROFILE_BIRTHDAY = "profile_birthday";
+    public static final String EXTRA_PROFILE_BIO = "profile_bio";
 
     // 静态引用：PairActivity 配对成功后将 WSClient 交给 MonitorService
     private static WSClient sharedWSClient;
@@ -120,6 +130,20 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 资料变更后广播 user_profile 给对方（借道 MonitorService 的 WebSocket） */
+    public static void sendProfileUpdate(Context context, String nickname, String avatar,
+                                         String gender, String birthday, String bio) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_BROADCAST_PROFILE);
+        if (nickname != null) intent.putExtra(EXTRA_PROFILE_NICKNAME, nickname);
+        if (avatar != null) intent.putExtra(EXTRA_PROFILE_AVATAR, avatar);
+        if (gender != null) intent.putExtra(EXTRA_PROFILE_GENDER, gender);
+        if (birthday != null) intent.putExtra(EXTRA_PROFILE_BIRTHDAY, birthday);
+        if (bio != null) intent.putExtra(EXTRA_PROFILE_BIO, bio);
+        context.startService(intent);
+    }
+
     /** PairActivity 配对成功后调用，将 WSClient 转移给 MonitorService */
     public static void setSharedWSClient(WSClient client) {
         sharedWSClient = client;
@@ -152,6 +176,25 @@ public class MonitorService extends Service {
         if (intent != null && ACTION_REQUEST_SELF_LOCATION.equals(intent.getAction())) {
             Log.i(TAG, "地图请求本机位置上报");
             sendLocation();
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_BROADCAST_PROFILE.equals(intent.getAction())) {
+            Log.i(TAG, "收到资料变更广播");
+            String nickname = intent.getStringExtra(EXTRA_PROFILE_NICKNAME);
+            String avatar = intent.getStringExtra(EXTRA_PROFILE_AVATAR);
+            String gender = intent.getStringExtra(EXTRA_PROFILE_GENDER);
+            String birthday = intent.getStringExtra(EXTRA_PROFILE_BIRTHDAY);
+            String bio = intent.getStringExtra(EXTRA_PROFILE_BIO);
+            if (wsClient != null && prefs.getPairCode() != null) {
+                WsMessage profileMsg = WsMessage.createUserProfile(prefs.getDeviceId(),
+                        prefs.getPairCode(), nickname, avatar, gender, birthday, bio);
+                boolean sent = wsClient.send(profileMsg);
+                Log.i(TAG, "user_profile 广播发送: " + sent);
+            } else {
+                Log.w(TAG, "user_profile 广播跳过: wsClient=" + wsClient
+                        + ", paired=" + (prefs.getPairCode() != null));
+            }
             return START_NOT_STICKY;
         }
 
@@ -243,6 +286,7 @@ public class MonitorService extends Service {
                     if (!accessibilityListenerSet && AppAccessibilityService.getInstance() != null) {
                         setupAccessibilityListener();
                     }
+                    SyncManager.syncAll(MonitorService.this);
                 }
 
                 @Override
@@ -261,7 +305,19 @@ public class MonitorService extends Service {
                 public void onError(String msg) {
                     Log.e(TAG, "WebSocket 错误: " + msg);
                 }
+
+                @Override
+                public void onKicked(WsMessage message) {
+                    handleKicked();
+                }
+
+                @Override
+                public void onAuthExpired() {
+                    handleAuthExpired();
+                }
             });
+            // 复用连接也确保带上最新 token（无感刷新后热更新）
+            wsClient.setAuthToken(prefs.getAccessToken());
             // 如果连接已建立，直接触发回调
             if (wsClient.isConnected()) {
                 Log.i(TAG, "WS 已连接，立即触发 onConnected 回调");
@@ -288,6 +344,7 @@ public class MonitorService extends Service {
                 if (!accessibilityListenerSet && AppAccessibilityService.getInstance() != null) {
                     setupAccessibilityListener();
                 }
+                SyncManager.syncAll(MonitorService.this);
             }
 
             @Override
@@ -306,8 +363,19 @@ public class MonitorService extends Service {
             public void onError(String msg) {
                 Log.e(TAG, "WebSocket 错误: " + msg);
             }
+
+            @Override
+            public void onKicked(WsMessage message) {
+                handleKicked();
+            }
+
+            @Override
+            public void onAuthExpired() {
+                handleAuthExpired();
+            }
         });
 
+        wsClient.setAuthToken(prefs.getAccessToken());
         wsClient.connect();
     }
 
@@ -464,6 +532,17 @@ public class MonitorService extends Service {
             case "request_peer_location":
                 handleRequestPeerLocation(message);
                 break;
+            case "user_profile":
+                handleUserProfile(message);
+                break;
+            case "anniversary_sync":
+            case "fence_sync":
+            case "media":
+            case "media_deleted":
+                // 服务器真源 -> 更新本地缓存（Wave-2 功能读缓存）
+                SyncManager.handleWsMessage(this, message);
+                broadcastEvent(message);
+                break;
             case "error":
                 Log.w(TAG, "服务器错误: " + message.getPayload());
                 // 广播给 UI（如配对失效需要清空本地配对并提示重新配对）
@@ -472,6 +551,54 @@ public class MonitorService extends Service {
             default:
                 Log.d(TAG, "未处理消息类型: " + message.getType());
         }
+    }
+
+    /** 被顶替下线：断开 WS、广播 KICKED、停服务（UI 收到后清登录态回登录页） */
+    private void handleKicked() {
+        Log.w(TAG, "=== 被顶替下线（KICKED）===");
+        if (wsClient != null) wsClient.disconnect();
+        wsInitialized = false;
+        sendBroadcast(new Intent(ACTION_KICKED));
+        stopForeground(true);
+        stopSelf();
+    }
+
+    /** WS 握手鉴权失败：无感刷新 token 后重连；refresh 失败则按下线处理 */
+    private void handleAuthExpired() {
+        Log.w(TAG, "WS 握手鉴权失败，尝试无感刷新");
+        AuthManager.i(this).refresh(this, new AuthManager.Callback() {
+            @Override
+            public void onSuccess(com.google.gson.JsonObject data) {
+                if (wsClient != null) {
+                    wsClient.setAuthToken(prefs.getAccessToken());
+                    wsClient.connect();
+                }
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                Log.w(TAG, "无感刷新失败，按下线处理: " + msg);
+                handleKicked();
+            }
+        });
+    }
+
+    /** 对方资料变更：更新本地缓存并广播（聊天页头像/昵称/详情刷新） */
+    private void handleUserProfile(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        if (payload != null) {
+            Object nickname = payload.get("nickname");
+            if (nickname instanceof String) prefs.setPeerNickname((String) nickname);
+            Object avatar = payload.get("avatar");
+            if (avatar instanceof String) prefs.setPeerAvatar((String) avatar);
+            Object gender = payload.get("gender");
+            if (gender instanceof String) prefs.setPeerGender((String) gender);
+            Object birthday = payload.get("birthday");
+            if (birthday instanceof String) prefs.setPeerBirthday((String) birthday);
+            Object bio = payload.get("bio");
+            if (bio instanceof String) prefs.setPeerBio((String) bio);
+        }
+        broadcastEvent(message);
     }
 
     private void handleRequestPeerLocation(WsMessage message) {

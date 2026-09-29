@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -26,6 +27,8 @@ import com.eyemonitor.websocket.WSClient;
  * 2. 加入配对 -> 输入 6 位码，加入已有配对
  */
 public class PairActivity extends AppCompatActivity {
+
+    private static final String TAG = "PairActivity";
 
     /** 首页传入的配对码（自动加入模式） */
     public static final String EXTRA_PAIR_CODE = "pair_code";
@@ -104,6 +107,7 @@ public class PairActivity extends AppCompatActivity {
         wsClient = new WSClient(serverUrl, new WSClient.WsCallback() {
             @Override
             public void onConnected() {
+                Log.d(TAG, "WS 已连接（配对）");
                 // 连接成功后发送配对请求
                 WsMessage req = WsMessage.createPairRequest(prefs.getDeviceId(), pairCode);
                 wsClient.send(req);
@@ -131,6 +135,8 @@ public class PairActivity extends AppCompatActivity {
             }
         });
 
+        // 登录态下握手必须携带 token（服务端 HandlerInterceptor 校验）
+        wsClient.setAuthToken(prefs.getAccessToken());
         wsClient.connect();
     }
 

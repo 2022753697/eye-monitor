@@ -30,6 +30,16 @@
             android:value="5f515952a44606346312113f4d0d63d3" />
 
         <activity
+            android:name=".ui.LoginActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.ProfileActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".ui.MainActivity"
             android:exported="true"
             android:launchMode="singleTop">

@@ -96,12 +96,36 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /** 被顶替下线：清登录态回登录页 */
+    private final BroadcastReceiver kickedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            runOnUiThread(() -> {
+                prefs.clearAuth();
+                stopService(new Intent(MainActivity.this, MonitorService.class));
+                Toast.makeText(MainActivity.this, R.string.kicked_toast, Toast.LENGTH_LONG).show();
+                Intent go = new Intent(MainActivity.this, LoginActivity.class);
+                go.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(go);
+                finish();
+            });
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         prefs = new PrefsManager(this);
+
+        // 强制登录：无 token 先去登录页（登录成功再回主界面）
+        if (!prefs.isLoggedIn()) {
+            Log.d(TAG, "未登录，进入登录页");
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
 
         // 配对面板
         viewPairPanel = findViewById(R.id.view_pair_panel);
@@ -124,6 +148,14 @@ public class MainActivity extends AppCompatActivity {
             registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
         } else {
             registerReceiver(eventReceiver, filter);
+        }
+
+        // 被顶替下线（单设备登录）
+        IntentFilter kickedFilter = new IntentFilter(MonitorService.ACTION_KICKED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(kickedReceiver, kickedFilter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(kickedReceiver, kickedFilter);
         }
 
         btnJoinPair.setOnClickListener(v -> joinPair());
@@ -166,6 +198,10 @@ public class MainActivity extends AppCompatActivity {
         morePanel.findViewById(R.id.grid_clear).setOnClickListener(v -> {
             hideMorePanel();
             clearChatHistory();
+        });
+        morePanel.findViewById(R.id.grid_profile).setOnClickListener(v -> {
+            hideMorePanel();
+            startActivity(new Intent(this, ProfileActivity.class));
         });
 
         // 发送按钮状态色：无输入灰 / 有输入粉
@@ -239,6 +275,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         unregisterReceiver(eventReceiver);
+        try {
+            unregisterReceiver(kickedReceiver);
+        } catch (Exception ignored) {}
         super.onDestroy();
     }
 
