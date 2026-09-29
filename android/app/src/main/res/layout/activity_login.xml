@@ -184,7 +184,7 @@
                     android:textSize="14sp"
                     android:layout_marginBottom="6dp" />
 
-                <LinearLayout
+                <RadioGroup
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -207,7 +207,7 @@
                         android:layout_weight="1"
                         android:text="@string/gender_option_male"
                         android:textColor="@color/text_primary" />
-                </LinearLayout>
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btn_register"

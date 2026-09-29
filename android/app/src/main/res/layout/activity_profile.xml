@@ -51,20 +51,12 @@
                     android:id="@+id/iv_avatar"
                     android:layout_width="92dp"
                     android:layout_height="92dp"
+                    android:layout_gravity="center"
                     android:src="@drawable/avatar_female"
                     android:contentDescription="@string/profile_avatar_hint"
                     android:clickable="true"
                     android:focusable="true"
                     android:background="?attr/selectableItemBackgroundBorderless" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|center_horizontal"
-                    android:text="@string/profile_avatar_hint"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="@dimen/text_12"
-                    android:layout_marginTop="2dp" />
             </FrameLayout>
 
             <!-- 编辑卡片 -->
@@ -101,7 +93,7 @@
                     android:textSize="@dimen/text_14"
                     android:layout_marginBottom="6dp" />
 
-                <LinearLayout
+                <RadioGroup
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -125,7 +117,7 @@
                         android:layout_weight="1"
                         android:text="@string/gender_option_male"
                         android:textColor="@color/text_primary" />
-                </LinearLayout>
+                </RadioGroup>
 
                 <TextView
                     android:layout_width="match_parent"
