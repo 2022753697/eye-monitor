@@ -48,6 +48,12 @@ public class AuthManager {
         void onError(int code, String msg);
     }
 
+    /** 二进制下载回调（GET /api/media/{fileId} 等非 JSON 接口） */
+    public interface DownloadCallback {
+        void onSuccess(File file);
+        void onError(int code, String msg);
+    }
+
     public static AuthManager i(Context context) {
         if (INSTANCE == null) {
             synchronized (AuthManager.class) {
@@ -173,6 +179,22 @@ public class AuthManager {
         execAuthed(ctx, "PUT", "/api/user/avatar", body, cb);
     }
 
+    /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode */
+    public void uploadMedia(Context ctx, File file, String pairCode, Callback cb) {
+        RequestBody fileBody = RequestBody.create(file, OCTET);
+        MultipartBody body = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.getName(), fileBody)
+                .addFormDataPart("pairCode", pairCode)
+                .build();
+        execAuthed(ctx, "POST", "/api/media/upload", body, cb);
+    }
+
+    /** 下载媒体到本地缓存文件（GET /api/media/{fileId}，Range 由 OkHttp 透明处理） */
+    public void downloadMedia(Context ctx, String fileId, File target, DownloadCallback cb) {
+        execDownload(ctx, "/api/media/" + fileId, target, cb, new AtomicBoolean(false));
+    }
+
     // --- 内部实现 ---
 
     private void postPublic(Context ctx, String path, String jsonBody,
@@ -250,6 +272,80 @@ public class AuthManager {
                         deliver(ctx, resp, cb);
                     }
                 });
+            }
+        });
+    }
+
+    /**
+     * 二进制下载：先写 .part 临时文件，成功后原子改名 target；
+     * 401/403 无感刷新后重试一次（与 execAuthed 语义一致）。
+     */
+    private void execDownload(Context ctx, String apiPath, File target,
+                              DownloadCallback cb, AtomicBoolean refreshedOnce) {
+        PrefsManager prefs = new PrefsManager(ctx);
+        Request.Builder rb = new Request.Builder()
+                .url(prefs.getApiBaseUrl() + apiPath);
+        if (prefs.getAccessToken() != null) {
+            rb.header("Authorization", "Bearer " + prefs.getAccessToken());
+        }
+        http.newCall(rb.build()).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(Call c, IOException e) {
+                cb.onError(-1, e.getMessage() != null ? e.getMessage()
+                        : ctx.getString(R.string.auth_error_network));
+            }
+
+            @Override
+            public void onResponse(Call c, Response resp) throws IOException {
+                int code = resp.code();
+                if ((code == 401 || code == 403) && !refreshedOnce.getAndSet(true)) {
+                    resp.close();
+                    refresh(ctx, new Callback() {
+                        @Override
+                        public void onSuccess(JsonObject data) {
+                            execDownload(ctx, apiPath, target, cb, refreshedOnce);
+                        }
+
+                        @Override
+                        public void onError(int c2, String msg) {
+                            new PrefsManager(ctx).clearAuth();
+                            cb.onError(c2, msg != null ? msg
+                                    : ctx.getString(R.string.auth_error_expired));
+                        }
+                    });
+                    return;
+                }
+                if (!resp.isSuccessful()) {
+                    resp.close();
+                    cb.onError(code, ctx.getString(R.string.auth_error_response));
+                    return;
+                }
+                File tmp = new File(target.getParentFile(), target.getName() + ".part");
+                try (java.io.InputStream in = resp.body().byteStream();
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(tmp)) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    long written = 0;
+                    while ((n = in.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                        written += n;
+                    }
+                    out.flush();
+                    if (written == 0) {
+                        cb.onError(code, ctx.getString(R.string.media_download_empty));
+                        return;
+                    }
+                    if (tmp.renameTo(target)) {
+                        cb.onSuccess(target);
+                    } else {
+                        cb.onSuccess(tmp);
+                    }
+                } catch (IOException e) {
+                    cb.onError(-1, e.getMessage() != null ? e.getMessage()
+                            : ctx.getString(R.string.media_download_failed));
+                } finally {
+                    resp.close();
+                }
             }
         });
     }
