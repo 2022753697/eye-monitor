@@ -366,7 +366,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         sosHandler.removeCallbacks(sosPressRunnable);
         sosHandler.removeCallbacks(sosCooldownTicker);
-        unregisterReceiver(eventReceiver);
+        try {
+            unregisterReceiver(eventReceiver);
+        } catch (Exception ignored) {}
         try {
             unregisterReceiver(kickedReceiver);
         } catch (Exception ignored) {}
