@@ -23,6 +23,7 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
+import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.ui.MainActivity;
 import com.eyemonitor.util.AnniversaryUtils;
@@ -54,7 +55,9 @@ public class MonitorService extends Service {
     private static final String SOS_CHANNEL_ID = CHANNEL_ID + "_sos";
     private static final int NOTIFICATION_ID_FOREGROUND = 1;
     private static final int NOTIFICATION_ID_EVENT = 2;
+<<<<<<< HEAD
     private static final int NOTIFICATION_ID_SOS = 3;
+    private static final int NOTIFICATION_ID_FENCE = 4;
 
     public static final String ACTION_EVENT = "com.eyemonitor.EVENT";
     public static final String EXTRA_EVENT_JSON = "event_json";
@@ -88,6 +91,9 @@ public class MonitorService extends Service {
     private LocationTracker locationTracker;
     private DeviceStatusTracker deviceStatusTracker;
     private AppUsageTracker appUsageTracker;
+
+    // 围栏进出判定（有状态：进出状态 + 60s 防抖均由 Tracker 维护）
+    private FenceEvaluator.Tracker fenceTracker;
 
     // App 切换发送去重（无障碍与轮询双通道可能重复触发）
     private String lastAppSwitchPkg;
@@ -129,6 +135,14 @@ public class MonitorService extends Service {
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
         accessibilityListenerSet = false;
+        // 围栏翻转回调：跑在 dbExecutor 线程，发通知线程安全
+        fenceTracker = new FenceEvaluator.Tracker((fence, nowInside, lat, lng) -> {
+            String text = getString(nowInside
+                    ? R.string.fence_notification_enter
+                    : R.string.fence_notification_exit, fence.name);
+            Log.i(TAG, "围栏翻转: fence=" + fence.name + ", inside=" + nowInside);
+            showFenceNotification(text);
+        });
     }
 
     public static void sendRequestPeerLocation(Context context) {
@@ -826,7 +840,43 @@ public class MonitorService extends Service {
     private void handleLocation(WsMessage message) {
         Log.i(TAG, "处理位置消息: deviceId=" + message.getDeviceId() + ", isSelf=" + message.getDeviceId().equals(prefs.getDeviceId()));
         broadcastEvent(message);
+        // 围栏判定只针对对端位置（本机位置走本地定位不上 WS 判定）
+        if (!message.getDeviceId().equals(prefs.getDeviceId())) {
+            evaluateFences(message);
+        }
         Log.i(TAG, "位置消息已广播");
+    }
+
+    /**
+     * 围栏判定入口：读 Room 围栏缓存 -> 丢给纯逻辑 FenceEvaluator.Tracker，
+     * 翻转事件经回调发系统通知。dbExecutor 单线程串行保证 Tracker 线程安全。
+     */
+    private void evaluateFences(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        if (payload == null) return;
+        Object latObj = payload.get("lat");
+        Object lngObj = payload.get("lng");
+        if (!(latObj instanceof Number) || !(lngObj instanceof Number)) return;
+        double lat = ((Number) latObj).doubleValue();
+        double lng = ((Number) lngObj).doubleValue();
+        if (lat == 0 && lng == 0) return; // 无效占位点
+        float accuracy = payload.get("accuracy") instanceof Number
+                ? ((Number) payload.get("accuracy")).floatValue() : Float.MAX_VALUE;
+
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            java.util.List<FenceCacheEntity> fences = db.cacheDao().getFences();
+            java.util.List<FenceEvaluator.Fence> snapshots = new java.util.ArrayList<>();
+            for (FenceCacheEntity f : fences) {
+                if (!f.enabled) continue;
+                snapshots.add(new FenceEvaluator.Fence(f.serverId, f.name, f.lat, f.lng, f.radius));
+            }
+            fenceTracker.setFences(snapshots);
+            int crosses = fenceTracker.evaluate(lat, lng, accuracy);
+            if (crosses > 0) {
+                Log.i(TAG, "围栏翻转触发通知: " + crosses + " 条, lat=" + lat + ", lng=" + lng + ", accuracy=" + accuracy);
+            }
+        });
     }
 
     private void handlePairConfirm(WsMessage message) {
@@ -1057,6 +1107,39 @@ public class MonitorService extends Service {
 
         notificationManager.notify(NOTIFICATION_ID_EVENT, notification);
         Log.i(TAG, "通知已发送");
+    }
+
+    /** 围栏进出系统通知（复用 event 渠道，独立通知 id 避免与普通事件互顶） */
+    private void showFenceNotification(String text) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "缺少 POST_NOTIFICATIONS 权限，无法发送围栏通知");
+                return;
+            }
+        }
+
+        Log.i(TAG, "显示围栏通知: " + text);
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, (int) System.currentTimeMillis(), intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID + "_event")
+                .setContentTitle(getString(R.string.fence_notification_title))
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.ic_menu_view)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .build();
+
+        notificationManager.notify(NOTIFICATION_ID_FENCE, notification);
+        Log.i(TAG, "围栏通知已发送");
     }
 
     // --- 广播事件给 UI ---

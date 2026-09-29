@@ -163,6 +163,7 @@
     <string name="auth_error_expired">登录已过期</string>
     <string name="auth_error_response">服务器响应异常</string>
 
+<<<<<<< HEAD
     <!-- 纪念日（Wave2） -->
     <string name="anniversary_title">纪念日</string>
     <string name="anniversary_add">添加纪念日</string>
@@ -232,4 +233,24 @@
     <string name="sos_need_pair">请先配对后再使用 SOS</string>
     <string name="sos_channel_name">眼互 SOS 求助</string>
     <string name="sos_channel_desc">对方紧急求助通知（响铃+震动）</string>
+
+    <!-- 电子围栏（Wave2） -->
+    <string name="fence_set_entry">设围栏</string>
+    <string name="fence_panel_title">设置围栏</string>
+    <string name="fence_hint_pick_center">请在地图上点击选择围栏中心</string>
+    <string name="fence_center_selected">中心已选：纬度 %1$.4f，经度 %2$.4f</string>
+    <string name="fence_radius_label_m">半径 %1$d 米</string>
+    <string name="fence_radius_label_km">半径 %1$.1f 公里</string>
+    <string name="fence_name_hint">围栏名称（如：公司）</string>
+    <string name="fence_confirm">确认创建</string>
+    <string name="fence_cancel">取消</string>
+    <string name="fence_name_required">请输入围栏名称</string>
+    <string name="fence_pick_center_first">请先在地图上点击选择围栏中心</string>
+    <string name="fence_limit_reached">围栏最多创建 3 个，请先删除旧围栏</string>
+    <string name="fence_need_pair">请先配对成功后再设置围栏</string>
+    <string name="fence_created">围栏已创建</string>
+    <string name="fence_create_failed">围栏创建失败：%1$s</string>
+    <string name="fence_notification_title">围栏提醒</string>
+    <string name="fence_notification_enter">对方已进入围栏：%1$s</string>
+    <string name="fence_notification_exit">对方已离开围栏：%1$s</string>
 </resources>
