@@ -131,6 +131,18 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <!-- SOS 紧急求助（长按 3 秒触发） -->
+            <ImageButton
+                android:id="@+id/btn_sos"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/ic_sos"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="12dp"
+                android:tint="@color/status_error"
+                android:contentDescription="@string/sos_alert_entrance_desc"
+                android:layout_marginEnd="8dp" />
+
             <!-- 共享地图（图标 + 文字） -->
             <LinearLayout
                 android:id="@+id/btn_chat_map"

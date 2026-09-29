@@ -29,6 +29,7 @@ public class PrefsManager {
     private static final String KEY_PEER_GENDER = "peer_gender";
     private static final String KEY_PEER_BIRTHDAY = "peer_birthday";
     private static final String KEY_PEER_BIO = "peer_bio";
+    private static final String KEY_SOS_LAST_TRIGGER = "sos_last_trigger";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -246,6 +247,15 @@ public class PrefsManager {
     /** 是否女性（未设置时默认按女性粉色显示） */
     public boolean isFemale() {
         return !"male".equals(getGender());
+    }
+
+    /** 上次 SOS 触发时间（epoch ms，用于 60s 冷却跨重启持久化） */
+    public long getSosLastTrigger() {
+        return prefs.getLong(KEY_SOS_LAST_TRIGGER, 0L);
+    }
+
+    public void setSosLastTrigger(long ts) {
+        prefs.edit().putLong(KEY_SOS_LAST_TRIGGER, ts).apply();
     }
 
     /** 是否已配对 */
