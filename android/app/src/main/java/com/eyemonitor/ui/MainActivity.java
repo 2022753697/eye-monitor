@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 校验大小/视频时长后上传（时长读取走后台线程，MediaMetadataRetriever 会阻塞） */
+    /** 校验大小/视频时长后上传（拷贝与时长读取走后台线程，避免大文件阻塞 UI） */
     private void handleMediaPicked(Uri uri) {
         long size = MediaUtils.querySize(this, uri);
         if (size > MediaUtils.MAX_MEDIA_BYTES) {
@@ -435,34 +435,31 @@ public class MainActivity extends AppCompatActivity {
         String name = MediaUtils.queryDisplayName(this, uri);
         String mime = getContentResolver().getType(uri);
         final boolean video = MediaUtils.isVideo(mime);
-        // 先拷到缓存文件（上传与后续归档都用它），再后台校验视频时长
-        final File tmp;
-        try {
-            File dir = new File(getCacheDir(), "media_send");
-            if (!dir.exists()) dir.mkdirs();
-            String safe = name.length() > 60 ? name.substring(name.length() - 60) : name;
-            tmp = new File(dir, System.currentTimeMillis() + "_" + safe.replaceAll("[^a-zA-Z0-9._-]", "_"));
-        } catch (Exception e) {
-            Log.e(TAG, "创建媒体临时文件失败", e);
-            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (!MediaUtils.copyUriToFile(this, uri, tmp)) {
-            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
-            return;
-        }
         final String finalName = name;
         final String finalMime = mime;
         AppDatabase.dbExecutor.execute(() -> {
-            long duration = video ? MediaUtils.queryDurationMs(this, uri) : 0;
+            // 先拷到缓存文件（上传与后续归档都用它），再后台校验视频时长
+            String safe = finalName.length() > 60 ? finalName.substring(finalName.length() - 60) : finalName;
+            File tmp = new File(new File(getCacheDir(), "media_send"),
+                    System.currentTimeMillis() + "_" + safe.replaceAll("[^a-zA-Z0-9._-]", "_"));
+            File dir = tmp.getParentFile();
+            if (dir != null) dir.mkdirs();
+            if (!MediaUtils.copyUriToFile(MainActivity.this, uri, tmp)) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.media_pick_failed,
+                        Toast.LENGTH_SHORT).show());
+                return;
+            }
+            long duration = video ? MediaUtils.queryDurationMs(MainActivity.this, uri) : 0;
+            final File file = tmp;
+            final long finalDuration = duration;
             runOnUiThread(() -> {
-                if (video && (duration < 0 || duration > MediaUtils.MAX_VIDEO_MS)) {
-                    tmp.delete();
+                if (video && (finalDuration < 0 || finalDuration > MediaUtils.MAX_VIDEO_MS)) {
+                    file.delete();
                     Toast.makeText(MainActivity.this, R.string.media_video_too_long,
                             Toast.LENGTH_SHORT).show();
                     return;
                 }
-                uploadMedia(tmp, finalName, finalMime, duration, uri);
+                uploadMedia(file, finalName, finalMime, finalDuration, uri);
             });
         });
     }
@@ -473,50 +470,47 @@ public class MainActivity extends AppCompatActivity {
         AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), new AuthManager.Callback() {
             @Override
             public void onSuccess(com.google.gson.JsonObject data) {
-                runOnUiThread(() -> {
-                    String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
-                    if (fileId == null || fileId.isEmpty()) {
-                        file.delete();
-                        Toast.makeText(MainActivity.this, R.string.auth_error_response,
-                                Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    long now = System.currentTimeMillis();
-                    MediaCacheEntity e = new MediaCacheEntity();
-                    e.fileId = fileId;
-                    e.serverFileName = data.has("fileName") && !data.get("fileName").isJsonNull()
-                            ? data.get("fileName").getAsString() : name;
-                    e.mime = data.has("mime") && !data.get("mime").isJsonNull()
-                            ? data.get("mime").getAsString() : mime;
-                    e.size = data.has("size") ? data.get("size").getAsLong() : file.length();
-                    e.duration = duration;
-                    e.ts = now;
-                    // 本地归档 getFilesDir()/media/{fileId}（聊天气泡与图库都从本地文件渲染）
+                final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
+                if (fileId == null || fileId.isEmpty()) {
+                    file.delete();
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.auth_error_response,
+                            Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                final long now = System.currentTimeMillis();
+                final MediaCacheEntity e = new MediaCacheEntity();
+                e.fileId = fileId;
+                e.serverFileName = data.has("fileName") && !data.get("fileName").isJsonNull()
+                        ? data.get("fileName").getAsString() : name;
+                e.mime = data.has("mime") && !data.get("mime").isJsonNull()
+                        ? data.get("mime").getAsString() : mime;
+                e.size = data.has("size") ? data.get("size").getAsLong() : file.length();
+                e.duration = duration;
+                e.ts = now;
+                AppDatabase db = AppDatabase.getInstance(MainActivity.this);
+                AppDatabase.dbExecutor.execute(() -> {
+                    // 本地归档 getFilesDir()/media/{fileId}（聊天气泡与图库都从本地文件渲染，后台拷贝）
                     File dst = MediaUtils.localMediaFile(MainActivity.this, fileId);
                     boolean archived = dst.exists() && dst.length() > 0
                             || MediaUtils.copyUriToFile(MainActivity.this, uri, dst);
                     if (!archived) archived = file.renameTo(dst);
-                    if (archived) {
-                        e.localPath = dst.getAbsolutePath();
-                    }
+                    if (archived) e.localPath = dst.getAbsolutePath();
                     file.delete();
-                    AppDatabase db = AppDatabase.getInstance(MainActivity.this);
-                    AppDatabase.dbExecutor.execute(() -> {
-                        final MediaCacheEntity entity = e;
-                        db.cacheDao().upsertMedia(entity);
-                        db.chatDao().insert(new ChatEntity("media", fileId,
-                                prefs.getNickname(), true, now));
+                    db.cacheDao().upsertMedia(e);
+                    db.chatDao().insert(new ChatEntity("media", fileId,
+                            prefs.getNickname(), true, now));
+                    runOnUiThread(() -> {
+                        // 借道服务发送 WS 元数据（服务器同时在上传响应里转发，接收端已按 fileId 去重）
+                        String from = prefs.getNickname() != null ? prefs.getNickname() : "";
+                        MonitorService.sendMediaMeta(MainActivity.this, fileId,
+                                e.serverFileName, e.mime, e.size, duration, from);
+                        mediaByFileId.put(fileId, e);
+                        chatAdapter.addItem(new ChatItem(TYPE_MEDIA_SELF, fileId, from,
+                                TIME_FORMAT.format(new Date(now)), now));
+                        scrollToBottom();
+                        Toast.makeText(MainActivity.this, R.string.media_send_success,
+                                Toast.LENGTH_SHORT).show();
                     });
-                    // 借道服务发送 WS 元数据（服务器同时在上传响应里转发，接收端已按 fileId 去重）
-                    String from = prefs.getNickname() != null ? prefs.getNickname() : "";
-                    MonitorService.sendMediaMeta(MainActivity.this, fileId,
-                            e.serverFileName, e.mime, e.size, duration, from);
-                    mediaByFileId.put(fileId, e);
-                    chatAdapter.addItem(new ChatItem(TYPE_MEDIA_SELF, fileId, from,
-                            TIME_FORMAT.format(new Date(now)), now));
-                    scrollToBottom();
-                    Toast.makeText(MainActivity.this, R.string.media_send_success,
-                            Toast.LENGTH_SHORT).show();
                 });
             }
 
