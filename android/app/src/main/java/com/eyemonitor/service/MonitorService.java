@@ -69,6 +69,7 @@ public class MonitorService extends Service {
     private PrefsManager prefs;
     private WSClient wsClient;
     private LocationTracker locationTracker;
+    private DeviceStatusTracker deviceStatusTracker;
     private AppUsageTracker appUsageTracker;
 
     // App 切换发送去重（无障碍与轮询双通道可能重复触发）
@@ -86,7 +87,8 @@ public class MonitorService extends Service {
         @Override
         public void run() {
             reportLocation();
-            handler.postDelayed(this, 30_000L); // 每30秒上报一次
+            reportDeviceStatus();
+            handler.postDelayed(this, 30_000L); // 每30秒上报一次（位置 + 设备状态）
         }
     };
 
@@ -220,6 +222,7 @@ public class MonitorService extends Service {
         initAccessibilityTracker();
         initUsageStatsTracker();
         initLocationTracker();
+        initDeviceStatusTracker();
 
         return START_STICKY;
     }
@@ -234,6 +237,10 @@ public class MonitorService extends Service {
         Log.d(TAG, "onDestroy");
         handler.removeCallbacks(locationReportRunnable);
         if (locationTracker != null) locationTracker.stop();
+        if (deviceStatusTracker != null) {
+            deviceStatusTracker.stop();
+            deviceStatusTracker = null;
+        }
         wsInitialized = false;
         accessibilityListenerSet = false;
         stopAccessibilityTracker();
@@ -287,6 +294,8 @@ public class MonitorService extends Service {
                         setupAccessibilityListener();
                     }
                     SyncManager.syncAll(MonitorService.this);
+                    sendDeviceStatus();
+                    broadcastPeerOnline();
                 }
 
                 @Override
@@ -299,6 +308,7 @@ public class MonitorService extends Service {
                 @Override
                 public void onDisconnected() {
                     Log.w(TAG, "WebSocket 已断开");
+                    broadcastPeerOffline();
                 }
 
                 @Override
@@ -345,6 +355,8 @@ public class MonitorService extends Service {
                     setupAccessibilityListener();
                 }
                 SyncManager.syncAll(MonitorService.this);
+                sendDeviceStatus();
+                broadcastPeerOnline();
             }
 
             @Override
@@ -357,6 +369,7 @@ public class MonitorService extends Service {
             @Override
             public void onDisconnected() {
                 Log.w(TAG, "WebSocket 已断开");
+                broadcastPeerOffline();
             }
 
             @Override
@@ -506,6 +519,70 @@ public class MonitorService extends Service {
         broadcastEvent(locMsg);
     }
 
+    // --- 设备状态 ---
+
+    private void initDeviceStatusTracker() {
+        if (deviceStatusTracker != null) return;
+        deviceStatusTracker = new DeviceStatusTracker(this, status -> {
+            Log.d(TAG, "设备状态变化: battery=" + status.battery + ", charging=" + status.charging
+                    + ", network=" + status.network + ", bluetooth=" + status.bluetooth);
+            sendDeviceStatus();
+        });
+        Log.i(TAG, "设备状态追踪已启动");
+    }
+
+    /** 定期上报设备状态（复用 30s 位置上报周期） */
+    private void reportDeviceStatus() {
+        if (deviceStatusTracker == null) return;
+        if (wsClient == null || !wsClient.isConnected()) {
+            Log.d(TAG, "WebSocket 未连接，跳过设备状态上报");
+            return;
+        }
+        sendDeviceStatus();
+    }
+
+    /** 发送当前设备状态（五件套），状态变化/连接恢复/定时周期时调用 */
+    private void sendDeviceStatus() {
+        if (deviceStatusTracker == null) return;
+        if (wsClient == null || !wsClient.isConnected()) {
+            Log.w(TAG, "sendDeviceStatus: WebSocket 未连接，跳过");
+            return;
+        }
+        String pairCode = prefs.getPairCode();
+        if (pairCode == null || pairCode.isEmpty()) {
+            Log.d(TAG, "sendDeviceStatus: 未配对，跳过");
+            return;
+        }
+        DeviceStatusTracker.DeviceStatus s = deviceStatusTracker.getStatus();
+        if (s.battery < 0) {
+            Log.d(TAG, "sendDeviceStatus: 电池状态未知，跳过");
+            return;
+        }
+        // online 恒为 true：正在发送即代表本机在线；对方在线状态由连接/pair_confirm 驱动
+        WsMessage msg = WsMessage.createDeviceStatus(prefs.getDeviceId(), pairCode,
+                s.battery, s.charging, s.network, true, s.bluetooth);
+        boolean sent = wsClient.send(msg);
+        Log.d(TAG, "sendDeviceStatus 发送结果: " + sent);
+    }
+
+    /** 收到对方设备状态：本地缓存最新五件套并广播给 UI（顶栏/详情页实时刷新） */
+    private void handleDeviceStatus(WsMessage message) {
+        Log.i(TAG, "收到设备状态: deviceId=" + message.getDeviceId()
+                + ", isSelf=" + message.getDeviceId().equals(prefs.getDeviceId()));
+        java.util.Map<String, Object> payload = message.getPayload();
+        if (payload != null) {
+            Object battery = payload.get("battery");
+            if (battery instanceof Number) prefs.setPeerBattery(((Number) battery).intValue());
+            Object charging = payload.get("charging");
+            if (charging instanceof Boolean) prefs.setPeerCharging((Boolean) charging);
+            Object network = payload.get("network");
+            if (network instanceof String) prefs.setPeerNetwork((String) network);
+            Object bluetooth = payload.get("bluetooth");
+            if (bluetooth instanceof Boolean) prefs.setPeerBluetooth((Boolean) bluetooth);
+        }
+        broadcastEvent(message);
+    }
+
     // --- 消息处理 ---
 
     private void handleMessage(WsMessage message) {
@@ -523,6 +600,9 @@ public class MonitorService extends Service {
                 break;
             case "location":
                 handleLocation(message);
+                break;
+            case "device_status":
+                handleDeviceStatus(message);
                 break;
             case "chat":
                 // 聊天消息：服务层持久化（App 未打开时也不丢记录），再广播给 UI
@@ -619,6 +699,11 @@ public class MonitorService extends Service {
         if (code != null && !code.isEmpty()) {
             prefs.setPairCode(code);
             Log.i(TAG, "配对成功: code=" + code);
+        }
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object peerOnline = payload != null ? payload.get("peerOnline") : null;
+        if (peerOnline instanceof Boolean) {
+            prefs.setPeerOnline((Boolean) peerOnline);
         }
         broadcastEvent(message);
     }
@@ -736,6 +821,27 @@ public class MonitorService extends Service {
         Intent intent = new Intent(ACTION_EVENT);
         intent.putExtra(EXTRA_EVENT_JSON, message.toJson());
         sendBroadcast(intent);
+    }
+
+    /** 本地 WS 连接恢复：向 UI 广播对方在线（服务器随后会推送 pair_confirm 修正） */
+    private void broadcastPeerOnline() {
+        broadcastPeerState(true);
+    }
+
+    /** 本地 WS 断开：广播对方离线（UI 顶栏置灰，连接恢复前无法获知对方状态） */
+    private void broadcastPeerOffline() {
+        broadcastPeerState(false);
+    }
+
+    private void broadcastPeerState(boolean online) {
+        String pairCode = prefs.getPairCode();
+        if (pairCode == null || pairCode.isEmpty()) return;
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("pairCode", pairCode);
+        payload.put("peerOnline", online);
+        WsMessage msg = new WsMessage("pair_confirm", prefs.getDeviceId(), pairCode, payload,
+                System.currentTimeMillis());
+        broadcastEvent(msg);
     }
 
     // --- 清理 ---
