@@ -1,5 +1,9 @@
 package com.eyemonitor.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +22,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -83,6 +89,11 @@ public class GalleryActivity extends AppCompatActivity {
     /** 扇形气泡菜单：自下而上 [返回, 上传, 选择, 新建文件夹] */
     private final java.util.List<View> fabMenuItems = new java.util.ArrayList<>();
     private boolean fabMenuOpen;
+
+    /** 扇形展开参数（与 fabMenuItems 一一对应）：距左轴仰角（度）+ 半径（dp），
+     *  0°=正左，90°=正上；角度/半径拉开形成开阔的左向扇形（顶部收拢回 FAB 上方） */
+    private static final float[] FAB_MENU_ANGLES = {8f, 32f, 52f, 70f};
+    private static final float[] FAB_MENU_RADIUS = {105f, 125f, 140f, 160f};
 
     /** 批量选择模式与选中集合 */
     private boolean batchMode;
@@ -222,7 +233,8 @@ public class GalleryActivity extends AppCompatActivity {
         else expandFabMenu();
     }
 
-    /** 展开扇形气泡菜单：从 FAB 中心缩放淡出到各自位置 */
+    /** 展开扇形菜单：子项先用三角函数算目标坐标（左上方扇形），
+     *  再从 FAB 中心用 ObjectAnimator（平移/缩放/透明度）散开 */
     private void expandFabMenu() {
         if (fabMenuOpen) return;
         fabMenuOpen = true;
@@ -231,25 +243,38 @@ public class GalleryActivity extends AppCompatActivity {
         fabAddFolder.getLocationInWindow(fab);
         final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
         final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        final float density = getResources().getDisplayMetrics().density;
         for (int i = 0; i < fabMenuItems.size(); i++) {
-            final View item = fabMenuItems.get(i);
+            View item = fabMenuItems.get(i);
             int[] loc = new int[2];
             item.getLocationInWindow(loc);
-            final float dx = fabCx - (loc[0] + item.getWidth() / 2f);
-            final float dy = fabCy - (loc[1] + item.getHeight() / 2f);
-            item.setTranslationX(dx);
-            item.setTranslationY(dy);
+            // 起始平移：把子项中心对齐到 FAB 中心
+            final float startDx = fabCx - (loc[0] + item.getWidth() / 2f);
+            final float startDy = fabCy - (loc[1] + item.getHeight() / 2f);
+            // 三角函数目标坐标：0°=正左，90°=正上（屏幕坐标 y 向下，故 dy 取负）
+            double rad = Math.toRadians(FAB_MENU_ANGLES[i]);
+            final float targetOffX = -((float) Math.cos(rad) * FAB_MENU_RADIUS[i] * density);
+            final float targetOffY = -((float) Math.sin(rad) * FAB_MENU_RADIUS[i] * density);
+            item.setAlpha(0f);
             item.setScaleX(0.6f);
             item.setScaleY(0.6f);
-            item.setAlpha(0f);
+            item.setTranslationX(startDx);
+            item.setTranslationY(startDy);
             item.setVisibility(View.VISIBLE);
-            item.animate().translationX(0).translationY(0)
-                    .scaleX(1).scaleY(1).alpha(1f)
-                    .setDuration(220).setStartDelay(i * 22L).start();
+            ObjectAnimator anim = ObjectAnimator.ofPropertyValuesHolder(item,
+                    PropertyValuesHolder.ofFloat("translationX", startDx, startDx + targetOffX),
+                    PropertyValuesHolder.ofFloat("translationY", startDy, startDy + targetOffY),
+                    PropertyValuesHolder.ofFloat("scaleX", 0.6f, 1f),
+                    PropertyValuesHolder.ofFloat("scaleY", 0.6f, 1f),
+                    PropertyValuesHolder.ofFloat("alpha", 0f, 1f));
+            anim.setDuration(320);
+            anim.setStartDelay(i * 28L);
+            anim.setInterpolator(new DecelerateInterpolator());
+            anim.start();
         }
     }
 
-    /** 收回扇形菜单：气泡缩放淡出回 FAB，图标恢复 + */
+    /** 收回扇形菜单：子项沿原路径退回 FAB 中心并隐藏，图标恢复 + */
     private void collapseFabMenu() {
         if (!fabMenuOpen) return;
         fabMenuOpen = false;
@@ -258,16 +283,32 @@ public class GalleryActivity extends AppCompatActivity {
         fabAddFolder.getLocationInWindow(fab);
         final float fabCx = fab[0] + fabAddFolder.getWidth() / 2f;
         final float fabCy = fab[1] + fabAddFolder.getHeight() / 2f;
+        final float density = getResources().getDisplayMetrics().density;
         for (int i = fabMenuItems.size() - 1; i >= 0; i--) {
             final View item = fabMenuItems.get(i);
             int[] loc = new int[2];
             item.getLocationInWindow(loc);
-            final float dx = fabCx - (loc[0] + item.getWidth() / 2f);
-            final float dy = fabCy - (loc[1] + item.getHeight() / 2f);
-            item.animate().translationX(dx).translationY(dy)
-                    .scaleX(0.6f).scaleY(0.6f).alpha(0f)
-                    .setDuration(180).setStartDelay((fabMenuItems.size() - 1 - i) * 18L)
-                    .withEndAction(() -> item.setVisibility(View.INVISIBLE)).start();
+            final float startDx = fabCx - (loc[0] + item.getWidth() / 2f);
+            final float startDy = fabCy - (loc[1] + item.getHeight() / 2f);
+            double rad = Math.toRadians(FAB_MENU_ANGLES[i]);
+            final float targetOffX = -((float) Math.cos(rad) * FAB_MENU_RADIUS[i] * density);
+            final float targetOffY = -((float) Math.sin(rad) * FAB_MENU_RADIUS[i] * density);
+            ObjectAnimator anim = ObjectAnimator.ofPropertyValuesHolder(item,
+                    PropertyValuesHolder.ofFloat("translationX", startDx + targetOffX, startDx),
+                    PropertyValuesHolder.ofFloat("translationY", startDy + targetOffY, startDy),
+                    PropertyValuesHolder.ofFloat("scaleX", 1f, 0.6f),
+                    PropertyValuesHolder.ofFloat("scaleY", 1f, 0.6f),
+                    PropertyValuesHolder.ofFloat("alpha", 1f, 0f));
+            anim.setDuration(240);
+            anim.setStartDelay((fabMenuItems.size() - 1 - i) * 24L);
+            anim.setInterpolator(new AccelerateInterpolator());
+            anim.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    item.setVisibility(View.INVISIBLE);
+                }
+            });
+            anim.start();
         }
     }
 

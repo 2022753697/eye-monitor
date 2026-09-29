@@ -109,16 +109,14 @@
         app:rippleColor="@color/white_translucent"
         app:elevation="4dp" />
 
-    <!-- 扇形气泡菜单：围绕 FAB 左上方的圆弧排布（弧线坐标，几何专用）
-         返回→上传→选择→新建文件夹：自下而上沿弧线展开（中点向左弧出）
-         初始 INVISIBLE 保留布局占位，展开时从 FAB 位置缩放淡入 -->
+    <!-- 扇形气泡菜单：子项初始叠放在 FAB 位置（margin 同 FAB），
+         展开时用三角函数计算左上方扇形目标坐标，ObjectAnimator 从 FAB 中心散开 -->
     <TextView
         android:id="@+id/btn_gallery_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="94dp"
-        android:layout_marginBottom="44dp"
+        android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
         android:paddingStart="@dimen/space_12"
@@ -136,8 +134,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="110dp"
-        android:layout_marginBottom="67dp"
+        android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
         android:paddingStart="@dimen/space_12"
@@ -155,8 +152,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="96dp"
-        android:layout_marginBottom="88dp"
+        android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
         android:paddingStart="@dimen/space_12"
@@ -174,8 +170,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="84dp"
-        android:layout_marginBottom="112dp"
+        android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_card"
         android:elevation="3dp"
         android:paddingStart="@dimen/space_12"
