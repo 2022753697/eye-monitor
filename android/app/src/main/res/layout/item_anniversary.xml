@@ -8,6 +8,7 @@
     android:padding="14dp"
     android:layout_marginBottom="10dp">
 
+    <!-- 第一行：名称+日期（左） / 编辑 / 删除（右） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,7 +23,7 @@
 
             <TextView
                 android:id="@+id/tv_anni_name"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp"
@@ -61,15 +62,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_anni_countdown"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/primary"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:layout_marginStart="8dp" />
-
         <ImageButton
             android:id="@+id/btn_anni_edit"
             android:layout_width="36dp"
@@ -92,4 +84,16 @@
             android:contentDescription="@string/anniversary_delete"
             android:layout_marginStart="4dp" />
     </LinearLayout>
+
+    <!-- 第二行：倒计时/已在一起（全宽，避免长文案挤压布局） -->
+    <TextView
+        android:id="@+id/tv_anni_countdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/primary"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:layout_marginTop="6dp"
+        android:maxLines="1"
+        android:ellipsize="end" />
 </LinearLayout>

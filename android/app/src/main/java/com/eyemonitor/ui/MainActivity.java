@@ -122,9 +122,9 @@ public class MainActivity extends AppCompatActivity {
     private View bottomBar;
     private View morePanel;
 
-    // 纪念日：头栏爱心（内嵌倒计时天数）
-    private View viewAnniversaryHeart;
-    private TextView tvAnniversaryHeartCount;
+    // 纪念日：头栏可滑动爱心轮播
+    private androidx.recyclerview.widget.RecyclerView rcAnniversary;
+    private AnniversaryHeartAdapter heartAdapter;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
 
@@ -308,10 +308,15 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setLayoutManager(new LinearLayoutManager(this));
         rvChat.setAdapter(chatAdapter);
 
-        // 纪念日：头栏爱心（点击进纪念日页）
-        viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
-        tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
-        viewAnniversaryHeart.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
+        // 纪念日：横向滑动爱心轮播（每个纪念日一颗，滑动看其他；点击进纪念日页）
+        rcAnniversary = findViewById(R.id.rc_anniversary);
+        rcAnniversary.setLayoutManager(new LinearLayoutManager(this,
+                LinearLayoutManager.HORIZONTAL, false));
+        rcAnniversary.setHasFixedSize(true);
+        heartAdapter = new AnniversaryHeartAdapter();
+        rcAnniversary.setAdapter(heartAdapter);
+        new androidx.recyclerview.widget.LinearSnapHelper().attachToRecyclerView(rcAnniversary);
+        rcAnniversary.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
@@ -972,28 +977,71 @@ public class MainActivity extends AppCompatActivity {
 
     /** 刷新首页纪念日倒计时卡片：读 Room 缓存找最近一个，无数据隐藏卡片 */
     /** 刷新头栏爱心：优先显示「在一起第 N 天」（起始纪念日已过天数+1）；无起始则显示最近倒计时；再无数据显「+」 */
+    /** 刷新头栏爱心轮播：每个纪念日一颗爱心（数字=已在一起天数 / 距离天数），无数据显示单颗“+” */
     private void refreshAnniversaryCard() {
         AppDatabase.dbExecutor.execute(() -> {
             List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
                     .cacheDao().getAnniversaries();
-            runOnUiThread(() -> {
-                Calendar today = AnniversaryUtils.today();
-                AnniversaryCacheEntity together = AnniversaryUtils.findTogetherStart(list);
-                if (together != null) {
-                    long days = AnniversaryUtils.daysSinceStart(together, today) + 1;
-                    tvAnniversaryHeartCount.setText(String.valueOf(days));
-                    return;
-                }
-                AnniversaryCacheEntity nearest = AnniversaryUtils.findNearest(list);
-                if (nearest != null) {
-                    tvAnniversaryHeartCount.setText(String.valueOf(
-                            AnniversaryUtils.daysUntilNext(nearest, today)));
-                    return;
-                }
-                // 无数据：爱心内显示「+」，点击添加
-                tvAnniversaryHeartCount.setText("+");
-            });
+            List<AnniversaryCacheEntity> snapshot = new java.util.ArrayList<>();
+            if (list != null) snapshot.addAll(list);
+            runOnUiThread(() -> heartAdapter.setItems(snapshot));
         });
+    }
+
+    /** 纪念日爱心轮播适配器：横向可滑动，一颗爱心对应一个纪念日 */
+    private class AnniversaryHeartAdapter
+            extends RecyclerView.Adapter<AnniversaryHeartAdapter.VH> {
+
+        private final java.util.List<AnniversaryCacheEntity> items = new java.util.ArrayList<>();
+
+        void setItems(java.util.List<AnniversaryCacheEntity> data) {
+            items.clear();
+            if (data == null || data.isEmpty()) {
+                items.add(null); // 空态：单颗「+」引导添加
+            } else {
+                items.addAll(data);
+            }
+            notifyDataSetChanged();
+        }
+
+        static class VH extends RecyclerView.ViewHolder {
+            TextView count;
+            TextView label;
+            VH(android.view.View v) {
+                super(v);
+                count = v.findViewById(R.id.tv_heart_count);
+                label = v.findViewById(R.id.tv_heart_label);
+            }
+        }
+
+        @Override
+        public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+            return new VH(LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_anniversary_heart, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(final VH h, int position) {
+            final AnniversaryCacheEntity e = items.get(position);
+            java.util.Calendar today = AnniversaryUtils.today();
+            if (e == null) {
+                h.count.setText("+");
+                h.label.setText(R.string.anniversary_add);
+            } else {
+                long since = AnniversaryUtils.daysSinceStart(e, today);
+                long next = AnniversaryUtils.daysUntilNext(e, today);
+                h.count.setText(since >= 0 ? String.valueOf(since)
+                        : next >= 0 ? String.valueOf(next) : "+");
+                h.label.setText(e.name);
+            }
+            h.itemView.setOnClickListener(v ->
+                    startActivity(new Intent(MainActivity.this, AnniversaryActivity.class)));
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
     }
 
     /** 纪念日到期系统提示（服务层已入库 Room，这里只渲染） */

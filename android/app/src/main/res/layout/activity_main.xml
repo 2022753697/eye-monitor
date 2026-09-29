@@ -261,35 +261,19 @@
         </LinearLayout>
 
 
-        <!-- 纪念日：像贴纸一样贴在头栏与聊天内容区接缝处的爱心（水平居中、浮动感、内嵌天数），点击进纪念日页 -->
-        <FrameLayout
-            android:id="@+id/view_anniversary_heart"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+        <!-- 纪念日：可横向滑动的爱心轮播（每个纪念日一颗，滑动看其他纪念日的日期信息），点击进纪念日页 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rc_anniversary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="-18dp"
+            android:layout_marginTop="-8dp"
             android:elevation="4dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <ImageView
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_heart"
-                android:contentDescription="纪念日" />
-
-            <TextView
-                android:id="@+id/tv_anniversary_heart_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:textColor="@color/white"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:gravity="center" />
-        </FrameLayout>
+            android:clipToPadding="false"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:nestedScrollingEnabled="false"
+            android:orientation="horizontal" />
 
         <!-- 消息列表 -->
         <androidx.recyclerview.widget.RecyclerView
