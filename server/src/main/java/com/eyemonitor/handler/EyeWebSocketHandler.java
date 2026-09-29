@@ -1,6 +1,9 @@
 package com.eyemonitor.handler;
 
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.security.AuthUtil;
+import com.eyemonitor.security.WsSessionManager;
+import com.eyemonitor.service.MessageStore;
 import com.eyemonitor.service.PairService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +13,13 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.Map;
+
 /**
  * WebSocket 消息处理器。
  * <p>
- * 负责：消息解析、类型分发、心跳回复、生命周期管理。
- * 实际业务逻辑（配对、路由）委托给 PairService。
+ * 职责：消息解析、类型分发、心跳回复、生命周期管理、WS 消息落库。
+ * 业务逻辑（配对、路由）委托给 PairService；身份来自握手 WsAuthInterceptor 写入的 userId。
  */
 @Component
 public class EyeWebSocketHandler extends TextWebSocketHandler {
@@ -22,14 +27,23 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(EyeWebSocketHandler.class);
 
     private final PairService pairService;
+    private final MessageStore messageStore;
+    private final WsSessionManager wsSessionManager;
 
-    public EyeWebSocketHandler(PairService pairService) {
+    public EyeWebSocketHandler(PairService pairService, MessageStore messageStore,
+                               WsSessionManager wsSessionManager) {
         this.pairService = pairService;
+        this.messageStore = messageStore;
+        this.wsSessionManager = wsSessionManager;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        log.info("新连接: sessionId={}, remote={}", session.getId(), session.getRemoteAddress());
+        long userId = AuthUtil.userIdFromSession(session);
+        log.info("新连接: sessionId={}, userId={}, remote={}", session.getId(), userId, session.getRemoteAddress());
+        if (userId > 0) {
+            wsSessionManager.register(userId, session);
+        }
     }
 
     @Override
@@ -37,42 +51,88 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         String raw = message.getPayload();
         if (raw == null || raw.isBlank()) return;
 
-        // 解析 JSON
         WsMessage msg = WsMessage.fromJson(raw);
         if (msg == null) {
             log.warn("消息解析失败: session={}, raw={}", session.getId(), raw);
-            pairService.sendMessage(session, WsMessage.createError(null, "消息格式错误"));
+            pairService.sendMessage(session, WsMessage.createError(null, null, "消息格式错误"));
             return;
         }
-
-        // 校验必填字段
         if (msg.getType() == null || msg.getDeviceId() == null) {
             log.warn("消息缺少必填字段: session={}, raw={}", session.getId(), raw);
-            pairService.sendMessage(session, WsMessage.createError(null, "缺少 type 或 deviceId"));
+            pairService.sendMessage(session, WsMessage.createError(null, null, "缺少 type 或 deviceId"));
             return;
         }
 
-        // 按类型分发
+        long userId = AuthUtil.userIdFromSession(session);
+
         switch (msg.getType()) {
-            case "pair_request"          -> handlePairRequest(session, msg);
-            case "pair_recover"          -> handlePairRecover(session, msg);
-            case "app_switch"            -> handleForward(session, msg);
-            case "location"              -> handleForward(session, msg);
-            case "request_peer_location" -> handleForward(session, msg);
-            case "chat"                  -> handleForward(session, msg);
-            case "ping"                  -> handlePing(session, msg);
-            case "pong"                  -> handlePong(session, msg);
-            default -> {
-                log.warn("未知消息类型: type={}, device={}", msg.getType(), msg.getDeviceId());
-                pairService.sendMessage(session,
-                        WsMessage.createError(msg.getDeviceId(), "未知消息类型: " + msg.getType()));
-            }
+            case "pair_request" -> handlePairRequest(session, msg, userId);
+            case "pair_recover" -> handlePairRecover(session, msg, userId);
+            case "ping" -> pairService.sendMessage(session, WsMessage.createPong(msg.getDeviceId()));
+            case "pong" -> { /* 心跳回复无需处理 */ }
+            case "location" -> handleLocation(session, msg, userId);
+            case "chat" -> handleChat(session, msg, userId);
+            case "sos" -> handleSos(session, msg, userId);
+            default -> handleForward(session, msg);
         }
+    }
+
+    // --- 业务分发 ---
+
+    private void handlePairRequest(WebSocketSession session, WsMessage msg, long userId) {
+        WsMessage response = pairService.handlePairRequest(userId, msg.getDeviceId(), msg.getPairCode(), session);
+        pairService.sendMessage(session, response);
+    }
+
+    private void handlePairRecover(WebSocketSession session, WsMessage msg, long userId) {
+        WsMessage response = pairService.handlePairRecover(userId, msg.getDeviceId(), msg.getPairCode(), session);
+        pairService.sendMessage(session, response);
+    }
+
+    private void handleLocation(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        messageStore.saveLocation(pairCode, userId, msg.getDeviceId(), msg.getPayload(), msg.getTimestamp());
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    private void handleChat(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        Map<String, Object> payload = msg.getPayload();
+        String text = payload != null && payload.get("text") instanceof String
+                ? (String) payload.get("text") : null;
+        messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp());
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    private void handleSos(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        messageStore.saveSos(pairCode, userId, msg.getPayload(), msg.getTimestamp());
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    private void handleForward(WebSocketSession session, WsMessage msg) {
+        // app_switch / request_peer_location / anniversary_sync / fence_sync /
+        // user_profile / sos_ack / device_status / media / media_deleted
+        log.debug("handleForward: type={}, deviceId={}, pairCode={}",
+                msg.getType(), msg.getDeviceId(), msg.getPairCode());
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    /** pairCode 优先取消息自带；缺失时按用户当前配对兜底 */
+    private String resolvePairCode(WsMessage msg, long userId) {
+        if (msg.getPairCode() != null && !msg.getPairCode().isBlank()) {
+            return msg.getPairCode();
+        }
+        return pairService.getPairCodeOfUser(userId);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("连接关闭: sessionId={}, status={}", session.getId(), status);
+        long userId = AuthUtil.userIdFromSession(session);
+        if (userId > 0) {
+            wsSessionManager.remove(userId, session);
+        }
         pairService.onDisconnect(session);
     }
 
@@ -80,33 +140,5 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         log.error("传输错误: sessionId={}, error={}", session.getId(), exception.getMessage());
         pairService.onDisconnect(session);
-    }
-
-    // --- 消息处理 ---
-
-    private void handlePairRequest(WebSocketSession session, WsMessage msg) {
-        WsMessage response = pairService.handlePairRequest(
-                msg.getDeviceId(), msg.getPairCode(), session);
-        pairService.sendMessage(session, response);
-    }
-
-    private void handlePairRecover(WebSocketSession session, WsMessage msg) {
-        WsMessage response = pairService.handlePairRecover(
-                msg.getDeviceId(), msg.getPairCode(), session);
-        pairService.sendMessage(session, response);
-    }
-
-    private void handleForward(WebSocketSession session, WsMessage msg) {
-        log.info("handleForward: session={}, type={}, deviceId={}, pairCode={}",
-                session.getId(), msg.getType(), msg.getDeviceId(), msg.getPairCode());
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
-    }
-
-    private void handlePing(WebSocketSession session, WsMessage msg) {
-        pairService.sendMessage(session, WsMessage.createPong(msg.getDeviceId()));
-    }
-
-    private void handlePong(WebSocketSession session, WsMessage msg) {
-        // pong 不需要处理，心跳由底层 WebSocket 框架维持
     }
 }

@@ -4,6 +4,30 @@ server:
 spring:
   application:
     name: eye-monitor-server
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/eye_monitor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:eye}
+    password: ${DB_PASS:EyeDev2025_local!}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 110MB
+      max-request-size: 120MB
+
+# JWT 配置（参考若依 TokenService 无状态 token 思路；secret 生产环境务必用环境变量覆盖）
+eye:
+  jwt:
+    secret: ${JWT_SECRET:eye-monitor-2025-local-dev-secret-key-change-in-prod-}
+    access-ttl-ms: 28800000        # 8 小时
+    refresh-ttl-ms: 2592000000     # 30 天（滑动续期）
+
+app:
+  media-dir: ${MEDIA_DIR:./data/media}
+  avatar-dir: ${AVATAR_DIR:./data/avatar}
 
 logging:
   level:

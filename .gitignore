@@ -39,3 +39,6 @@ server/target/
 # ===== 内部开发文档（不上传） =====
 PLAN.md
 AGENTS.md
+
+# 运行时文件存储（媒体/头像），不提交
+server/data/
