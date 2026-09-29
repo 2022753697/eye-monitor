@@ -376,12 +376,23 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void confirmDeleteFolder(final FolderCacheEntity folder) {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.gallery_folder_delete_title)
-                .setMessage(getString(R.string.gallery_folder_delete_message, folder.name))
-                .setPositiveButton(R.string.ok, (d, w) -> deleteFolder(folder))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_delete_folder);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            int w = (int) (getResources().getDisplayMetrics().widthPixels * 0.85f);
+            window.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        TextView tvMsg = dialog.findViewById(R.id.tv_delete_folder_message);
+        tvMsg.setText(getString(R.string.gallery_folder_delete_message, folder.name));
+        dialog.findViewById(R.id.btn_delete_cancel).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.btn_delete_ok).setOnClickListener(v -> {
+            dialog.dismiss();
+            deleteFolder(folder);
+        });
+        dialog.show();
     }
 
     private void deleteFolder(final FolderCacheEntity folder) {
@@ -915,6 +926,13 @@ public class GalleryActivity extends AppCompatActivity {
                     loadGallery();
                 };
                 itemView.setOnClickListener(enter);
+                // 长按真实文件夹 → 删除确认（未分类虚拟行不可删）
+                if (!isUnfiled) {
+                    itemView.setOnLongClickListener(v -> {
+                        confirmDeleteFolder(row.folder);
+                        return true;
+                    });
+                }
                 tvFolderMore.setOnClickListener(enter);
             }
         }

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 删除文件夹确认弹窗：圆角白卡 + 红色警示标题 + Danger 删除按钮 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:padding="@dimen/space_24">
+
+    <!-- 警示标题 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Display"
+        android:gravity="center"
+        android:text="@string/gallery_folder_delete_title"
+        android:textColor="?attr/statusError"
+        android:layout_marginBottom="@dimen/space_8" />
+
+    <!-- 说明文案 -->
+    <TextView
+        android:id="@+id/tv_delete_folder_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Body"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp" />
+
+    <!-- 操作按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/space_16">
+
+        <Button
+            android:id="@+id/btn_delete_cancel"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/cancel" />
+
+        <Button
+            android:id="@+id/btn_delete_ok"
+            style="@style/Widget.EyeMonitor.Button.Danger"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/space_12"
+            android:text="@string/batch_delete" />
+    </LinearLayout>
+</LinearLayout>
