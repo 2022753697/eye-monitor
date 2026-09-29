@@ -245,7 +245,7 @@ public class GalleryActivity extends AppCompatActivity {
             item.setVisibility(View.VISIBLE);
             item.animate().translationX(0).translationY(0)
                     .scaleX(1).scaleY(1).alpha(1f)
-                    .setDuration(220).setStartDelay(i * 40L).start();
+                    .setDuration(220).setStartDelay(i * 22L).start();
         }
     }
 
@@ -266,7 +266,7 @@ public class GalleryActivity extends AppCompatActivity {
             final float dy = fabCy - (loc[1] + item.getHeight() / 2f);
             item.animate().translationX(dx).translationY(dy)
                     .scaleX(0.6f).scaleY(0.6f).alpha(0f)
-                    .setDuration(180).setStartDelay((fabMenuItems.size() - 1 - i) * 30L)
+                    .setDuration(180).setStartDelay((fabMenuItems.size() - 1 - i) * 18L)
                     .withEndAction(() -> item.setVisibility(View.INVISIBLE)).start();
         }
     }
