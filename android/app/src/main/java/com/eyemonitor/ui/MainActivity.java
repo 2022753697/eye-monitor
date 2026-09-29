@@ -323,6 +323,12 @@ public class MainActivity extends AppCompatActivity {
                         return true; // 接收滑动事件
                     }
                     @Override
+                    public boolean onSingleTapUp(android.view.MotionEvent e) {
+                        // OnTouchListener 拦截了 click，这里手动触发跳转纪念日页
+                        startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
+                        return true;
+                    }
+                    @Override
                     public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2,
                                            float velocityX, float velocityY) {
                         if (Math.abs(velocityX) > Math.abs(velocityY) && Math.abs(velocityX) > 300) {
@@ -337,7 +343,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
         viewAnniversaryHeart.setOnTouchListener((v, event) -> anniversaryGesture.onTouchEvent(event));
-        viewAnniversaryHeart.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
