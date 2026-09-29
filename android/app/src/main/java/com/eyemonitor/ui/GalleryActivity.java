@@ -97,6 +97,7 @@ public class GalleryActivity extends AppCompatActivity {
         lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
+                if (position >= adapter.rows.size()) return 1;
                 return adapter.rows.get(position).type == ROW_HEADER ? 3 : 1;
             }
         });
