@@ -1,5 +1,6 @@
 package com.eyemonitor.ui;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -8,6 +9,9 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Calendar;
+import java.util.Locale;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -62,6 +66,26 @@ public class LoginActivity extends AppCompatActivity {
 
         tvGoRegister.setOnClickListener(v -> switchMode(true));
         tvGoLogin.setOnClickListener(v -> switchMode(false));
+
+        setupBirthdayPicker();
+    }
+
+    /** 生日：点击弹出 DatePicker（禁止手输），选择后回填 yyyy-MM-dd */
+    private void setupBirthdayPicker() {
+        etRegBirthday.setFocusable(false);
+        etRegBirthday.setCursorVisible(false);
+        etRegBirthday.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            DatePickerDialog dialog = new DatePickerDialog(this,
+                    (view, y, m, d) -> etRegBirthday.setText(
+                            String.format(Locale.CHINA, "%04d-%02d-%02d", y, m + 1, d)),
+                    cal.get(Calendar.YEAR) - 18,
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH));
+            dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+            dialog.setTitle(getString(R.string.reg_birthday_hint));
+            dialog.show();
+        });
     }
 
     private void switchMode(boolean register) {

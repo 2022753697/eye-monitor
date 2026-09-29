@@ -1,5 +1,6 @@
 package com.eyemonitor.ui;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
@@ -28,6 +29,8 @@ import android.content.Context;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Calendar;
+import java.util.Locale;
 import java.io.InputStream;
 
 /**
@@ -75,6 +78,7 @@ public class ProfileActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         ivAvatar.setOnClickListener(v -> pickImage());
         btnSave.setOnClickListener(v -> saveProfile());
+        setupBirthdayPicker();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(kickedReceiver, new IntentFilter(MonitorService.ACTION_KICKED),
@@ -92,6 +96,24 @@ public class ProfileActivity extends AppCompatActivity {
             unregisterReceiver(kickedReceiver);
         } catch (Exception ignored) {}
         super.onDestroy();
+    }
+
+    /** 生日：点击弹出 DatePicker（禁止手输），选择后回填 yyyy-MM-dd */
+    private void setupBirthdayPicker() {
+        etBirthday.setFocusable(false);
+        etBirthday.setCursorVisible(false);
+        etBirthday.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            DatePickerDialog dialog = new DatePickerDialog(this,
+                    (view, y, m, d) -> etBirthday.setText(
+                            String.format(Locale.CHINA, "%04d-%02d-%02d", y, m + 1, d)),
+                    cal.get(Calendar.YEAR) - 18,
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH));
+            dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+            dialog.setTitle(getString(R.string.profile_birthday_hint));
+            dialog.show();
+        });
     }
 
     /** 从本地缓存填充表单，并尝试向服务器拉最新资料 */

@@ -225,12 +225,15 @@ public class AuthManager {
         http.newCall(request).enqueue(new okhttp3.Callback() {
             @Override
             public void onFailure(Call c, IOException e) {
+                Log.e(TAG, "HTTP 请求失败: " + path + " -> " + (e != null ? e.getMessage() : "null"), e);
                 cb.onError(-1, e.getMessage() != null ? e.getMessage() : ctx.getString(R.string.auth_error_network));
             }
 
             @Override
             public void onResponse(Call c, Response resp) throws IOException {
-                deliver(ctx, resp, cb);
+                // 响应必须交给 success（登录/注册/刷新的 token 写入包装回调），
+                // 再由它转发给调用方 cb——直接交给 cb 会跳过 applyAuthSession 导致 token 永不落库
+                deliver(ctx, resp, success);
             }
         });
     }
@@ -382,6 +385,7 @@ public class AuthManager {
     /** 统一解包 {code,data,msg}，回调成功/失败 */
     private void deliver(Context ctx, Response resp, Callback cb) throws IOException {
         String raw = resp.body() != null ? resp.body().string() : "";
+        Log.i(TAG, "deliver: status=" + resp.code() + " body=" + (raw.length() > 200 ? raw.substring(0, 200) : raw));
         try {
             JsonObject obj = JsonParser.parseString(raw).getAsJsonObject();
             int code = obj.has("code") ? obj.get("code").getAsInt() : -1;
@@ -423,11 +427,16 @@ public class AuthManager {
 
     /** 登录/注册成功后写入本机会话与资料缓存（含无 id 的 profile 字段，均为可空） */
     private void applyAuthSession(Context ctx, JsonObject data) {
-        PrefsManager prefs = new PrefsManager(ctx);
-        if (data.has("accessToken")) prefs.setAccessToken(data.get("accessToken").getAsString());
-        if (data.has("refreshToken")) prefs.setRefreshToken(data.get("refreshToken").getAsString());
-        if (data.has("profile")) {
-            applyProfile(ctx, data.getAsJsonObject("profile"));
+        try {
+            PrefsManager prefs = new PrefsManager(ctx);
+            if (data.has("accessToken")) prefs.setAccessToken(data.get("accessToken").getAsString());
+            if (data.has("refreshToken")) prefs.setRefreshToken(data.get("refreshToken").getAsString());
+            if (data.has("profile")) {
+                applyProfile(ctx, data.getAsJsonObject("profile"));
+            }
+            Log.i(TAG, "登录会话已写入: hasToken=" + (data.has("accessToken")));
+        } catch (Exception e) {
+            Log.e(TAG, "applyAuthSession 失败", e);
         }
     }
 
