@@ -41,15 +41,29 @@
     </style>
 
     <!-- 头栏按钮：半透明白底，用于渐变头栏上 -->
+    <!-- 重要：必须 compact（minHeight=0 + inset=0 + paddingTop/Bottom=4dp）否则撑满头栏呈矩形块； -->
+    <!-- 必须去 elevation/stateListAnimator，否则透明底+阴影=黑框 -->
     <style name="Widget.EyeMonitor.Button.Header" parent="Widget.EyeMonitor.Button.Default">
         <item name="backgroundTint">@color/white_translucent</item>
         <item name="android:textColor">@color/text_on_primary</item>
         <item name="android:textSize">@dimen/text_13</item>
-        <item name="android:paddingLeft">@dimen/space_14</item>
-        <item name="android:paddingRight">@dimen/space_14</item>
+        <item name="android:paddingLeft">@dimen/space_12</item>
+        <item name="android:paddingRight">@dimen/space_12</item>
+        <item name="android:paddingTop">@dimen/space_4</item>
+        <item name="android:paddingBottom">@dimen/space_4</item>
         <item name="android:minHeight">0dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <!-- 头栏文字按钮：纯文字（透明底），用于渐变头栏上的轻量操作 -->
+    <!-- 注意：不要在渐变头栏上并排多个 Header 胶囊，会呈矩形块观感 -->
+    <style name="Widget.EyeMonitor.Button.HeaderText" parent="Widget.EyeMonitor.Button.Header">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:paddingLeft">@dimen/space_8</item>
+        <item name="android:paddingRight">@dimen/space_8</item>
     </style>
 
     <!-- 危险操作：状态红填充（删除/解绑/SOS 等） -->
