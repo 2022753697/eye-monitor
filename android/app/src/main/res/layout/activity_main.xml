@@ -261,19 +261,51 @@
         </LinearLayout>
 
 
-        <!-- 纪念日：可横向滑动的爱心轮播（每个纪念日一颗，滑动看其他纪念日的日期信息），点击进纪念日页 -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rc_anniversary"
+        <!-- 纪念日：爱心图标固定不动，左右滑动切换数字与名称（每纪念日一条），点击进纪念日页 -->
+        <LinearLayout
+            android:id="@+id/view_anniversary_heart"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:layout_marginTop="-8dp"
-            android:elevation="4dp"
-            android:clipToPadding="false"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:nestedScrollingEnabled="false"
-            android:orientation="horizontal" />
+            android:elevation="4dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center_horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_anniversary_heart"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_heart"
+                    android:contentDescription="纪念日" />
+
+                <TextView
+                    android:id="@+id/tv_anniversary_heart_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:gravity="center" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_anniversary_heart_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:maxWidth="200dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
 
         <!-- 消息列表 -->
         <androidx.recyclerview.widget.RecyclerView

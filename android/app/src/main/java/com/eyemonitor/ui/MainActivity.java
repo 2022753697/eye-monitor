@@ -122,9 +122,13 @@ public class MainActivity extends AppCompatActivity {
     private View bottomBar;
     private View morePanel;
 
-    // 纪念日：头栏可滑动爱心轮播
-    private androidx.recyclerview.widget.RecyclerView rcAnniversary;
-    private AnniversaryHeartAdapter heartAdapter;
+    // 纪念日：爱心图标固定，左右滑动切换数字与名称
+    private View viewAnniversaryHeart;
+    private TextView tvAnniversaryHeartCount;
+    private TextView tvAnniversaryHeartLabel;
+    private final java.util.List<AnniversaryCacheEntity> anniversaryList = new java.util.ArrayList<>();
+    private int anniversaryIndex = 0;
+    private android.view.GestureDetector anniversaryGesture;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
 
@@ -308,15 +312,32 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setLayoutManager(new LinearLayoutManager(this));
         rvChat.setAdapter(chatAdapter);
 
-        // 纪念日：横向滑动爱心轮播（每个纪念日一颗，滑动看其他；点击进纪念日页）
-        rcAnniversary = findViewById(R.id.rc_anniversary);
-        rcAnniversary.setLayoutManager(new LinearLayoutManager(this,
-                LinearLayoutManager.HORIZONTAL, false));
-        rcAnniversary.setHasFixedSize(true);
-        heartAdapter = new AnniversaryHeartAdapter();
-        rcAnniversary.setAdapter(heartAdapter);
-        new androidx.recyclerview.widget.LinearSnapHelper().attachToRecyclerView(rcAnniversary);
-        rcAnniversary.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
+        // 纪念日：静态爱心 + 左右滑动切换（点击进纪念日页）
+        viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
+        tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
+        tvAnniversaryHeartLabel = findViewById(R.id.tv_anniversary_heart_label);
+        anniversaryGesture = new android.view.GestureDetector(this,
+                new android.view.GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onDown(android.view.MotionEvent e) {
+                        return true; // 接收滑动事件
+                    }
+                    @Override
+                    public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2,
+                                           float velocityX, float velocityY) {
+                        if (Math.abs(velocityX) > Math.abs(velocityY) && Math.abs(velocityX) > 300) {
+                            if (velocityX < 0) {
+                                cycleAnniversary(1);      // 左滑：下一个
+                            } else {
+                                cycleAnniversary(-1);     // 右滑：上一个
+                            }
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+        viewAnniversaryHeart.setOnTouchListener((v, event) -> anniversaryGesture.onTouchEvent(event));
+        viewAnniversaryHeart.setOnClickListener(v -> startActivity(new Intent(this, AnniversaryActivity.class)));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
@@ -982,66 +1003,64 @@ public class MainActivity extends AppCompatActivity {
         AppDatabase.dbExecutor.execute(() -> {
             List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
                     .cacheDao().getAnniversaries();
-            List<AnniversaryCacheEntity> snapshot = new java.util.ArrayList<>();
+            final List<AnniversaryCacheEntity> snapshot = new java.util.ArrayList<>();
             if (list != null) snapshot.addAll(list);
-            runOnUiThread(() -> heartAdapter.setItems(snapshot));
+            runOnUiThread(() -> {
+                anniversaryList.clear();
+                anniversaryList.addAll(snapshot);
+                anniversaryIndex = 0;
+                renderAnniversaryHeart();
+            });
         });
     }
 
-    /** 纪念日爱心轮播适配器：横向可滑动，一颗爱心对应一个纪念日 */
-    private class AnniversaryHeartAdapter
-            extends RecyclerView.Adapter<AnniversaryHeartAdapter.VH> {
+    /** 爱心内容切换：只换数字与名称（爱心图标不动），带淡入淡出 */
+    private void cycleAnniversary(int delta) {
+        if (anniversaryList.isEmpty()) return;
+        int size = anniversaryList.size() + 1; // 含末尾空态「+」
+        anniversaryIndex = ((anniversaryIndex + delta) % size + size) % size;
+        renderAnniversaryHeart();
+    }
 
-        private final java.util.List<AnniversaryCacheEntity> items = new java.util.ArrayList<>();
-
-        void setItems(java.util.List<AnniversaryCacheEntity> data) {
-            items.clear();
-            if (data == null || data.isEmpty()) {
-                items.add(null); // 空态：单颗「+」引导添加
-            } else {
-                items.addAll(data);
+    /** 渲染当前爱心：空态「+/添加」；否则数字（已在一起/距离）+ 名称 */
+    private void renderAnniversaryHeart() {
+        if (tvAnniversaryHeartCount == null || tvAnniversaryHeartLabel == null) return;
+        String countText;
+        String labelText;
+        if (anniversaryList.isEmpty()) {
+            countText = "+";
+            labelText = getString(R.string.anniversary_add);
+        } else if (anniversaryIndex < anniversaryList.size()) {
+            AnniversaryCacheEntity e = anniversaryList.get(anniversaryIndex);
+            Calendar today = AnniversaryUtils.today();
+            long since = AnniversaryUtils.daysSinceStart(e, today);
+            long next = AnniversaryUtils.daysUntilNext(e, today);
+            countText = since >= 0 ? String.valueOf(since)
+                    : next >= 0 ? String.valueOf(next) : "+";
+            labelText = e.name != null ? e.name : getString(R.string.anniversary_add);
+        } else {
+            countText = "+";
+            labelText = getString(R.string.anniversary_add);
+        }
+        // 淡入淡出切换（爱心图标本身不动）
+        android.view.animation.AlphaAnimation out = new android.view.animation.AlphaAnimation(1f, 0f);
+        out.setDuration(120L);
+        final String fCount = countText;
+        final String fLabel = labelText;
+        out.setAnimationListener(new android.view.animation.Animation.AnimationListener() {
+            @Override public void onAnimationStart(android.view.animation.Animation a) {}
+            @Override public void onAnimationEnd(android.view.animation.Animation a) {
+                tvAnniversaryHeartCount.setText(fCount);
+                tvAnniversaryHeartLabel.setText(fLabel);
+                android.view.animation.AlphaAnimation in = new android.view.animation.AlphaAnimation(0f, 1f);
+                in.setDuration(120L);
+                tvAnniversaryHeartCount.startAnimation(in);
+                tvAnniversaryHeartLabel.startAnimation(in);
             }
-            notifyDataSetChanged();
-        }
-
-        static class VH extends RecyclerView.ViewHolder {
-            TextView count;
-            TextView label;
-            VH(android.view.View v) {
-                super(v);
-                count = v.findViewById(R.id.tv_heart_count);
-                label = v.findViewById(R.id.tv_heart_label);
-            }
-        }
-
-        @Override
-        public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-            return new VH(LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_anniversary_heart, parent, false));
-        }
-
-        @Override
-        public void onBindViewHolder(final VH h, int position) {
-            final AnniversaryCacheEntity e = items.get(position);
-            java.util.Calendar today = AnniversaryUtils.today();
-            if (e == null) {
-                h.count.setText("+");
-                h.label.setText(R.string.anniversary_add);
-            } else {
-                long since = AnniversaryUtils.daysSinceStart(e, today);
-                long next = AnniversaryUtils.daysUntilNext(e, today);
-                h.count.setText(since >= 0 ? String.valueOf(since)
-                        : next >= 0 ? String.valueOf(next) : "+");
-                h.label.setText(e.name);
-            }
-            h.itemView.setOnClickListener(v ->
-                    startActivity(new Intent(MainActivity.this, AnniversaryActivity.class)));
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
+            @Override public void onAnimationRepeat(android.view.animation.Animation a) {}
+        });
+        tvAnniversaryHeartCount.startAnimation(out);
+        tvAnniversaryHeartLabel.startAnimation(out);
     }
 
     /** 纪念日到期系统提示（服务层已入库 Room，这里只渲染） */
