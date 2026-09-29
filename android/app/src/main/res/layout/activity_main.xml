@@ -143,6 +143,19 @@
                 android:contentDescription="@string/sos_alert_entrance_desc"
                 android:layout_marginEnd="8dp" />
 
+            <!-- SOS 冷却倒计时（触发后显示剩余秒数） -->
+            <TextView
+                android:id="@+id/tv_sos_countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_on_primary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:minWidth="22dp"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginEnd="2dp" />
+
             <!-- 共享地图（图标 + 文字） -->
             <LinearLayout
                 android:id="@+id/btn_chat_map"
