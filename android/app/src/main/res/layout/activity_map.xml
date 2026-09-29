@@ -41,7 +41,7 @@
             android:layout_marginStart="10dp" />
     </LinearLayout>
 
-    <!-- 头像下小菜单（原头像点击菜单提取至此 + 设围栏入口） -->
+    <!-- 头像下小菜单（点头像弹出：去找他 / 设围栏），默认隐藏 -->
     <LinearLayout
         android:id="@+id/top_tools_menu"
         android:layout_width="wrap_content"
@@ -55,7 +55,8 @@
         android:paddingBottom="3dp"
         android:gravity="center_vertical"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="86dp">
+        android:layout_marginTop="86dp"
+        android:visibility="gone">
 
         <!-- 图标+文字：去找他（蓝色导航图标） -->
         <LinearLayout

@@ -73,6 +73,7 @@ public class MapActivity extends AppCompatActivity {
 
     private View btnMenuPeer;
     private View btnMenuSetFence;
+    private View viewToolsMenu;
     private LinearLayout fenceSetupPanel;
     private TextView fenceCenterHint;
     private TextView fenceRadiusLabel;
@@ -142,8 +143,13 @@ public class MapActivity extends AppCompatActivity {
         mapView.onCreate(savedInstanceState);
         ivAvatarSelf = findViewById(R.id.iv_avatar_self);
         ivAvatarPeer = findViewById(R.id.iv_avatar_peer);
+        viewToolsMenu = findViewById(R.id.top_tools_menu);
 
-        // 头像下小菜单（我的位置 / 去找他 / 设围栏）+ 设围栏面板
+        // 点头像（两个都行）显示/隐藏工具菜单
+        ivAvatarSelf.setOnClickListener(v -> toggleToolsMenu());
+        ivAvatarPeer.setOnClickListener(v -> toggleToolsMenu());
+
+        // 头像下小菜单（去找他 / 设围栏）+ 设围栏面板
         btnMenuPeer = findViewById(R.id.btn_menu_peer);
         btnMenuSetFence = findViewById(R.id.btn_menu_set_fence);
         fenceSetupPanel = findViewById(R.id.fence_setup_panel);
@@ -153,8 +159,14 @@ public class MapActivity extends AppCompatActivity {
         fenceNameInput = findViewById(R.id.fence_name_input);
         fenceCancelBtn = findViewById(R.id.fence_cancel_btn);
         fenceConfirmBtn = findViewById(R.id.fence_confirm_btn);
-        btnMenuPeer.setOnClickListener(v -> goToPeer());
-        btnMenuSetFence.setOnClickListener(v -> enterFenceMode());
+        btnMenuPeer.setOnClickListener(v -> {
+            hideToolsMenu();
+            goToPeer();
+        });
+        btnMenuSetFence.setOnClickListener(v -> {
+            hideToolsMenu();
+            enterFenceMode();
+        });
         fenceCancelBtn.setOnClickListener(v -> exitFenceMode());
         fenceConfirmBtn.setOnClickListener(v -> confirmFenceCreate());
         fenceRadiusSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -173,7 +185,7 @@ public class MapActivity extends AppCompatActivity {
             }
         });
 
-        // 顶部头像：点击弹菜单（自己=我的位置，对方=去找他）
+        // 顶部头像已改为 toggle 方式显示工具菜单（见 onCreate）
 
         initMap();
         requestLocationPermission();
@@ -320,6 +332,7 @@ public class MapActivity extends AppCompatActivity {
                 if (fenceMode) {
                     selectFenceCenter(latLng);
                 } else {
+                    hideToolsMenu();
                     Long hit = findFenceAt(latLng);
                     if (hit != null) {
                         showFenceActions(hit);
@@ -966,6 +979,23 @@ public class MapActivity extends AppCompatActivity {
     /** 半透明填充色（约 15% 不透明度） */
     private int fenceFillColor(int opaque) {
         return (0x26 << 24) | (opaque & 0xFFFFFF);
+    }
+
+    /** 点头像切换工具菜单显示/隐藏（两个头像均可触发） */
+    private void toggleToolsMenu() {
+        if (viewToolsMenu.getVisibility() == View.VISIBLE) {
+            hideToolsMenu();
+        } else {
+            viewToolsMenu.setAlpha(0f);
+            viewToolsMenu.setVisibility(View.VISIBLE);
+            viewToolsMenu.animate().alpha(1f).setDuration(150L).start();
+        }
+    }
+
+    private void hideToolsMenu() {
+        if (viewToolsMenu.getVisibility() != View.VISIBLE) return;
+        viewToolsMenu.animate().alpha(0f).setDuration(120L)
+                .withEndAction(() -> viewToolsMenu.setVisibility(View.GONE)).start();
     }
 
     /** 「去找他」：聚焦对方位置 */
