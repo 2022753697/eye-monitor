@@ -19,11 +19,20 @@ import androidx.core.app.NotificationCompat;
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.ui.MainActivity;
+import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.websocket.WSClient;
+
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 前台监控服务。
@@ -75,6 +84,8 @@ public class MonitorService extends Service {
     private String lastAppSwitchPkg;
     private long lastAppSwitchTime;
     private static final long APP_SWITCH_DEDUP_MS = 3000;
+    /** 纪念日到期提醒：每天检查一次 */
+    private static final long DAY_MS = 24 * 60 * 60 * 1000L;
     private NotificationManager notificationManager;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private volatile boolean accessibilityListenerSet = false;
@@ -87,6 +98,15 @@ public class MonitorService extends Service {
         public void run() {
             reportLocation();
             handler.postDelayed(this, 30_000L); // 每30秒上报一次
+        }
+    };
+
+    /** 纪念日到期提醒：每次启动立即检查，之后每 24 小时复查 */
+    private final Runnable anniversaryCheckRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkAnniversaryReminders();
+            handler.postDelayed(this, DAY_MS);
         }
     };
 
@@ -221,6 +241,9 @@ public class MonitorService extends Service {
         initUsageStatsTracker();
         initLocationTracker();
 
+        // 纪念日到期提醒（启动即查 + 每天复查）
+        handler.post(anniversaryCheckRunnable);
+
         return START_STICKY;
     }
 
@@ -233,6 +256,7 @@ public class MonitorService extends Service {
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         handler.removeCallbacks(locationReportRunnable);
+        handler.removeCallbacks(anniversaryCheckRunnable);
         if (locationTracker != null) locationTracker.stop();
         wsInitialized = false;
         accessibilityListenerSet = false;
@@ -655,6 +679,64 @@ public class MonitorService extends Service {
         AppDatabase db = AppDatabase.getInstance(this);
         AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(
                 new ChatEntity("chat", text, from, false, ts)));
+    }
+
+    /**
+     * 纪念日到期提醒：遍历 Room 缓存，月日=今天（repeat 按月-日、一次性按完整日期）
+     * 且今天未提示过的纪念日，插入一条 system 聊天并广播（复用聊天页居中系统提示渲染）。
+     * 去重态存 PrefsManager（日期 + 已提示 serverId 列表），当天只提示一次。
+     */
+    private void checkAnniversaryReminders() {
+        String pairCode = prefs.getPairCode();
+        if (pairCode == null || pairCode.isEmpty() || !prefs.isLoggedIn()) return;
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            try {
+                List<AnniversaryCacheEntity> all = db.cacheDao().getAnniversaries();
+                if (all == null || all.isEmpty()) return;
+                Calendar today = Calendar.getInstance();
+                String todayStr = AnniversaryUtils.todayString();
+                Set<String> reminded = new HashSet<>();
+                if (todayStr.equals(prefs.getAnniversaryReminderDate())) {
+                    String ids = prefs.getAnniversaryReminderIds();
+                    if (ids != null && !ids.isEmpty()) {
+                        for (String id : ids.split(",")) {
+                            if (!id.trim().isEmpty()) reminded.add(id.trim());
+                        }
+                    }
+                }
+                boolean changed = !todayStr.equals(prefs.getAnniversaryReminderDate());
+                long now = System.currentTimeMillis();
+                for (AnniversaryCacheEntity e : all) {
+                    if (!AnniversaryUtils.isAnniversaryToday(e, today)) continue;
+                    String idKey = String.valueOf(e.serverId);
+                    if (reminded.contains(idKey)) continue;
+                    reminded.add(idKey);
+                    changed = true;
+                    String name = e.name != null && !e.name.isEmpty()
+                            ? e.name : getString(R.string.toast_unknown_app);
+                    String text = getString(R.string.anniversary_today_chat, name);
+                    db.chatDao().insert(new ChatEntity("system", text, null, false, now));
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("text", text);
+                    WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(), pairCode,
+                            payload, now);
+                    broadcastEvent(tip);
+                    Log.i(TAG, "纪念日到期提醒已发送: " + name);
+                }
+                if (changed) {
+                    StringBuilder sb = new StringBuilder();
+                    for (String id : reminded) {
+                        if (sb.length() > 0) sb.append(',');
+                        sb.append(id);
+                    }
+                    prefs.setAnniversaryReminderDate(todayStr);
+                    prefs.setAnniversaryReminderIds(sb.toString());
+                }
+            } catch (Exception ex) {
+                Log.w(TAG, "纪念日提醒检查失败", ex);
+            }
+        });
     }
 
     // --- 通知 ---
