@@ -657,9 +657,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 配对成功后：WSClient 交给 MonitorService 管理并启动前台服务 */
+    /** 配对成功后：关闭配对用 WS，由 MonitorService 自建单一连接并 pair_recover 恢复配对
+     *  （旧实现把配对 WS 转移给服务，但服务已运行时转移不生效，导致双连接触发
+     *   服务端 WsSessionManager 单设备互踢，每秒重连死循环） */
     private void startMonitorAfterPair() {
-        MonitorService.setSharedWSClient(pairWsClient);
+        disconnectPairWs();
         Intent intent = new Intent(this, MonitorService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);

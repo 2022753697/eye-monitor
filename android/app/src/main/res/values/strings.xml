@@ -255,7 +255,7 @@
     <string name="fence_created">围栏已创建</string>
     <string name="fence_create_failed">围栏创建失败：%1$s</string>
     <string name="fence_unknown">未命名围栏</string>
-    <string name="fence_delete_message">%1$s\n\n删除后双方设备同时移除该围栏，确定吗？</string>
+    <string name="fence_delete_message">%1$s\n\n删除后该围栏将从你的设备移除，不影响对方，确定吗？</string>
     <string name="fence_delete_confirm">删除围栏</string>
     <string name="fence_delete_success">围栏已删除</string>
     <string name="fence_delete_failed">围栏删除失败：%1$s</string>

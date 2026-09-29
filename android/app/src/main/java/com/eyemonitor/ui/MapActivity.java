@@ -747,11 +747,16 @@ public class MapActivity extends AppCompatActivity {
         AuthManager.i(this).delete(this, "/api/fences/" + serverId, new AuthManager.Callback() {
             @Override
             public void onSuccess(JsonObject data) {
-                runOnUiThread(() -> {
-                    if (!fenceUiAlive) return;
-                    Toast.makeText(MapActivity.this, R.string.fence_delete_success, Toast.LENGTH_SHORT).show();
+                // 围栏私有：无广播同步，删除成功后本地清理 Room 缓存并重绘
+                AppDatabase db = AppDatabase.getInstance(MapActivity.this);
+                AppDatabase.dbExecutor.execute(() -> {
+                    db.cacheDao().deleteFence(serverId);
+                    runOnUiThread(() -> {
+                        if (!fenceUiAlive) return;
+                        Toast.makeText(MapActivity.this, R.string.fence_delete_success, Toast.LENGTH_SHORT).show();
+                        loadFenceCircles();
+                    });
                 });
-                // 服务器广播 fence_sync(delete) → SyncManager 清缓存 → onEventReceived 重绘
             }
 
             @Override
@@ -856,6 +861,22 @@ public class MapActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         if (!fenceUiAlive) return;
                         fenceConfirmBtn.setEnabled(true);
+                        // 围栏私有：无广播同步，把服务端返回的新围栏直接写入本地 Room 缓存再重绘
+                        final long serverId = data != null && data.has("id") ? data.get("id").getAsLong() : 0L;
+                        if (serverId > 0) {
+                            AppDatabase db = AppDatabase.getInstance(MapActivity.this);
+                            AppDatabase.dbExecutor.execute(() -> {
+                                FenceCacheEntity local = new FenceCacheEntity();
+                                local.serverId = serverId;
+                                local.name = data.has("name") && !data.get("name").isJsonNull()
+                                        ? data.get("name").getAsString() : name;
+                                local.lat = centerLat;
+                                local.lng = centerLng;
+                                local.radius = radius;
+                                local.enabled = true;
+                                db.cacheDao().upsertFence(local);
+                            });
+                        }
                         exitFenceMode();
                         Toast.makeText(MapActivity.this, R.string.fence_created, Toast.LENGTH_SHORT).show();
                         loadFenceCircles();

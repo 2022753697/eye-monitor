@@ -1,7 +1,6 @@
 package com.eyemonitor.controller;
 
 import com.eyemonitor.entity.FenceEntity;
-import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.repository.FenceRepo;
 import com.eyemonitor.security.AuthUtil;
 import com.eyemonitor.service.PairService;
@@ -22,7 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 围栏 CRUD（配置落库并同步双方，判定在客户端） */
+/**
+ * 围栏 CRUD（围栏为创建者私有：A 建的围栏只 A 可见/可管理，删除只影响 A；
+ * 监控判定在客户端本机完成——本机用自己围栏 + 对端位置做进出判断）。
+ * 不做 WS 广播（fence_sync 已废弃），客户端以 REST 结果维护本地 Room 缓存。
+ */
 @RestController
 @RequestMapping("/api/fences")
 public class FenceController {
@@ -35,27 +38,12 @@ public class FenceController {
         this.pairService = pairService;
     }
 
+    /** 仅返回本人创建的围栏（私有），与配对共享无关 */
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> list(HttpServletRequest request) {
         long userId = AuthUtil.currentUserId(request);
-        String pairCode = requirePairCode(request);
-        // 自愈迁移：本人名下残留旧配对码的围栏（服务器重启换码后遗留）自动归到当前配对，
-        // 避免出现“自己删除自己的围栏却被判无权”的新旧码不一致
-        for (FenceEntity e : fenceRepo.findByOwnerUser(userId)) {
-            if (!pairCode.equals(e.getPairCode())) {
-                e.setPairCode(pairCode);
-                fenceRepo.save(e);
-            }
-        }
         List<Map<String, Object>> out = new ArrayList<>();
-        java.util.LinkedHashMap<Long, FenceEntity> merged = new java.util.LinkedHashMap<>();
-        for (FenceEntity e : fenceRepo.findByPairCode(pairCode)) {
-            merged.put(e.getId(), e);
-        }
-        for (FenceEntity e : fenceRepo.findByOwnerUser(userId)) {
-            merged.putIfAbsent(e.getId(), e);
-        }
-        for (FenceEntity e : merged.values()) {
+        for (FenceEntity e : fenceRepo.findByOwnerUserOrderByIdAsc(userId)) {
             out.add(view(e));
         }
         return ApiResponse.ok(out);
@@ -83,8 +71,6 @@ public class FenceController {
         e.setEnabled(true);
         e.setCreatedAt(System.currentTimeMillis());
         fenceRepo.save(e);
-
-        broadcast(e, "upsert", pairCode);
         return ApiResponse.ok(view(e));
     }
 
@@ -92,8 +78,7 @@ public class FenceController {
     public ApiResponse<Map<String, Object>> update(@PathVariable Long id,
                                                    @RequestBody Map<String, Object> body,
                                                    HttpServletRequest request) {
-        String pairCode = requirePairCode(request);
-        FenceEntity e = stdGet(id, pairCode, request);
+        FenceEntity e = stdGetOwned(id, request);
         if (body.containsKey("name")) {
             String name = body.get("name") == null ? null : String.valueOf(body.get("name")).trim();
             if (name == null || name.isEmpty()) throw new BizException(400, "围栏名称不能为空");
@@ -108,31 +93,21 @@ public class FenceController {
         }
         if (body.containsKey("enabled")) e.setEnabled(Boolean.TRUE.equals(body.get("enabled")));
         fenceRepo.save(e);
-
-        broadcast(e, "upsert", pairCode);
         return ApiResponse.ok(view(e));
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id, HttpServletRequest request) {
-        String pairCode = requirePairCode(request);
-        FenceEntity e = stdGet(id, pairCode, request);
+        FenceEntity e = stdGetOwned(id, request);
         fenceRepo.delete(e);
-        broadcast(e, "delete", pairCode);
         return ApiResponse.ok(null);
     }
 
-    private void broadcast(FenceEntity e, String action, String pairCode) {
-        pairService.broadcastToPair(pairCode, WsMessage.createFenceSync(
-                null, pairCode, action, e.getId(), e.getName(),
-                e.getCenterLat(), e.getCenterLng(), e.getRadius(), e.isEnabled()));
-    }
-
-    private FenceEntity stdGet(long id, String pairCode, HttpServletRequest request) {
+    /** 判权：仅创建者本人可操作自己的围栏（严格私有，不共享） */
+    private FenceEntity stdGetOwned(long id, HttpServletRequest request) {
         FenceEntity e = fenceRepo.findById(id).orElseThrow(() -> new BizException(404, "围栏不存在"));
         long userId = AuthUtil.currentUserId(request);
-        // 判权：当前配对码匹配，或本人创建（即使配对码因重启/重配对变化也能操作自己的围栏）
-        if (!pairCode.equals(e.getPairCode()) && e.getOwnerUser() != userId) {
+        if (e.getOwnerUser() != userId) {
             throw new BizException(403, "无权操作该围栏");
         }
         return e;

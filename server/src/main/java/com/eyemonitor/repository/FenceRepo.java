@@ -11,5 +11,7 @@ public interface FenceRepo extends JpaRepository<FenceEntity, Long> {
 
     List<FenceEntity> findByOwnerUser(long userId);
 
+    List<FenceEntity> findByOwnerUserOrderByIdAsc(long userId);
+
     void deleteByPairCode(String pairCode);
 }

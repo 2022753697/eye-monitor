@@ -409,20 +409,20 @@ public class PairService {
         public boolean isComplete() { return complete; }
 
         public Long getPeerUser(long myId) {
-            if (myId == userA) return userB;
-            if (myId == userB) return userA;
+            if (userA != null && myId == userA) return userB;
+            if (userB != null && myId == userB) return userA;
             return null;
         }
 
         public String getDeviceIdOf(long userId) {
-            if (userId == userA) return deviceAId;
-            if (userId == userB) return deviceBId;
+            if (userA != null && userId == userA) return deviceAId;
+            if (userB != null && userId == userB) return deviceBId;
             return null;
         }
 
         public WebSocketSession getSessionByUserId(long userId) {
-            if (userId == userA) return sessionA;
-            if (userId == userB) return sessionB;
+            if (userA != null && userId == userA) return sessionA;
+            if (userB != null && userId == userB) return sessionB;
             return null;
         }
 
@@ -433,14 +433,14 @@ public class PairService {
         }
 
         public WebSocketSession getPeerSessionByUser(long myId) {
-            if (myId == userA) return sessionB;
-            if (myId == userB) return sessionA;
+            if (userA != null && myId == userA) return sessionB;
+            if (userB != null && myId == userB) return sessionA;
             return null;
         }
 
         public String getPeerDeviceIdByUser(long myId) {
-            if (myId == userA) return deviceBId;
-            if (myId == userB) return deviceAId;
+            if (userA != null && myId == userA) return deviceBId;
+            if (userB != null && myId == userB) return deviceAId;
             return null;
         }
 
@@ -457,21 +457,21 @@ public class PairService {
         }
 
         public void setMemberSession(long userId, String deviceId, WebSocketSession session) {
-            if (userId == userA) {
+            if (userA != null && userId == userA) {
                 deviceAId = deviceId;
                 sessionA = session;
-            } else if (userId == userB) {
+            } else if (userB != null && userId == userB) {
                 deviceBId = deviceId;
                 sessionB = session;
             }
         }
 
         public void removeUser(long userId) {
-            if (userId == userA) {
+            if (userA != null && userId == userA) {
                 userA = null;
                 deviceAId = null;
                 sessionA = null;
-            } else if (userId == userB) {
+            } else if (userB != null && userId == userB) {
                 userB = null;
                 deviceBId = null;
                 sessionB = null;
