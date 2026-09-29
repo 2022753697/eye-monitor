@@ -17,6 +17,7 @@ public class PrefsManager {
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
     private static final String KEY_PERMISSION_PROMPTED = "permission_prompted";
+    private static final String KEY_GENDER = "gender";
 
     private final SharedPreferences prefs;
 
@@ -92,6 +93,23 @@ public class PrefsManager {
 
     public void setPermissionPrompted(boolean prompted) {
         prefs.edit().putBoolean(KEY_PERMISSION_PROMPTED, prompted).apply();
+    }
+
+    /** 获取性别：female | male，未设置返回 null（默认按粉色） */
+    public String getGender() {
+        return prefs.getString(KEY_GENDER, null);
+    }
+
+    /** 设置性别：female（粉）| male（蓝） */
+    public void setGender(String gender) {
+        if ("female".equals(gender) || "male".equals(gender)) {
+            prefs.edit().putString(KEY_GENDER, gender).apply();
+        }
+    }
+
+    /** 是否女性（未设置时默认按女性粉色显示） */
+    public boolean isFemale() {
+        return !"male".equals(getGender());
     }
 
     /** 是否已配对 */

@@ -146,13 +146,7 @@ public class AppUsageTracker {
     }
 
     private String getAppName(String packageName) {
-        try {
-            android.content.pm.ApplicationInfo ai = packageManager.getApplicationInfo(packageName, 0);
-            CharSequence name = packageManager.getApplicationLabel(ai);
-            return name != null ? name.toString() : packageName;
-        } catch (PackageManager.NameNotFoundException e) {
-            return packageName;
-        }
+        return com.eyemonitor.util.AppNameResolver.getAppName(context, packageName);
     }
 
     /**

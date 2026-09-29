@@ -7,6 +7,8 @@ import android.os.Build;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
+import com.eyemonitor.util.AppNameResolver;
+
 /**
  * 无障碍服务 - 检测前台 App 切换
  * <p>
@@ -344,13 +346,7 @@ public class AppAccessibilityService extends AccessibilityService {
     }
 
     private String getAppName(String packageName) {
-        try {
-            CharSequence label = getPackageManager().getApplicationLabel(
-                    getPackageManager().getApplicationInfo(packageName, 0));
-            return label != null ? label.toString() : packageName;
-        } catch (Exception e) {
-            return packageName;
-        }
+        return AppNameResolver.getAppName(getApplicationContext(), packageName);
     }
 
     private boolean isSystemPackage(String packageName) {

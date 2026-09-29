@@ -18,6 +18,8 @@ import androidx.core.app.NotificationCompat;
 
 import com.eyemonitor.R;
 import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.ui.MainActivity;
 import com.eyemonitor.websocket.WSClient;
@@ -48,6 +50,8 @@ public class MonitorService extends Service {
     public static final String ACTION_SEND_CHAT = "com.eyemonitor.SEND_CHAT";
     public static final String EXTRA_CHAT_TEXT = "chat_text";
     public static final String EXTRA_CHAT_FROM = "chat_from";
+    // 地图打开时主动触发一次本机位置上报（让 selfMarker 尽快创建并聚焦）
+    public static final String ACTION_REQUEST_SELF_LOCATION = "com.eyemonitor.REQUEST_SELF_LOCATION";
 
     // 静态引用：PairActivity 配对成功后将 WSClient 交给 MonitorService
     private static WSClient sharedWSClient;
@@ -108,6 +112,14 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 地图打开时请求立即上报一次本机位置 */
+    public static void sendRequestSelfLocation(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_REQUEST_SELF_LOCATION);
+        context.startService(intent);
+    }
+
     /** PairActivity 配对成功后调用，将 WSClient 转移给 MonitorService */
     public static void setSharedWSClient(WSClient client) {
         sharedWSClient = client;
@@ -134,6 +146,12 @@ public class MonitorService extends Service {
             } else {
                 Log.w(TAG, "聊天发送失败: text=" + text + ", wsClient=" + wsClient + ", paired=" + (prefs.getPairCode() != null));
             }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_REQUEST_SELF_LOCATION.equals(intent.getAction())) {
+            Log.i(TAG, "地图请求本机位置上报");
+            sendLocation();
             return START_NOT_STICKY;
         }
 
@@ -439,7 +457,8 @@ public class MonitorService extends Service {
                 handleLocation(message);
                 break;
             case "chat":
-                // 聊天消息：直接广播给 UI（聊天界面显示气泡）
+                // 聊天消息：服务层持久化（App 未打开时也不丢记录），再广播给 UI
+                saveChatMessage(message);
                 broadcastEvent(message);
                 break;
             case "request_peer_location":
@@ -487,8 +506,28 @@ public class MonitorService extends Service {
         String appName = payload != null && payload.get("appName") instanceof String
                 ? (String) payload.get("appName") : "未知应用";
 
+        // 服务层持久化：对方打开记录写入 Room（App 未打开时也不丢，打开后按时间显示）
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(new ChatEntity(
+                "system", getString(R.string.chat_peer_opened, appName), null, false,
+                message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis())));
+
         // 不弹系统通知（需求：只在聊天界面以居中系统提示展示）
         broadcastEvent(message);
+    }
+
+    /** 持久化收到的聊天消息（服务层，不依赖 Activity 生命周期） */
+    private void saveChatMessage(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object t = payload != null ? payload.get("text") : null;
+        Object f = payload != null ? payload.get("from") : null;
+        String text = t instanceof String ? (String) t : null;
+        String from = f instanceof String ? (String) f : null;
+        if (text == null || text.isEmpty()) return;
+        long ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(
+                new ChatEntity("chat", text, from, false, ts)));
     }
 
     // --- 通知 ---

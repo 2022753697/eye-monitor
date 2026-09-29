@@ -129,35 +129,35 @@
                     android:textColor="@color/text_on_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tv_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/status_running"
-                    android:textColor="@color/text_on_primary"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
             </LinearLayout>
 
-            <Button
+            <!-- 共享地图（图标 + 文字） -->
+            <LinearLayout
                 android:id="@+id/btn_chat_map"
-                style="@style/Widget.EyeMonitor.Button.Header"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=""
-                app:icon="@drawable/ic_map"
-                android:contentDescription="@string/menu_map" />
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_btn_white_rect"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:clickable="true"
+                android:focusable="true">
 
-            <Button
-                android:id="@+id/btn_chat_more"
-                style="@style/Widget.EyeMonitor.Button.Header"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text=""
-                app:icon="@drawable/ic_more"
-                android:contentDescription="@string/menu_nickname" />
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_map"
+                    android:tint="@color/text_on_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/btn_share_map"
+                    android:textColor="@color/text_on_primary"
+                    android:textSize="13sp"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 消息列表 -->
@@ -170,14 +170,23 @@
             android:paddingBottom="8dp"
             android:clipToPadding="false" />
 
-        <!-- 底部输入栏 -->
+        <!-- 底部容器：输入栏 + 更多面板（一起滑入滑出） -->
+        <LinearLayout
+            android:id="@+id/bottom_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
+
+        <!-- 底部输入栏：输入框 + 发送 + 更多（一组，QQ 风格） -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@color/surface"
             android:elevation="4dp"
-            android:padding="10dp"
+            android:padding="8dp"
             android:gravity="center_vertical">
 
             <EditText
@@ -191,15 +200,35 @@
                 android:maxLines="4"
                 android:inputType="textMultiLine" />
 
-            <Button
+            <!-- 发送（无输入灰色 / 有输入粉色） -->
+            <ImageButton
                 android:id="@+id/btn_send"
-                style="@style/Widget.EyeMonitor.Button.Header"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text=""
-                app:icon="@drawable/ic_send"
-                android:contentDescription="@string/btn_send" />
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/ic_send"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="12dp"
+                android:contentDescription="@string/btn_send"
+                android:layout_marginStart="8dp" />
+
+            <!-- 更多（底部弹出菜单） -->
+            <ImageButton
+                android:id="@+id/btn_chat_more"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/ic_more"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="14dp"
+                android:tint="@color/text_secondary"
+                android:contentDescription="@string/menu_more"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- 更多面板（QQ 风格网格，弹出时占底部、顶起输入栏） -->
+        <include
+            android:id="@+id/more_panel"
+            layout="@layout/view_more_panel"
+            android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

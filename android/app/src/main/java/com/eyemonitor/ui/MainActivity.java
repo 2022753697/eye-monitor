@@ -4,16 +4,27 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.PopupMenu;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +44,7 @@ import com.eyemonitor.util.AccessibilityDiagnostic;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -59,13 +71,14 @@ public class MainActivity extends AppCompatActivity {
     private View viewPairPanel;
     private View viewChatPanel;
     private TextView tvChatTitle;
-    private TextView tvStatus;
-    private Button btnChatMap;
-    private Button btnChatMore;
+    private View btnChatMap;
+    private ImageButton btnChatMore;
     private EditText etChatInput;
-    private Button btnSend;
+    private ImageButton btnSend;
     private RecyclerView rvChat;
     private ChatAdapter chatAdapter;
+    private View bottomBar;
+    private View morePanel;
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -99,7 +112,6 @@ public class MainActivity extends AppCompatActivity {
         // 聊天面板
         viewChatPanel = findViewById(R.id.view_chat_panel);
         tvChatTitle = findViewById(R.id.tv_chat_title);
-        tvStatus = findViewById(R.id.tv_status);
         btnChatMap = findViewById(R.id.btn_chat_map);
         btnChatMore = findViewById(R.id.btn_chat_more);
         etChatInput = findViewById(R.id.et_chat_input);
@@ -117,8 +129,64 @@ public class MainActivity extends AppCompatActivity {
         btnJoinPair.setOnClickListener(v -> joinPair());
         btnCreatePair.setOnClickListener(v -> startActivity(new Intent(this, PairActivity.class)));
         btnChatMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
-        btnChatMore.setOnClickListener(v -> showMoreMenu());
+        btnChatMore.setOnClickListener(v -> toggleMorePanel());
         btnSend.setOnClickListener(v -> sendChatMessage());
+
+        // 更多面板：格子绑定
+        bottomBar = findViewById(R.id.bottom_bar);
+        morePanel = findViewById(R.id.more_panel);
+        morePanel.findViewById(R.id.grid_image).setOnClickListener(v -> {
+            hideMorePanel();
+            Toast.makeText(this, R.string.toast_image_coming_soon, Toast.LENGTH_SHORT).show();
+        });
+        morePanel.findViewById(R.id.grid_map).setOnClickListener(v -> {
+            hideMorePanel();
+            startActivity(new Intent(this, MapActivity.class));
+        });
+        morePanel.findViewById(R.id.grid_nickname).setOnClickListener(v -> {
+            hideMorePanel();
+            showNicknameDialog();
+        });
+        morePanel.findViewById(R.id.grid_gender).setOnClickListener(v -> {
+            hideMorePanel();
+            showGenderDialog();
+        });
+        morePanel.findViewById(R.id.grid_permissions).setOnClickListener(v -> {
+            hideMorePanel();
+            openPermissionSettings();
+        });
+        morePanel.findViewById(R.id.grid_diagnose).setOnClickListener(v -> {
+            hideMorePanel();
+            runAccessibilityTest();
+        });
+        morePanel.findViewById(R.id.grid_unpair).setOnClickListener(v -> {
+            hideMorePanel();
+            showUnpairDialog();
+        });
+        morePanel.findViewById(R.id.grid_clear).setOnClickListener(v -> {
+            hideMorePanel();
+            clearChatHistory();
+        });
+
+        // 发送按钮状态色：无输入灰 / 有输入粉
+        updateSendButtonState();
+        etChatInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateSendButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+        // 输入法与更多菜单互斥：点击输入框时收起更多面板
+        etChatInput.setOnClickListener(v -> hideMorePanel());
+        etChatInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) hideMorePanel();
+        });
 
         // 聊天列表
         chatAdapter = new ChatAdapter();
@@ -157,8 +225,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         switchView(prefs.isPaired());
-        // 配对成功后自动启动监控服务
-        if (prefs.isPaired() && !serviceRunning) {
+        // 配对成功后自动启动监控服务（实时检测服务运行状态）
+        if (prefs.isPaired() && !isServiceRunning()) {
             startMonitoringService();
         }
         // 已配对则刷新标题与状态
@@ -188,14 +256,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 刷新聊天头栏：对方昵称 + 服务状态 */
+    /** 刷新聊天头栏：对方昵称 */
     private void updateChatHeader() {
         String peer = prefs.getPeerNickname();
         tvChatTitle.setText(peer != null && !peer.isEmpty()
                 ? peer : getString(R.string.chat_title_default));
-
-        serviceRunning = isServiceRunning();
-        tvStatus.setText(serviceRunning ? R.string.status_running : R.string.status_not_running);
     }
 
     // --- 监控权限引导 ---
@@ -251,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
 
         String from = prefs.getNickname();
         long now = System.currentTimeMillis();
-        chatAdapter.addItem(new ChatItem(TYPE_SELF, text, from, TIME_FORMAT.format(new Date(now))));
+        chatAdapter.addItem(new ChatItem(TYPE_SELF, text, from, TIME_FORMAT.format(new Date(now)), now));
 
         // 本地入库（Room 禁止主线程操作，走 dbExecutor）
         AppDatabase db = AppDatabase.getInstance(this);
@@ -262,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
         MonitorService.sendChat(this, text, from);
 
         etChatInput.setText("");
+        hideMorePanel();
         scrollToBottom();
     }
 
@@ -275,11 +341,11 @@ public class MainActivity extends AppCompatActivity {
                     int type = "system".equals(e.kind) ? TYPE_SYSTEM
                             : e.isSelf ? TYPE_SELF : TYPE_PEER;
                     chatAdapter.addItem(new ChatItem(type, e.text, e.fromName,
-                            TIME_FORMAT.format(new Date(e.timestamp))));
+                            TIME_FORMAT.format(new Date(e.timestamp)), e.timestamp));
                 }
                 if (chatAdapter.getItemCount() == 0) {
                     chatAdapter.addItem(new ChatItem(TYPE_SYSTEM,
-                            getString(R.string.chat_empty), null, ""));
+                            getString(R.string.chat_empty), null, "", 0));
                 }
                 scrollToBottom();
             });
@@ -307,8 +373,7 @@ public class MainActivity extends AppCompatActivity {
             case "app_switch":
                 String appName = message.getPayload() != null
                         ? (String) message.getPayload().get("appName") : null;
-                appendSystemItem(getString(R.string.chat_peer_opened,
-                        appName != null ? appName : getString(R.string.toast_unknown_app)));
+                appendSystemItem(appName);
                 break;
             case "error":
                 handleError(message);
@@ -352,53 +417,107 @@ public class MainActivity extends AppCompatActivity {
 
         long now = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
         chatAdapter.addItem(new ChatItem(TYPE_PEER, text, from,
-                TIME_FORMAT.format(new Date(now))));
-        AppDatabase db = AppDatabase.getInstance(this);
-        AppDatabase.dbExecutor.execute(() -> db.chatDao()
-                .insert(new ChatEntity("chat", text, from, false, now)));
+                TIME_FORMAT.format(new Date(now)), now));
+        // 持久化已在 MonitorService（服务层）完成，这里只渲染
         scrollToBottom();
     }
 
-    private void appendSystemItem(String text) {
+    private void appendSystemItem(String appName) {
+        String name = appName != null ? appName : getString(R.string.toast_unknown_app);
+        String text = getString(R.string.chat_peer_opened, name);
         long now = System.currentTimeMillis();
+        // 持久化已在 MonitorService（服务层）完成，这里只渲染
         chatAdapter.addItem(new ChatItem(TYPE_SYSTEM, text, null,
-                TIME_FORMAT.format(new Date(now))));
-        AppDatabase db = AppDatabase.getInstance(this);
-        AppDatabase.dbExecutor.execute(() -> db.chatDao()
-                .insert(new ChatEntity("system", text, null, false, now)));
+                TIME_FORMAT.format(new Date(now)), now));
         scrollToBottom();
     }
 
-    // --- 头栏「更多」菜单 ---
+    /** 系统提示时间：今天显示 HH:mm，更早显示 yyyy-M-d HH:mm（如 2026-9-28 21:38） */
+    private String formatSystemTime(long ts) {
+        if (ts <= 0) return "";
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(ts);
+        Calendar now = Calendar.getInstance();
+        boolean today = c.get(Calendar.YEAR) == now.get(Calendar.YEAR)
+                && c.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR);
+        SimpleDateFormat fmt = today
+                ? new SimpleDateFormat("HH:mm", Locale.getDefault())
+                : new SimpleDateFormat("yyyy-M-d HH:mm", Locale.getDefault());
+        return fmt.format(new Date(ts));
+    }
 
-    private void showMoreMenu() {
-        PopupMenu menu = new PopupMenu(this, btnChatMore);
-        menu.getMenu().add(0, 1, 0, R.string.menu_map);
-        menu.getMenu().add(0, 2, 0, R.string.menu_permissions);
-        menu.getMenu().add(0, 3, 0, R.string.menu_diagnose);
-        menu.getMenu().add(0, 4, 0, R.string.menu_nickname);
-        menu.getMenu().add(0, 5, 0, R.string.menu_unpair);
-        menu.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case 1:
-                    startActivity(new Intent(this, MapActivity.class));
-                    break;
-                case 2:
-                    openPermissionSettings();
-                    break;
-                case 3:
-                    runAccessibilityTest();
-                    break;
-                case 4:
-                    showNicknameDialog();
-                    break;
-                case 5:
-                    showUnpairDialog();
-                    break;
+    /** 系统提示富文本：时间（今天=HH:mm / 更早=日期+时间）+ 应用名珊瑚色加粗 */
+    private CharSequence styleSystemText(ChatItem item) {
+        String header = formatSystemTime(item.ts);
+        String prefix = getString(R.string.chat_peer_opened_prefix);
+        String text = item.text;
+        String full = header.isEmpty() ? text : header + " " + text;
+        SpannableStringBuilder sb = new SpannableStringBuilder(full);
+        if (text != null && text.startsWith(prefix)) {
+            int appStart = (header.isEmpty() ? 0 : header.length() + 1) + prefix.length();
+            if (appStart < full.length()) {
+                sb.setSpan(new ForegroundColorSpan(getColor(R.color.primary)),
+                        appStart, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new StyleSpan(Typeface.BOLD),
+                        appStart, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            return true;
+        }
+        return sb;
+    }
+
+    /** 发送按钮状态色：无输入灰色，有输入粉色 */
+    private void updateSendButtonState() {
+        boolean hasText = etChatInput.getText().length() > 0;
+        int color = hasText ? getColor(R.color.primary) : getColor(R.color.text_secondary);
+        btnSend.setImageTintList(ColorStateList.valueOf(color));
+    }
+
+    // --- 更多面板（QQ 风格网格，弹出时顶起输入栏，与输入法互斥） ---
+
+    /** 切换更多面板：输入栏+面板整个底部块一起滑入/滑出，显示时收起输入法并滚到最新消息 */
+    private void toggleMorePanel() {
+        if (morePanel.getVisibility() == View.VISIBLE) {
+            hideMorePanel();
+        } else {
+            hideKeyboard();
+            morePanel.setVisibility(View.VISIBLE);
+            bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
+            // 最新消息滚到面板上方，不被面板遮挡
+            scrollToBottom();
+        }
+    }
+
+    private void hideMorePanel() {
+        if (morePanel.getVisibility() == View.GONE) return;
+        Animation out = AnimationUtils.loadAnimation(this, R.anim.slide_out_bottom);
+        out.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation a) {}
+
+            @Override
+            public void onAnimationEnd(Animation a) {
+                morePanel.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation a) {}
         });
-        menu.show();
+        bottomBar.startAnimation(out);
+    }
+
+    /** 清空本地聊天记录 */
+    private void clearChatHistory() {
+        AppDatabase.dbExecutor.execute(() ->
+                AppDatabase.getInstance(this).chatDao().clear());
+        chatAdapter.clear();
+        Toast.makeText(this, R.string.toast_chat_cleared, Toast.LENGTH_SHORT).show();
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(etChatInput.getWindowToken(), 0);
+        }
     }
 
     private void openPermissionSettings() {
@@ -425,6 +544,21 @@ public class MainActivity extends AppCompatActivity {
                         prefs.setNickname(nick);
                         Toast.makeText(this, nick, Toast.LENGTH_SHORT).show();
                     }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /** 设置性别（女=粉 / 男=蓝，地图与头像取色依据） */
+    private void showGenderDialog() {
+        String[] options = {getString(R.string.gender_female), getString(R.string.gender_male)};
+        int checked = prefs.isFemale() ? 0 : 1;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_gender_title)
+                .setSingleChoiceItems(options, checked, (d, which) -> {
+                    prefs.setGender(which == 0 ? "female" : "male");
+                    d.dismiss();
+                    Toast.makeText(this, options[which], Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
@@ -551,12 +685,14 @@ public class MainActivity extends AppCompatActivity {
         public final String text;
         public final String from;
         public final String time;
+        public final long ts;
 
-        public ChatItem(int type, String text, String from, String time) {
+        public ChatItem(int type, String text, String from, String time, long ts) {
             this.type = type;
             this.text = text;
             this.from = from;
             this.time = time;
+            this.ts = ts;
         }
     }
 
@@ -650,7 +786,7 @@ public class MainActivity extends AppCompatActivity {
                                 ? from : getString(R.string.chat_title_default));
                         break;
                     default:
-                        tvText.setText(item.text);
+                        tvText.setText(MainActivity.this.styleSystemText(item));
                         break;
                 }
             }

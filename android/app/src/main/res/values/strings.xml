@@ -86,6 +86,7 @@
     <string name="chat_hint_input">输入消息…</string>
     <string name="chat_empty">配对成功，开始聊天吧～</string>
     <string name="chat_peer_opened">对方打开了 %1$s</string>
+    <string name="chat_peer_opened_prefix">对方打开了 </string>
     <string name="menu_map">位置地图</string>
     <string name="menu_permissions">权限设置</string>
     <string name="menu_diagnose">无障碍诊断</string>
@@ -101,6 +102,17 @@
     <string name="menu_go_to_peer">去找他</string>
     <string name="toast_self_no_location">暂无我的位置</string>
     <string name="toast_peer_no_location">对方暂无位置</string>
+    <string name="menu_gender">设置性别</string>
+    <string name="menu_more_title">更多选项</string>
+    <string name="menu_more">更多</string>
+    <string name="btn_share_map">共享地图</string>
+    <string name="menu_image">图片</string>
+    <string name="menu_clear_chat">清空聊天</string>
+    <string name="toast_image_coming_soon">图片发送即将上线</string>
+    <string name="toast_chat_cleared">聊天记录已清空</string>
+    <string name="dialog_gender_title">选择性别</string>
+    <string name="gender_female">女（粉色标记）</string>
+    <string name="gender_male">男（蓝色标记）</string>
     <string name="dialog_permission_hint_message">App 切换监控需要开启以下权限之一：\n\n1. 「使用情况访问权限」- 推荐，在系统设置→应用→眼互→使用情况访问中开启\n2. 「无障碍服务」- 备选，在系统设置→辅助功能中开启\n\n开启后，对方切换 App 时这里会实时显示系统提示。</string>
     <string name="btn_open_accessibility">开启无障碍服务</string>
     <string name="btn_open_usage_stats">开启使用情况访问</string>

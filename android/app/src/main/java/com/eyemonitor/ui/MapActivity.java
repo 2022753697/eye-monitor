@@ -123,8 +123,9 @@ public class MapActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (mapView != null) mapView.onResume();
-        // 地图打开时主动请求对方最新位置
+        // 地图打开时主动请求对方位置 + 本机位置（本机用于尽快聚焦自己）
         requestPeerLocation();
+        requestSelfLocation();
     }
 
     private void requestPeerLocation() {
@@ -133,6 +134,14 @@ public class MapActivity extends AppCompatActivity {
             Log.i(TAG, "已发送请求对方位置");
         } else {
             Log.w(TAG, "MonitorService未运行，无法请求对方位置");
+        }
+    }
+
+    /** 打开地图时立即触发一次本机位置上报（让 selfMarker 尽快出现并聚焦） */
+    private void requestSelfLocation() {
+        if (isServiceRunning()) {
+            MonitorService.sendRequestSelfLocation(this);
+            Log.i(TAG, "已请求本机位置上报");
         }
     }
 
@@ -178,9 +187,18 @@ public class MapActivity extends AppCompatActivity {
             aMap.getUiSettings().setMyLocationButtonEnabled(true);
             aMap.setMyLocationEnabled(true);
 
-            // 生成大头针 marker 图标：圆形头像 + 底部倒三角（尖端指向坐标）
-            selfAvatarIcon = createPinMarkerIcon(R.drawable.avatar_self, 0xFFFF6B6B, 26);
-            peerAvatarIcon = createPinMarkerIcon(R.drawable.avatar_peer, 0xFF5B8FF9, 26);
+            // 按性别取色：女=粉 / 男=蓝；对方默认取反色（将来注册后可同步对方性别）
+            boolean female = prefs.isFemale();
+            int selfColor = female ? 0xFFFF6B6B : 0xFF5B8FF9;
+            int peerColor = female ? 0xFF5B8FF9 : 0xFFFF6B6B;
+            int selfAvatarRes = female ? R.drawable.avatar_female : R.drawable.avatar_male;
+            int peerAvatarRes = female ? R.drawable.avatar_male : R.drawable.avatar_female;
+            // 顶部头像随性别切换
+            ivAvatarSelf.setImageResource(selfAvatarRes);
+            ivAvatarPeer.setImageResource(peerAvatarRes);
+            // 大头针 marker 图标（圆形头像 + 水滴尾巴，颜色随性别）
+            selfAvatarIcon = createPinMarkerIcon(selfAvatarRes, selfColor, 26);
+            peerAvatarIcon = createPinMarkerIcon(peerAvatarRes, peerColor, 26);
             MyLocationStyle style = new MyLocationStyle();
             // 只显示定位点，不自动移动相机（默认 LOCATE 类型会在每次定位时把相机居中到当前位置，
             // 绕过 userDraggingMap 拦截导致滑动被拉回）
@@ -253,6 +271,23 @@ public class MapActivity extends AppCompatActivity {
                 lastSelfLocationTime = now;
 
                 LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
+
+                if (selfMarker == null) {
+                    // 高德定位回调直接创建 selfMarker（不依赖 WS 上报时机），
+                    // 对方位置未到时聚焦自己位置
+                    selfMarker = aMap.addMarker(new MarkerOptions()
+                            .position(pos)
+                            .title(getString(R.string.map_marker_me))
+                            .snippet(getString(R.string.map_marker_my_location))
+                            .icon(selfAvatarIcon)
+                            .anchor(0.5f, 1.0f));
+                    Log.i(TAG, "高德定位创建selfMarker: " + pos.latitude + "," + pos.longitude);
+                    if (peerMarkers.isEmpty() && !userDraggingMap) {
+                        Log.i(TAG, "对方位置未到，自动聚焦自己位置");
+                        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                    }
+                    return;
+                }
 
                 // 距离去重：与已有selfMarker位置差小于5米则忽略
                 if (selfMarker != null) {
@@ -412,6 +447,11 @@ public class MapActivity extends AppCompatActivity {
                         .icon(selfAvatarIcon)
                         .anchor(0.5f, 1.0f));
                 lastSelfWsTime = now;
+                // 刚进入地图且对方位置未到时，先聚焦自己位置
+                if (peerMarkers.isEmpty() && !userDraggingMap) {
+                    Log.i(TAG, "进入地图自动聚焦自己位置");
+                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                }
             } else {
                 // 距离去重：位置变化小于5米则忽略（不推进计时，避免误伤后续有效更新）
                 float[] dist = new float[1];
@@ -513,6 +553,17 @@ public class MapActivity extends AppCompatActivity {
             maxLng = Math.max(maxLng, p.longitude);
         }
 
+        // 跨半球（经度跨度 > 180°，如中美）：单视野无法合理显示双方，
+        // 强行 fit 会全球缩放到两点几乎不可见，退化为聚焦对方位置
+        double lngSpan = maxLng - minLng;
+        if (lngSpan > 180) {
+            Marker nearestPeer = peerMarkers.values().iterator().next();
+            Log.i(TAG, "跨半球距离（经度跨度=" + String.format("%.0f", lngSpan)
+                    + "°），聚焦对方位置");
+            aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(nearestPeer.getPosition(), 5f));
+            return;
+        }
+
         float[] distResult = new float[1];
         android.location.Location.distanceBetween(selfPos.latitude, selfPos.longitude,
                 (minLat + maxLat) / 2, (minLng + maxLng) / 2, distResult);
@@ -521,12 +572,7 @@ public class MapActivity extends AppCompatActivity {
         Log.i(TAG, "相机调整: self=(" + selfPos.latitude + "," + selfPos.longitude
                 + "), distance≈" + String.format("%.0f", distanceM / 1000) + "km");
 
-        if (distanceM > 100_000) {
-            Marker nearestPeer = peerMarkers.values().iterator().next();
-            aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(nearestPeer.getPosition(), 10f));
-            return;
-        }
-
+        // 无论距离远近，总是把双方范围收进视野（zoom 由高德按 bounds 自动计算）
         com.amap.api.maps.model.LatLngBounds bounds = new com.amap.api.maps.model.LatLngBounds(
                 new com.amap.api.maps.model.LatLng(minLat - 0.01, minLng - 0.01),
                 new com.amap.api.maps.model.LatLng(maxLat + 0.01, maxLng + 0.01));

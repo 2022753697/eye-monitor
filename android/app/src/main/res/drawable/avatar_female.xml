@@ -4,9 +4,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 蓝色圆形底（对方） -->
+    <!-- 粉色圆形底（女性） -->
     <path
-        android:fillColor="#5B8FF9"
+        android:fillColor="@color/primary"
         android:pathData="M54,54 m-48,0 a48,48 0 1,1 96,0 a48,48 0 1,1 -96,0" />
     <!-- 白色人形（头） -->
     <path
