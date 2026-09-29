@@ -686,7 +686,7 @@ public class MonitorService extends Service {
     /** 收到对方设备状态：本地缓存最新五件套并广播给 UI（顶栏/详情页实时刷新） */
     private void handleDeviceStatus(WsMessage message) {
         Log.i(TAG, "收到设备状态: deviceId=" + message.getDeviceId()
-                + ", isSelf=" + message.getDeviceId().equals(prefs.getDeviceId()));
+                + ", isSelf=" + (message.getDeviceId() != null && message.getDeviceId().equals(prefs.getDeviceId())));
         java.util.Map<String, Object> payload = message.getPayload();
         if (payload != null) {
             Object battery = payload.get("battery");
@@ -899,7 +899,7 @@ public class MonitorService extends Service {
         }
         broadcastEvent(message);
         // 围栏判定只针对对端位置（本机位置走本地定位不上 WS 判定）
-        if (!message.getDeviceId().equals(prefs.getDeviceId())) {
+        if (message.getDeviceId() != null && !message.getDeviceId().equals(prefs.getDeviceId())) {
             evaluateFences(message);
         }
         Log.i(TAG, "位置消息已广播");

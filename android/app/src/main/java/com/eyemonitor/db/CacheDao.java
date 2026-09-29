@@ -57,6 +57,9 @@ public interface CacheDao {
     @Query("SELECT * FROM fence_cache ORDER BY serverId ASC")
     List<FenceCacheEntity> getFences();
 
+    @Query("SELECT * FROM fence_cache WHERE serverId = :serverId")
+    FenceCacheEntity getFenceById(long serverId);
+
     @Query("DELETE FROM fence_cache WHERE serverId = :serverId")
     void deleteFence(long serverId);
 

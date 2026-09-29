@@ -71,9 +71,8 @@ public class MapActivity extends AppCompatActivity {
     private static final int MIN_FENCE_RADIUS_M = 100;
     private static final int MAX_FENCE_RADIUS_M = 50_000;
 
-    private TextView btnMenuSelf;
-    private TextView btnMenuPeer;
-    private TextView btnMenuSetFence;
+    private View btnMenuPeer;
+    private View btnMenuSetFence;
     private LinearLayout fenceSetupPanel;
     private TextView fenceCenterHint;
     private TextView fenceRadiusLabel;
@@ -86,6 +85,8 @@ public class MapActivity extends AppCompatActivity {
     private LatLng fenceCenter;
     private Circle fencePreviewCircle;
     private final Map<Long, Circle> fenceCircles = new HashMap<>();
+    // 圆环 → serverId（点击围栏定位到数据库记录，用于删除）
+    private final Map<Circle, Long> fenceCircleIds = new HashMap<>();
     // dbExecutor 异步回调在 onDestroy 后可能到达，用该标志拦截 UI 操作
     private volatile boolean fenceUiAlive = true;
     private boolean userDraggingMap = false;
@@ -143,7 +144,6 @@ public class MapActivity extends AppCompatActivity {
         ivAvatarPeer = findViewById(R.id.iv_avatar_peer);
 
         // 头像下小菜单（我的位置 / 去找他 / 设围栏）+ 设围栏面板
-        btnMenuSelf = findViewById(R.id.btn_menu_self);
         btnMenuPeer = findViewById(R.id.btn_menu_peer);
         btnMenuSetFence = findViewById(R.id.btn_menu_set_fence);
         fenceSetupPanel = findViewById(R.id.fence_setup_panel);
@@ -153,7 +153,6 @@ public class MapActivity extends AppCompatActivity {
         fenceNameInput = findViewById(R.id.fence_name_input);
         fenceCancelBtn = findViewById(R.id.fence_cancel_btn);
         fenceConfirmBtn = findViewById(R.id.fence_confirm_btn);
-        btnMenuSelf.setOnClickListener(v -> goToSelf());
         btnMenuPeer.setOnClickListener(v -> goToPeer());
         btnMenuSetFence.setOnClickListener(v -> enterFenceMode());
         fenceCancelBtn.setOnClickListener(v -> exitFenceMode());
@@ -316,10 +315,15 @@ public class MapActivity extends AppCompatActivity {
                 }
             });
 
-            // 点击地图：普通浏览不弹状态；设围栏模式下用于选择围栏中心
+            // 点击地图：设围栏模式选中心；普通模式点击落在围栏半径内 → 弹删除操作菜单
             aMap.setOnMapClickListener(latLng -> {
                 if (fenceMode) {
                     selectFenceCenter(latLng);
+                } else {
+                    Long hit = findFenceAt(latLng);
+                    if (hit != null) {
+                        showFenceActions(hit);
+                    }
                 }
             });
 
@@ -445,7 +449,8 @@ public class MapActivity extends AppCompatActivity {
 
     private void onEventReceived(WsMessage message) {
         Log.i(TAG, "广播接收: type=" + message.getType() + ", deviceId=" + message.getDeviceId()
-                + ", myDeviceId=" + prefs.getDeviceId() + ", isSelf=" + message.getDeviceId().equals(prefs.getDeviceId()));
+                + ", myDeviceId=" + prefs.getDeviceId() + ", isSelf="
+                + (message.getDeviceId() != null && message.getDeviceId().equals(prefs.getDeviceId())));
         switch (message.getType()) {
             case "location":
                 handleLocationMessage(message);
@@ -700,6 +705,67 @@ public class MapActivity extends AppCompatActivity {
         }
     }
 
+    /** 点击位置命中围栏检测：落在任一围栏半径内返回其 serverId，否则 null（AMap 无圆环点击接口，用命中检测替代） */
+    private Long findFenceAt(LatLng latLng) {
+        if (latLng == null) return null;
+        for (Circle c : fenceCircles.values()) {
+            if (c.contains(latLng)) {
+                return fenceCircleIds.get(c);
+            }
+        }
+        return null;
+    }
+
+    /** 点击围栏范围：从缓存取信息，弹窗提供删除 */
+    private void showFenceActions(long serverId) {
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            final FenceCacheEntity f = db.cacheDao().getFenceById(serverId);
+            runOnUiThread(() -> {
+                if (!fenceUiAlive) return;
+                String name = f != null && f.name != null && !f.name.isEmpty()
+                        ? f.name : getString(R.string.fence_unknown);
+                String radiusTxt;
+                double radius = f != null ? f.radius : 0;
+                if (radius >= 1000) {
+                    radiusTxt = getString(R.string.fence_radius_label_km, radius / 1000.0);
+                } else {
+                    radiusTxt = getString(R.string.fence_radius_label_m, (int) radius);
+                }
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle(name)
+                        .setMessage(getString(R.string.fence_delete_message, radiusTxt))
+                        .setPositiveButton(R.string.fence_delete_confirm, (d, w) -> deleteFence(serverId))
+                        .setNegativeButton(R.string.fence_cancel, null)
+                        .show();
+            });
+        });
+    }
+
+    /** 删除围栏：服务端真源删除，广播 fence_sync(delete) 同步双端缓存并重绘 */
+    private void deleteFence(long serverId) {
+        AuthManager.i(this).delete(this, "/api/fences/" + serverId, new AuthManager.Callback() {
+            @Override
+            public void onSuccess(JsonObject data) {
+                runOnUiThread(() -> {
+                    if (!fenceUiAlive) return;
+                    Toast.makeText(MapActivity.this, R.string.fence_delete_success, Toast.LENGTH_SHORT).show();
+                });
+                // 服务器广播 fence_sync(delete) → SyncManager 清缓存 → onEventReceived 重绘
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                runOnUiThread(() -> {
+                    if (!fenceUiAlive) return;
+                    Toast.makeText(MapActivity.this,
+                            getString(R.string.fence_delete_failed, msg != null ? msg : ""),
+                            Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
     /** 创建成功后聚焦新围栏范围（视觉确认，仍停留在地图页） */
     private void focusOnFence(double centerLat, double centerLng, double radius) {
         double delta = radius * 2.4 / 111_320.0;
@@ -835,12 +901,14 @@ public class MapActivity extends AppCompatActivity {
                 LatLng center = new LatLng(f.lat, f.lng);
                 Circle circle = fenceCircles.get(f.serverId);
                 if (circle == null) {
-                    fenceCircles.put(f.serverId, aMap.addCircle(new CircleOptions()
+                    circle = aMap.addCircle(new CircleOptions()
                             .center(center)
                             .radius(f.radius)
                             .strokeWidth(2f)
                             .strokeColor(color)
-                            .fillColor(fill)));
+                            .fillColor(fill));
+                    fenceCircles.put(f.serverId, circle);
+                    fenceCircleIds.put(circle, f.serverId);
                 } else {
                     circle.setCenter(center);
                     circle.setRadius(f.radius);
@@ -851,6 +919,7 @@ public class MapActivity extends AppCompatActivity {
         while (it.hasNext()) {
             java.util.Map.Entry<Long, Circle> e = it.next();
             if (!keep.contains(e.getKey())) {
+                fenceCircleIds.remove(e.getValue());
                 e.getValue().remove();
                 it.remove();
             }
@@ -876,17 +945,6 @@ public class MapActivity extends AppCompatActivity {
     /** 半透明填充色（约 15% 不透明度） */
     private int fenceFillColor(int opaque) {
         return (0x26 << 24) | (opaque & 0xFFFFFF);
-    }
-
-    /** 聚焦到自己位置 */
-    private void goToSelf() {
-        if (selfMarker == null) {
-            Toast.makeText(this, R.string.toast_self_no_location, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        focusWithIdleGuard();
-        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(selfMarker.getPosition(), 16f));
-        selfMarker.showInfoWindow();
     }
 
     /** 「去找他」：聚焦对方位置 */

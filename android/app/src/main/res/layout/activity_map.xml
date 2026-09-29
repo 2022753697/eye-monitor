@@ -57,52 +57,66 @@
         android:layout_gravity="center_horizontal|top"
         android:layout_marginTop="86dp">
 
-        <TextView
-            android:id="@+id/btn_menu_self"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/menu_my_location"
-            android:textColor="@color/primary"
-            android:textSize="13sp"
-            android:padding="6dp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:layout_width="1dp"
-            android:layout_height="20dp"
-            android:background="@color/text_secondary"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp" />
-
-        <TextView
+        <!-- 图标+文字：去找他（蓝色导航图标） -->
+        <LinearLayout
             android:id="@+id/btn_menu_peer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/menu_go_to_peer"
-            android:textColor="@color/primary"
-            android:textSize="13sp"
-            android:padding="6dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="8dp"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_go_peer"
+                android:contentDescription="@string/menu_go_to_peer"
+                android:tint="@color/primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/menu_go_to_peer"
+                android:textColor="@color/primary"
+                android:textSize="11sp"
+                android:layout_marginTop="3dp" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="1dp"
-            android:layout_height="20dp"
+            android:layout_height="32dp"
             android:background="@color/text_secondary"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp" />
 
-        <TextView
+        <!-- 图标+文字：设围栏（圈定范围图标） -->
+        <LinearLayout
             android:id="@+id/btn_menu_set_fence"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/fence_set_entry"
-            android:textColor="@color/primary"
-            android:textSize="13sp"
-            android:padding="6dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="8dp"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_fence"
+                android:contentDescription="@string/fence_set_entry"
+                android:tint="@color/primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fence_set_entry"
+                android:textColor="@color/primary"
+                android:textSize="11sp"
+                android:layout_marginTop="3dp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- 设围栏面板（进入设围栏模式后显示） -->
