@@ -185,6 +185,8 @@
     <string name="anniversary_delete_confirm_message">确定删除「%1$s」吗？对方也将同步移除。</string>
     <string name="anniversary_countdown_days">距离 %1$s 还有 %2$d 天</string>
     <string name="anniversary_countdown_today">今天是 %1$s ❤</string>
+    <string name="anniversary_countdown_days_short">还有 %1$d 天</string>
+    <string name="anniversary_countdown_today_short">今天</string>
     <string name="anniversary_card_title">最近纪念日</string>
     <string name="anniversary_card_hint">查看全部 ›</string>
     <string name="anniversary_today_chat">今天是你和 TA 的 %1$s 纪念日❤</string>
