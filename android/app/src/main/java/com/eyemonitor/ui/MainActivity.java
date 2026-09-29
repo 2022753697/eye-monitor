@@ -254,6 +254,10 @@ public class MainActivity extends AppCompatActivity {
             hideMorePanel();
             startActivity(new Intent(this, ProfileActivity.class));
         });
+        morePanel.findViewById(R.id.grid_track).setOnClickListener(v -> {
+            hideMorePanel();
+            startActivity(new Intent(this, TrackReplayActivity.class));
+        });
 
         // 发送按钮状态色：无输入灰 / 有输入粉
         updateSendButtonState();

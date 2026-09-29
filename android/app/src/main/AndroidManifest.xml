@@ -65,6 +65,11 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".ui.TrackReplayActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".ui.MonitorActivity"
             android:exported="false"
             android:launchMode="singleTop" />

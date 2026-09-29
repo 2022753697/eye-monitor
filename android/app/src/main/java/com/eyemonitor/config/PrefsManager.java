@@ -39,6 +39,7 @@ public class PrefsManager {
     private static final String KEY_PEER_BLUETOOTH = "peer_bluetooth";
     private static final String KEY_PEER_ONLINE = "peer_online";
     private static final String KEY_SOS_LAST_TRIGGER = "sos_last_trigger";
+    private static final String KEY_PEER_DEVICE_ID = "peer_device_id";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -220,6 +221,18 @@ public class PrefsManager {
         prefs.edit().putString(KEY_NICKNAME, nickname).apply();
     }
 
+    /** 获取对方设备ID（轨迹回放 device 参数；来自对端 location 消息 / /api/pairs/me） */
+    public String getPeerDeviceId() {
+        return prefs.getString(KEY_PEER_DEVICE_ID, null);
+    }
+
+    /** 记录对方设备ID */
+    public void setPeerDeviceId(String deviceId) {
+        if (deviceId != null && !deviceId.isEmpty()) {
+            prefs.edit().putString(KEY_PEER_DEVICE_ID, deviceId).apply();
+        }
+    }
+
     /** 获取对方昵称（从未知来源更新，未设置返回 null） */
     public String getPeerNickname() {
         return prefs.getString(KEY_PEER_NICKNAME, null);
@@ -258,7 +271,6 @@ public class PrefsManager {
         return !"male".equals(getGender());
     }
 
-<<<<<<< HEAD
     /** 纪念日提醒去重：最近一次已提示的日期（yyyy-MM-dd，空串表示从未） */
     public String getAnniversaryReminderDate() {
         return prefs.getString(KEY_ANNIVERSARY_REMINDER_DATE, "");
