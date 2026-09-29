@@ -153,6 +153,20 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 资料变更后广播 user_profile 给对方（借道 MonitorService 的 WebSocket） */
+    public static void sendProfileUpdate(Context context, String nickname, String avatar,
+                                         String gender, String birthday, String bio) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_BROADCAST_PROFILE);
+        if (nickname != null) intent.putExtra(EXTRA_PROFILE_NICKNAME, nickname);
+        if (avatar != null) intent.putExtra(EXTRA_PROFILE_AVATAR, avatar);
+        if (gender != null) intent.putExtra(EXTRA_PROFILE_GENDER, gender);
+        if (birthday != null) intent.putExtra(EXTRA_PROFILE_BIRTHDAY, birthday);
+        if (bio != null) intent.putExtra(EXTRA_PROFILE_BIO, bio);
+        context.startService(intent);
+    }
+
     /** PairActivity 配对成功后调用，将 WSClient 转移给 MonitorService */
     public static void setSharedWSClient(WSClient client) {
         sharedWSClient = client;

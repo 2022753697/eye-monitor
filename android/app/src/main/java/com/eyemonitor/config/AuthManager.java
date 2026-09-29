@@ -358,8 +358,13 @@ public class AuthManager {
             int code = obj.has("code") ? obj.get("code").getAsInt() : -1;
             String msg = obj.has("msg") && !obj.get("msg").isJsonNull()
                     ? obj.get("msg").getAsString() : "";
-            if (code == 0 && obj.has("data") && !obj.get("data").isJsonNull()) {
-                cb.onSuccess(obj.getAsJsonObject("data"));
+            if (code == 0) {
+                if (obj.has("data") && !obj.get("data").isJsonNull()) {
+                    cb.onSuccess(obj.getAsJsonObject("data"));
+                } else {
+                    // 部分接口（如 DELETE /api/media/{fileId}）成功响应 data 为 null
+                    cb.onSuccess(new JsonObject());
+                }
             } else {
                 cb.onError(code, msg != null && !msg.isEmpty() ? msg : raw);
             }
