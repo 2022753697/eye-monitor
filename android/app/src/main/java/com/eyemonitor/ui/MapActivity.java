@@ -13,8 +13,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,14 +28,21 @@ import com.amap.api.maps.AMap;
 import com.amap.api.maps.CameraUpdateFactory;
 import com.amap.api.maps.MapView;
 import com.amap.api.maps.MapsInitializer;
+import com.amap.api.maps.model.Circle;
+import com.amap.api.maps.model.CircleOptions;
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
 import com.eyemonitor.R;
+import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.MonitorService;
+
+import com.google.gson.JsonObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -56,6 +66,27 @@ public class MapActivity extends AppCompatActivity {
 
     private final Map<String, Marker> peerMarkers = new HashMap<>();
     private Marker selfMarker;
+
+    // --- 电子围栏（Wave2） ---
+    private static final int MAX_FENCES = 3;
+    private static final int MIN_FENCE_RADIUS_M = 100;
+    private static final int MAX_FENCE_RADIUS_M = 50_000;
+
+    private Button btnSetFence;
+    private LinearLayout fenceSetupPanel;
+    private TextView fenceCenterHint;
+    private TextView fenceRadiusLabel;
+    private SeekBar fenceRadiusSeek;
+    private EditText fenceNameInput;
+    private Button fenceCancelBtn;
+    private Button fenceConfirmBtn;
+
+    private boolean fenceMode = false;
+    private LatLng fenceCenter;
+    private Circle fencePreviewCircle;
+    private final Map<Long, Circle> fenceCircles = new HashMap<>();
+    // dbExecutor 异步回调在 onDestroy 后可能到达，用该标志拦截 UI 操作
+    private volatile boolean fenceUiAlive = true;
     private boolean userDraggingMap = false;
     private long lastSelfLocationTime = 0;
     private final Map<String, Long> peerLastLocationTime = new HashMap<>();
@@ -110,6 +141,34 @@ public class MapActivity extends AppCompatActivity {
         ivAvatarSelf = findViewById(R.id.iv_avatar_self);
         ivAvatarPeer = findViewById(R.id.iv_avatar_peer);
 
+        // 设围栏入口 + 设围栏面板
+        btnSetFence = findViewById(R.id.btn_set_fence);
+        fenceSetupPanel = findViewById(R.id.fence_setup_panel);
+        fenceCenterHint = findViewById(R.id.fence_center_hint);
+        fenceRadiusLabel = findViewById(R.id.fence_radius_label);
+        fenceRadiusSeek = findViewById(R.id.fence_radius_seek);
+        fenceNameInput = findViewById(R.id.fence_name_input);
+        fenceCancelBtn = findViewById(R.id.fence_cancel_btn);
+        fenceConfirmBtn = findViewById(R.id.fence_confirm_btn);
+        btnSetFence.setOnClickListener(v -> enterFenceMode());
+        fenceCancelBtn.setOnClickListener(v -> exitFenceMode());
+        fenceConfirmBtn.setOnClickListener(v -> confirmFenceCreate());
+        fenceRadiusSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                updateFenceRadiusLabel();
+                updateFencePreview();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
         // 顶部头像：点击弹菜单（自己=我的位置，对方=去找他）
         ivAvatarSelf.setOnClickListener(v -> showSelfMenu());
         ivAvatarPeer.setOnClickListener(v -> showPeerMenu());
@@ -126,6 +185,8 @@ public class MapActivity extends AppCompatActivity {
         // 地图打开时主动请求对方位置 + 本机位置（本机用于尽快聚焦自己）
         requestPeerLocation();
         requestSelfLocation();
+        // 围栏配置从 Room 缓存读并以 AMap Circle 渲染
+        loadFenceCircles();
     }
 
     private void requestPeerLocation() {
@@ -165,9 +226,11 @@ public class MapActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        fenceUiAlive = false;
         unregisterReceiver(eventReceiver);
         uiHandler.removeCallbacksAndMessages(null);
         cleanupMarkers();
+        cleanupFenceCircles();
         if (mapView != null) mapView.onDestroy();
         super.onDestroy();
     }
@@ -250,10 +313,10 @@ public class MapActivity extends AppCompatActivity {
                 }
             });
 
-            // 点击地图不弹状态（保持地图纯净）
-            aMap.setOnMapClickListener(new AMap.OnMapClickListener() {
-                @Override
-                public void onMapClick(com.amap.api.maps.model.LatLng latLng) {
+            // 点击地图：普通浏览不弹状态；设围栏模式下用于选择围栏中心
+            aMap.setOnMapClickListener(latLng -> {
+                if (fenceMode) {
+                    selectFenceCenter(latLng);
                 }
             });
 
@@ -383,6 +446,10 @@ public class MapActivity extends AppCompatActivity {
         switch (message.getType()) {
             case "location":
                 handleLocationMessage(message);
+                break;
+            case "fence_sync":
+                // 他端创建/删除围栏，缓存已由 SyncManager 更新，重绘圆环
+                loadFenceCircles();
                 break;
             case "pair_confirm":
                 break;
@@ -589,6 +656,214 @@ public class MapActivity extends AppCompatActivity {
             marker.remove();
         }
         peerMarkers.clear();
+    }
+
+    // --- 电子围栏（Wave2） ---
+
+    /** 进入设围栏模式：先读缓存校验围栏数量上限（最多 3 个） */
+    private void enterFenceMode() {
+        if (!prefs.isPaired()) {
+            Toast.makeText(this, R.string.fence_need_pair, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            java.util.List<FenceCacheEntity> fences = db.cacheDao().getFences();
+            runOnUiThread(() -> {
+                if (!fenceUiAlive) return;
+                if (fences.size() >= MAX_FENCES) {
+                    Toast.makeText(this, R.string.fence_limit_reached, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                fenceMode = true;
+                fenceCenter = null;
+                fenceNameInput.setText("");
+                fenceRadiusSeek.setProgress(50);
+                fenceCenterHint.setText(R.string.fence_hint_pick_center);
+                updateFenceRadiusLabel();
+                fenceSetupPanel.setVisibility(View.VISIBLE);
+                btnSetFence.setVisibility(View.GONE);
+            });
+        });
+    }
+
+    /** 退出设围栏模式并清理预览 */
+    private void exitFenceMode() {
+        fenceMode = false;
+        fenceCenter = null;
+        fenceSetupPanel.setVisibility(View.GONE);
+        btnSetFence.setVisibility(View.VISIBLE);
+        if (fencePreviewCircle != null) {
+            fencePreviewCircle.remove();
+            fencePreviewCircle = null;
+        }
+    }
+
+    /** 设围栏模式下点击地图选择围栏中心 */
+    private void selectFenceCenter(LatLng latLng) {
+        fenceCenter = latLng;
+        fenceCenterHint.setText(getString(R.string.fence_center_selected, latLng.latitude, latLng.longitude));
+        updateFencePreview();
+    }
+
+    /** 半径滑块 0..100 -> 100m..50km（对数刻度，小半径可精细调节） */
+    private double radiusFromProgress(int progress) {
+        double r = MIN_FENCE_RADIUS_M
+                * Math.pow(MAX_FENCE_RADIUS_M / (double) MIN_FENCE_RADIUS_M, progress / 100.0);
+        return Math.max(MIN_FENCE_RADIUS_M, Math.round(r));
+    }
+
+    private void updateFenceRadiusLabel() {
+        double r = radiusFromProgress(fenceRadiusSeek.getProgress());
+        if (r < 1000) {
+            fenceRadiusLabel.setText(getString(R.string.fence_radius_label_m, (int) r));
+        } else {
+            fenceRadiusLabel.setText(getString(R.string.fence_radius_label_km, r / 1000.0));
+        }
+    }
+
+    /** 用预览圆在图上反馈当前的中心与半径 */
+    private void updateFencePreview() {
+        if (fenceCenter == null || aMap == null) return;
+        double radius = radiusFromProgress(fenceRadiusSeek.getProgress());
+        int color = fenceColor();
+        if (fencePreviewCircle == null) {
+            fencePreviewCircle = aMap.addCircle(new CircleOptions()
+                    .center(fenceCenter)
+                    .radius(radius)
+                    .strokeWidth(2f)
+                    .strokeColor(color)
+                    .fillColor(fenceFillColor(color)));
+        } else {
+            fencePreviewCircle.setCenter(fenceCenter);
+            fencePreviewCircle.setRadius(radius);
+            fencePreviewCircle.setStrokeColor(color);
+            fencePreviewCircle.setFillColor(fenceFillColor(color));
+        }
+    }
+
+    /** 确认创建围栏：再次校验数量上限后 POST /api/fences */
+    private void confirmFenceCreate() {
+        if (fenceCenter == null) {
+            Toast.makeText(this, R.string.fence_pick_center_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String name = fenceNameInput.getText() != null ? fenceNameInput.getText().toString().trim() : "";
+        if (name.isEmpty()) {
+            Toast.makeText(this, R.string.fence_name_required, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final double radius = radiusFromProgress(fenceRadiusSeek.getProgress());
+        final double centerLat = fenceCenter.latitude;
+        final double centerLng = fenceCenter.longitude;
+
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            java.util.List<FenceCacheEntity> fences = db.cacheDao().getFences();
+            if (fences.size() >= MAX_FENCES) {
+                runOnUiThread(() -> {
+                    if (fenceUiAlive) {
+                        Toast.makeText(this, R.string.fence_limit_reached, Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return;
+            }
+            JsonObject body = new JsonObject();
+            body.addProperty("name", name);
+            body.addProperty("lat", centerLat);
+            body.addProperty("lng", centerLng);
+            body.addProperty("radius", radius);
+            runOnUiThread(() -> fenceConfirmBtn.setEnabled(false));
+            AuthManager.i(this).postJson(this, "/api/fences", body.toString(), new AuthManager.Callback() {
+                @Override
+                public void onSuccess(JsonObject data) {
+                    runOnUiThread(() -> {
+                        if (!fenceUiAlive) return;
+                        fenceConfirmBtn.setEnabled(true);
+                        exitFenceMode();
+                        Toast.makeText(MapActivity.this, R.string.fence_created, Toast.LENGTH_SHORT).show();
+                        loadFenceCircles();
+                    });
+                }
+
+                @Override
+                public void onError(int code, String msg) {
+                    runOnUiThread(() -> {
+                        if (!fenceUiAlive) return;
+                        fenceConfirmBtn.setEnabled(true);
+                        Toast.makeText(MapActivity.this,
+                                getString(R.string.fence_create_failed, msg != null ? msg : ""),
+                                Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        });
+    }
+
+    /** 从 Room 缓存读围栏配置并异步上屏 */
+    private void loadFenceCircles() {
+        if (aMap == null) return;
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            java.util.List<FenceCacheEntity> fences = db.cacheDao().getFences();
+            runOnUiThread(() -> renderFenceCircles(fences));
+        });
+    }
+
+    /** 围栏圆环渲染：按 serverId 增量更新，颜色随性别（女粉/男蓝）半透明填充 */
+    private void renderFenceCircles(java.util.List<FenceCacheEntity> fences) {
+        if (aMap == null || !fenceUiAlive) return;
+        int color = fenceColor();
+        int fill = fenceFillColor(color);
+        java.util.Set<Long> keep = new java.util.HashSet<>();
+        if (fences != null) {
+            for (FenceCacheEntity f : fences) {
+                if (!f.enabled) continue;
+                keep.add(f.serverId);
+                LatLng center = new LatLng(f.lat, f.lng);
+                Circle circle = fenceCircles.get(f.serverId);
+                if (circle == null) {
+                    fenceCircles.put(f.serverId, aMap.addCircle(new CircleOptions()
+                            .center(center)
+                            .radius(f.radius)
+                            .strokeWidth(2f)
+                            .strokeColor(color)
+                            .fillColor(fill)));
+                } else {
+                    circle.setCenter(center);
+                    circle.setRadius(f.radius);
+                }
+            }
+        }
+        java.util.Iterator<java.util.Map.Entry<Long, Circle>> it = fenceCircles.entrySet().iterator();
+        while (it.hasNext()) {
+            java.util.Map.Entry<Long, Circle> e = it.next();
+            if (!keep.contains(e.getKey())) {
+                e.getValue().remove();
+                it.remove();
+            }
+        }
+    }
+
+    private void cleanupFenceCircles() {
+        for (Circle circle : fenceCircles.values()) {
+            circle.remove();
+        }
+        fenceCircles.clear();
+        if (fencePreviewCircle != null) {
+            fencePreviewCircle.remove();
+            fencePreviewCircle = null;
+        }
+    }
+
+    /** 围栏色随性别：女粉 / 男蓝（与大头针约定一致） */
+    private int fenceColor() {
+        return prefs.isFemale() ? 0xFFFF6B6B : 0xFF5B8FF9;
+    }
+
+    /** 半透明填充色（约 15% 不透明度） */
+    private int fenceFillColor(int opaque) {
+        return (0x26 << 24) | (opaque & 0xFFFFFF);
     }
 
     // --- 顶部头像菜单 ---

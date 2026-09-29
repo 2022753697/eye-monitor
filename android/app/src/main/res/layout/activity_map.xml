@@ -40,4 +40,97 @@
             android:contentDescription="对方位置"
             android:layout_marginStart="10dp" />
     </LinearLayout>
+
+    <!-- 设围栏入口（底部居中悬浮） -->
+    <Button
+        android:id="@+id/btn_set_fence"
+        style="@style/Widget.EyeMonitor.Button.Primary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/fence_set_entry"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="28dp" />
+
+    <!-- 设围栏面板（进入设围栏模式后显示） -->
+    <LinearLayout
+        android:id="@+id/fence_setup_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_card"
+        android:elevation="6dp"
+        android:visibility="gone"
+        android:padding="16dp"
+        android:layout_gravity="bottom"
+        android:layout_margin="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/fence_panel_title"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fence_center_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/fence_hint_pick_center"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <SeekBar
+            android:id="@+id/fence_radius_seek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="50"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/fence_radius_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <EditText
+            android:id="@+id/fence_name_input"
+            style="@style/Widget.EyeMonitor.EditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:inputType="text"
+            android:maxLength="20"
+            android:hint="@string/fence_name_hint" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <Button
+                android:id="@+id/fence_cancel_btn"
+                style="@style/Widget.EyeMonitor.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/fence_cancel" />
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="1dp" />
+
+            <Button
+                android:id="@+id/fence_confirm_btn"
+                style="@style/Widget.EyeMonitor.Button.Primary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/fence_confirm" />
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>
