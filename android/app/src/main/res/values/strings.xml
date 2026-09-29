@@ -162,4 +162,22 @@
     <string name="auth_error_network">网络错误</string>
     <string name="auth_error_expired">登录已过期</string>
     <string name="auth_error_response">服务器响应异常</string>
+
+    <!-- 轨迹回放（Wave-2） -->
+    <string name="menu_track">轨迹回放</string>
+    <string name="track_replay_title">轨迹回放</string>
+    <string name="track_range_today">今天</string>
+    <string name="track_range_7d">近7天</string>
+    <string name="track_range_custom">自定义</string>
+    <string name="track_play">播放</string>
+    <string name="track_pause">暂停</string>
+    <string name="track_speed_label">倍速</string>
+    <string name="track_speed_half">0.5x</string>
+    <string name="track_speed_one">1x</string>
+    <string name="track_speed_double">2x</string>
+    <string name="track_loading">加载中…</string>
+    <string name="track_progress">%1$d / %2$d</string>
+    <string name="track_empty">该时间段暂无轨迹</string>
+    <string name="track_no_data">暂无对方轨迹数据</string>
+    <string name="track_custom_invalid">结束日期不能早于开始日期</string>
 </resources>
