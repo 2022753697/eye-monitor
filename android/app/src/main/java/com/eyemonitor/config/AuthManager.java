@@ -43,9 +43,23 @@ public class AuthManager {
     private final OkHttpClient http;
 
     /** 回调：data 为响应包中 data 字段（JsonObject） */
-    public interface Callback {
+    public interface Callback extends ErrorSink {
         void onSuccess(JsonObject data);
+    }
+
+    /** 回调：data 为响应包中 data 字段（JsonElement，兼容数组型 data，如轨迹点列表） */
+    public interface ElementCallback extends ErrorSink {
+        void onSuccess(JsonElement data);
+    }
+
+    /** 失败回调共用签名（Callback / ElementCallback 均实现） */
+    private interface ErrorSink {
         void onError(int code, String msg);
+    }
+
+    /** 响应解包钩子（对象型/元素型共用请求/刷新链路） */
+    private interface ResponseDeliver {
+        void deliver(Response resp) throws IOException;
     }
 
     public static AuthManager i(Context context) {
@@ -151,6 +165,11 @@ public class AuthManager {
         execAuthed(ctx, "GET", apiPath, null, cb);
     }
 
+    /** GET 且 data 为任意 JsonElement（数组型接口，如轨迹点列表） */
+    public void getElement(Context ctx, String apiPath, ElementCallback cb) {
+        execAuthed(ctx, "GET", apiPath, null, cb);
+    }
+
     public void postJson(Context ctx, String apiPath, String jsonBody, Callback cb) {
         execAuthed(ctx, "POST", apiPath, RequestBody.create(jsonBody, JSON), cb);
     }
@@ -195,6 +214,16 @@ public class AuthManager {
     }
 
     private void execAuthed(Context ctx, String method, String apiPath, RequestBody body, Callback cb) {
+        execAuthedRaw(ctx, method, apiPath, body, cb, resp -> deliver(ctx, resp, cb));
+    }
+
+    private void execAuthed(Context ctx, String method, String apiPath, RequestBody body, ElementCallback cb) {
+        execAuthedRaw(ctx, method, apiPath, body, cb, resp -> deliverElement(ctx, resp, cb));
+    }
+
+    /** 受保护请求共用链路：带 token + 401/403 无感刷新重试一次 */
+    private void execAuthedRaw(Context ctx, String method, String apiPath, RequestBody body,
+                               ErrorSink cb, ResponseDeliver deliver) {
         PrefsManager prefs = new PrefsManager(ctx);
         Request.Builder rb = new Request.Builder()
                 .url(prefs.getApiBaseUrl() + apiPath);
@@ -229,7 +258,7 @@ public class AuthManager {
                     });
                     return;
                 }
-                deliver(ctx, resp, cb);
+                deliver.deliver(resp);
             }
 
             private void retry() {
@@ -247,7 +276,7 @@ public class AuthManager {
 
                     @Override
                     public void onResponse(Call c, Response resp) throws IOException {
-                        deliver(ctx, resp, cb);
+                        deliver.deliver(resp);
                     }
                 });
             }
@@ -262,8 +291,28 @@ public class AuthManager {
             int code = obj.has("code") ? obj.get("code").getAsInt() : -1;
             String msg = obj.has("msg") && !obj.get("msg").isJsonNull()
                     ? obj.get("msg").getAsString() : "";
+            JsonElement data = obj.get("data");
+            if (code == 0 && data != null && !data.isJsonNull() && data.isJsonObject()) {
+                cb.onSuccess(data.getAsJsonObject());
+            } else {
+                cb.onError(code, msg != null && !msg.isEmpty() ? msg : raw);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "解析响应失败: " + raw, e);
+            cb.onError(resp.code(), ctx.getString(R.string.auth_error_response));
+        }
+    }
+
+    /** 解包 {code,data,msg}：data 为任意 JsonElement（数组型接口使用） */
+    private void deliverElement(Context ctx, Response resp, ElementCallback cb) throws IOException {
+        String raw = resp.body() != null ? resp.body().string() : "";
+        try {
+            JsonObject obj = JsonParser.parseString(raw).getAsJsonObject();
+            int code = obj.has("code") ? obj.get("code").getAsInt() : -1;
+            String msg = obj.has("msg") && !obj.get("msg").isJsonNull()
+                    ? obj.get("msg").getAsString() : "";
             if (code == 0 && obj.has("data") && !obj.get("data").isJsonNull()) {
-                cb.onSuccess(obj.getAsJsonObject("data"));
+                cb.onSuccess(obj.get("data"));
             } else {
                 cb.onError(code, msg != null && !msg.isEmpty() ? msg : raw);
             }

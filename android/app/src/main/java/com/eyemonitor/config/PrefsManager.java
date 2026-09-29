@@ -29,6 +29,7 @@ public class PrefsManager {
     private static final String KEY_PEER_GENDER = "peer_gender";
     private static final String KEY_PEER_BIRTHDAY = "peer_birthday";
     private static final String KEY_PEER_BIO = "peer_bio";
+    private static final String KEY_PEER_DEVICE_ID = "peer_device_id";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -208,6 +209,18 @@ public class PrefsManager {
     /** 设置我的昵称 */
     public void setNickname(String nickname) {
         prefs.edit().putString(KEY_NICKNAME, nickname).apply();
+    }
+
+    /** 获取对方设备ID（轨迹回放 device 参数；来自对端 location 消息 / /api/pairs/me） */
+    public String getPeerDeviceId() {
+        return prefs.getString(KEY_PEER_DEVICE_ID, null);
+    }
+
+    /** 记录对方设备ID */
+    public void setPeerDeviceId(String deviceId) {
+        if (deviceId != null && !deviceId.isEmpty()) {
+            prefs.edit().putString(KEY_PEER_DEVICE_ID, deviceId).apply();
+        }
     }
 
     /** 获取对方昵称（从未知来源更新，未设置返回 null） */

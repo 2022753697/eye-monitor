@@ -21,6 +21,7 @@ import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
+import com.eyemonitor.db.LocationCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.ui.MainActivity;
 import com.eyemonitor.websocket.WSClient;
@@ -609,9 +610,35 @@ public class MonitorService extends Service {
     }
 
     private void handleLocation(WsMessage message) {
-        Log.i(TAG, "处理位置消息: deviceId=" + message.getDeviceId() + ", isSelf=" + message.getDeviceId().equals(prefs.getDeviceId()));
+        boolean isSelf = message.getDeviceId() != null && message.getDeviceId().equals(prefs.getDeviceId());
+        Log.i(TAG, "处理位置消息: deviceId=" + message.getDeviceId() + ", isSelf=" + isSelf);
+        // 对端位置：记录对端 deviceId（轨迹回放 device 参数）+ 写入本地轨迹缓存（离线回放数据源）
+        if (!isSelf && message.getDeviceId() != null) {
+            prefs.setPeerDeviceId(message.getDeviceId());
+            cachePeerLocation(message);
+        }
         broadcastEvent(message);
         Log.i(TAG, "位置消息已广播");
+    }
+
+    /** 对端位置点写入本地轨迹缓存（Room 禁止主线程，走 dbExecutor） */
+    private void cachePeerLocation(WsMessage message) {
+        java.util.Map<String, Object> payload = message.getPayload();
+        if (payload == null) return;
+        Object latObj = payload.get("lat");
+        Object lngObj = payload.get("lng");
+        if (!(latObj instanceof Number) || !(lngObj instanceof Number)) return;
+        double lat = ((Number) latObj).doubleValue();
+        double lng = ((Number) lngObj).doubleValue();
+        if (lat == 0 && lng == 0) return; // 无效定位点(0,0)不缓存
+        LocationCacheEntity e = new LocationCacheEntity();
+        e.lat = lat;
+        e.lng = lng;
+        e.accuracy = payload.get("accuracy") instanceof Number
+                ? ((Number) payload.get("accuracy")).floatValue() : 0f;
+        e.ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.cacheDao().insertLocation(e));
     }
 
     private void handlePairConfirm(WsMessage message) {
