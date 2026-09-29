@@ -83,6 +83,29 @@ public interface CacheDao {
     @Query("DELETE FROM media_cache")
     void clearMedia();
 
+    // --- 图库文件夹 ---
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    void upsertFolder(FolderCacheEntity entity);
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    void upsertFolders(List<FolderCacheEntity> entities);
+
+    @Query("SELECT * FROM folder_cache ORDER BY ts ASC, id ASC")
+    List<FolderCacheEntity> getFolders();
+
+    @Query("DELETE FROM folder_cache WHERE id = :id")
+    void deleteFolder(long id);
+
+    @Query("DELETE FROM folder_cache")
+    void clearFolders();
+
+    @Query("SELECT * FROM media_cache WHERE folderId = :folderId ORDER BY ts DESC")
+    List<MediaCacheEntity> getMediaByFolder(Long folderId);
+
+    @Query("SELECT * FROM media_cache WHERE folderId IS NULL ORDER BY ts DESC")
+    List<MediaCacheEntity> getMediaUnfiled();
+
     // --- 聊天（from server 拉取历史时用） ---
 
     /** 本地最大聊天时间戳（增量同步 afterTs 用） */

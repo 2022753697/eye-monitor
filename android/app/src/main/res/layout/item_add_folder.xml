@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「全部」页顶部：新建文件夹卡片 -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tv_add_folder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card_alt"
+    android:layout_margin="4dp"
+    android:padding="12dp"
+    android:gravity="center"
+    android:text="@string/gallery_folder_new"
+    android:textColor="@color/primary"
+    android:textSize="14sp"
+    android:textStyle="bold" />

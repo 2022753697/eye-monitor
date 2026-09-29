@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,18 +48,22 @@ public class MediaController {
     private final MediaService mediaService;
     private final PairService pairService;
     private final UserRepo userRepo;
+    private final com.eyemonitor.repository.FolderRepo folderRepo;
 
     public MediaController(MediaFileRepo mediaFileRepo, MediaService mediaService,
-                           PairService pairService, UserRepo userRepo) {
+                           PairService pairService, UserRepo userRepo,
+                           com.eyemonitor.repository.FolderRepo folderRepo) {
         this.mediaFileRepo = mediaFileRepo;
         this.mediaService = mediaService;
         this.pairService = pairService;
         this.userRepo = userRepo;
+        this.folderRepo = folderRepo;
     }
 
     @PostMapping("/upload")
     public ApiResponse<Map<String, Object>> upload(@RequestParam("file") MultipartFile file,
                                                    @RequestParam("pairCode") String pairCode,
+                                                   @RequestParam(value = "folderId", required = false) Long folderId,
                                                    HttpServletRequest request) throws IOException {
         long userId = AuthUtil.currentUserId(request);
         if (!pairService.belongsToPair(userId, pairCode)) {
@@ -68,6 +74,10 @@ public class MediaController {
             throw new BizException(400, "文件不能超过 100MB");
         }
         String ext = MediaService.extOf(file.getContentType());
+        if (ext == null) {
+            // Content-Type 缺失/异常时按文件名后缀兜底（相册 heic/heif 等）
+            ext = MediaService.extOfFileName(file.getOriginalFilename());
+        }
         if (ext == null) {
             throw new BizException(400, "仅支持图片(jpg/png/webp)或视频(mp4/mov/3gp)");
         }
@@ -84,6 +94,7 @@ public class MediaController {
         e.setPath(relPath);
         e.setCreatedAt(System.currentTimeMillis());
         e.setDeleted(false);
+        e.setFolderId(folderId);
         mediaFileRepo.save(e);
 
         // 广播 media 元数据给配对对端（通知仅转发）
@@ -91,18 +102,22 @@ public class MediaController {
         String from = u == null ? null : u.getNickname();
         pairService.forwardToPeerByUser(userId, WsMessage.createMedia(
                 u == null ? null : u.getDeviceId(), pairCode, e.getFileId(), e.getFileName(),
-                e.getMime(), e.getSize(), e.getDuration(), from));
+                e.getMime(), e.getSize(), e.getDuration(), from, e.getFolderId()));
 
         return ApiResponse.ok(view(e));
     }
 
     @GetMapping
-    public ApiResponse<List<Map<String, Object>>> list(HttpServletRequest request) {
+    public ApiResponse<List<Map<String, Object>>> list(@RequestParam(value = "folderId", required = false) Long folderId,
+                                                      HttpServletRequest request) {
         long userId = AuthUtil.currentUserId(request);
         String pairCode = pairService.getPairCodeOfUser(userId);
         if (pairCode == null) return ApiResponse.ok(new ArrayList<>());
+        List<MediaFileEntity> files = folderId == null
+                ? mediaFileRepo.findByPairCode(pairCode)
+                : mediaFileRepo.findByPairCodeAndFolderId(pairCode, folderId);
         List<Map<String, Object>> out = new ArrayList<>();
-        for (MediaFileEntity e : mediaFileRepo.findByPairCode(pairCode)) {
+        for (MediaFileEntity e : files) {
             if (e.isDeleted()) continue;
             out.add(view(e));
         }
@@ -164,6 +179,42 @@ public class MediaController {
         pairService.forwardToPeerByUser(userId, WsMessage.createMediaDeleted(
                 u == null ? null : u.getDeviceId(), e.getPairCode(), fileId));
         return ApiResponse.ok(null);
+    }
+
+    /** 移动媒体到文件夹（folderId 为 null 或 0 → 未分类），只允许配对成员操作 */
+    @PutMapping("/{fileId}/folder")
+    public ApiResponse<Map<String, Object>> moveFolder(@PathVariable String fileId,
+                                                       @RequestBody Map<String, Object> body,
+                                                       HttpServletRequest request) {
+        long userId = AuthUtil.currentUserId(request);
+        MediaFileEntity e = mediaFileRepo.findById(fileId)
+                .orElseThrow(() -> new BizException(404, "文件不存在"));
+        if (e.isDeleted()) throw new BizException(404, "文件不存在");
+        if (!pairService.belongsToPair(userId, e.getPairCode())) {
+            throw new BizException(403, "无权操作该文件");
+        }
+        Object f = body.get("folderId");
+        Long folderId = null;
+        if (f instanceof Number && ((Number) f).longValue() > 0) {
+            folderId = ((Number) f).longValue();
+            if (folderRepo.findById(folderId).isEmpty()
+                    || !pairService.belongsToPair(userId, pairCodeOf(folderId))) {
+                throw new BizException(404, "文件夹不存在");
+            }
+        }
+        e.setFolderId(folderId);
+        mediaFileRepo.save(e);
+        // 广播元数据（带 folderId）给对端，保持双方文件夹归类一致
+        UserEntity u = userRepo.findById(userId).orElse(null);
+        pairService.forwardToPeerByUser(userId, WsMessage.createMedia(
+                u == null ? null : u.getDeviceId(), e.getPairCode(), e.getFileId(), e.getFileName(),
+                e.getMime(), e.getSize(), e.getDuration(), u == null ? null : u.getNickname(), e.getFolderId()));
+        return ApiResponse.ok(view(e));
+    }
+
+    private String pairCodeOf(Long folderId) {
+        return folderRepo.findById(folderId)
+                .map(com.eyemonitor.entity.FolderEntity::getPairCode).orElse(null);
     }
 
     // --- 辅助 ---

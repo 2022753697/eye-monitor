@@ -37,6 +37,10 @@ public class MediaFileEntity {
     @Column(name = "created_at", nullable = false)
     private long createdAt;
 
+    /** 所属图库文件夹 id；null = 未分类 */
+    @Column(name = "folder_id")
+    private Long folderId;
+
     @Column(nullable = false)
     private boolean deleted;
 
@@ -66,6 +70,9 @@ public class MediaFileEntity {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public Long getFolderId() { return folderId; }
+    public void setFolderId(Long folderId) { this.folderId = folderId; }
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }

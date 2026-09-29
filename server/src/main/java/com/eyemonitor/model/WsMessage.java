@@ -118,9 +118,18 @@ public class WsMessage {
         return new WsMessage("device_status", deviceId, pairCode, status, System.currentTimeMillis());
     }
 
+    public static WsMessage createFolderSync(String deviceId, String pairCode,
+                                             String action, Long id, String name) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("action", action);
+        payload.put("id", id);
+        if (name != null) payload.put("name", name);
+        return new WsMessage("folder_sync", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
     public static WsMessage createMedia(String deviceId, String pairCode,
                                         String fileId, String fileName, String mime,
-                                        long size, Long duration, String from) {
+                                        long size, Long duration, String from, Long folderId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("fileId", fileId);
         payload.put("fileName", fileName);
@@ -128,6 +137,7 @@ public class WsMessage {
         payload.put("size", size);
         if (duration != null) payload.put("duration", duration);
         payload.put("from", from);
+        if (folderId != null) payload.put("folderId", folderId);
         return new WsMessage("media", deviceId, pairCode, payload, System.currentTimeMillis());
     }
 

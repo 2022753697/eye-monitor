@@ -738,7 +738,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         String name = MediaUtils.queryDisplayName(this, uri);
-        String mime = getContentResolver().getType(uri);
+        String mime = MediaUtils.inferMime(getContentResolver().getType(uri), name);
         final boolean video = MediaUtils.isVideo(mime);
         final String finalName = name;
         final String finalMime = mime;

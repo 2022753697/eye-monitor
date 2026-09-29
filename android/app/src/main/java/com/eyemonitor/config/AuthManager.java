@@ -198,15 +198,22 @@ public class AuthManager {
         execAuthed(ctx, "PUT", "/api/user/avatar", body, cb);
     }
 
-    /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode */
-    public void uploadMedia(Context ctx, File file, String pairCode, Callback cb) {
+    /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode（folderId 可空 = 未分类） */
+    public void uploadMedia(Context ctx, File file, String pairCode, Long folderId, Callback cb) {
         RequestBody fileBody = RequestBody.create(file, OCTET);
-        MultipartBody body = new MultipartBody.Builder()
+        MultipartBody.Builder mb = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", file.getName(), fileBody)
-                .addFormDataPart("pairCode", pairCode)
-                .build();
-        execAuthed(ctx, "POST", "/api/media/upload", body, cb);
+                .addFormDataPart("pairCode", pairCode);
+        if (folderId != null) {
+            mb.addFormDataPart("folderId", String.valueOf(folderId));
+        }
+        execAuthed(ctx, "POST", "/api/media/upload", mb.build(), cb);
+    }
+
+    /** 兼容旧调用（聊天页上传，无文件夹） */
+    public void uploadMedia(Context ctx, File file, String pairCode, Callback cb) {
+        uploadMedia(ctx, file, pairCode, null, cb);
     }
 
     /** 下载媒体到本地缓存文件（GET /api/media/{fileId}，Range 由 OkHttp 透明处理） */

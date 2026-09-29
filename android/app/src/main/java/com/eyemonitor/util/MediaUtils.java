@@ -59,6 +59,26 @@ public final class MediaUtils {
         return mime != null && mime.startsWith("video/");
     }
 
+    /** 系统返回的 mime 为空时，按文件名后缀推断（相册 heic/heif 等场景） */
+    public static String inferMime(String mime, String fileName) {
+        if (mime != null && (mime.startsWith("image/") || mime.startsWith("video/"))) {
+            return mime;
+        }
+        if (fileName == null) return null;
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot == fileName.length() - 1) return null;
+        switch (fileName.substring(dot + 1).toLowerCase()) {
+            case "jpg": case "jpeg": return "image/jpeg";
+            case "png": return "image/png";
+            case "webp": return "image/webp";
+            case "heic": case "heif": return "image/heic";
+            case "mp4": return "video/mp4";
+            case "mov": return "video/quicktime";
+            case "3gp": return "video/3gpp";
+            default: return null;
+        }
+    }
+
     // --- 选取校验 ---
 
     /** 读取文件大小（OpenableColumns，失败返回 -1） */

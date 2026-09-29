@@ -24,12 +24,34 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/btn_gallery_select"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@android:color/transparent"
+            android:textColor="@color/text_on_primary"
+            android:text="@string/gallery_select" />
+
+        <Button
+            android:id="@+id/btn_gallery_upload"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@android:color/transparent"
+            android:textColor="@color/text_on_primary"
+            android:text="@string/gallery_upload" />
+
+        <Button
             android:id="@+id/btn_gallery_back"
             style="@style/Widget.EyeMonitor.Button.Header"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/back" />
     </LinearLayout>
+
+    <!-- 分类条移除：全部视图 = 文件夹卡片上下列表（每行一个文件夹），见 item_media_folder.xml -->
 
     <!-- 按天分组网格 -->
     <androidx.recyclerview.widget.RecyclerView
@@ -50,4 +72,47 @@
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
         android:visibility="gone" />
+
+    <!-- 批量操作栏（选择模式底部） -->
+    <LinearLayout
+        android:id="@+id/batch_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_card"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_batch_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_batch_move"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/batch_move" />
+
+        <Button
+            android:id="@+id/btn_batch_delete"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/batch_delete" />
+
+        <Button
+            android:id="@+id/btn_batch_cancel"
+            style="@style/Widget.EyeMonitor.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/batch_cancel" />
+    </LinearLayout>
 </LinearLayout>

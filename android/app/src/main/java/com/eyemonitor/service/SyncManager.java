@@ -10,6 +10,7 @@ import com.eyemonitor.db.AppNameCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
+import com.eyemonitor.db.FolderCacheEntity;
 import com.eyemonitor.db.LocationCacheEntity;
 import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.model.WsMessage;
@@ -42,6 +43,7 @@ public final class SyncManager {
         }
         syncAnniversaries(context);
         syncFences(context);
+        syncFolders(context);
         syncChats(context);
         pruneLocalCaches(context);
     }
@@ -106,6 +108,9 @@ public final class SyncManager {
                 break;
             case "fence_sync":
                 handleFenceSync(context, message);
+                break;
+            case "folder_sync":
+                handleFolderSync(context, message);
                 break;
             case "media":
                 handleMediaUpsert(context, message);
@@ -259,6 +264,60 @@ public final class SyncManager {
         AppDatabase.dbExecutor.execute(() -> db.cacheDao().upsertAnniversary(e));
     }
 
+    /** 图库文件夹全量拉取到 Room 缓存（创建/删除后也可主动调用） */
+    public static void syncFolders(Context context) {
+        AuthManager.i(context).get(context, "/api/folders", new AuthManager.Callback() {
+            @Override
+            public void onSuccess(JsonObject data) {
+                try {
+                    JsonArray arr = data.getAsJsonArray("folders");
+                    if (arr == null) return;
+                    java.util.List<FolderCacheEntity> list = new java.util.ArrayList<>();
+                    for (int i = 0; i < arr.size(); i++) {
+                        JsonObject o = arr.get(i).getAsJsonObject();
+                        FolderCacheEntity e = new FolderCacheEntity();
+                        e.id = o.get("id").getAsLong();
+                        e.name = o.has("name") && !o.get("name").isJsonNull() ? o.get("name").getAsString() : "";
+                        e.ts = o.has("createdAt") ? o.get("createdAt").getAsLong() : System.currentTimeMillis();
+                        list.add(e);
+                    }
+                    AppDatabase db = AppDatabase.getInstance(context);
+                    AppDatabase.dbExecutor.execute(() -> {
+                        db.cacheDao().clearFolders();
+                        if (!list.isEmpty()) db.cacheDao().upsertFolders(list);
+                        Log.i(TAG, "文件夹缓存已同步: " + list.size() + " 个");
+                    });
+                } catch (Exception e) {
+                    Log.e(TAG, "同步文件夹失败", e);
+                }
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                Log.w(TAG, "同步文件夹错误: " + code + " " + msg);
+            }
+        });
+    }
+
+    private static void handleFolderSync(Context context, WsMessage message) {
+        java.util.Map<String, Object> p = message.getPayload();
+        if (p == null) return;
+        Object id = p.get("id");
+        if (!(id instanceof Number)) return;
+        long serverId = ((Number) id).longValue();
+        Object action = p.get("action");
+        AppDatabase db = AppDatabase.getInstance(context);
+        if (action instanceof String && "delete".equals(action)) {
+            AppDatabase.dbExecutor.execute(() -> db.cacheDao().deleteFolder(serverId));
+            return;
+        }
+        FolderCacheEntity e = new FolderCacheEntity();
+        e.id = serverId;
+        e.name = p.get("name") instanceof String ? (String) p.get("name") : "";
+        e.ts = System.currentTimeMillis();
+        AppDatabase.dbExecutor.execute(() -> db.cacheDao().upsertFolder(e));
+    }
+
     private static void handleFenceSync(Context context, WsMessage message) {
         java.util.Map<String, Object> p = message.getPayload();
         if (p == null) return;
@@ -292,6 +351,9 @@ public final class SyncManager {
         e.mime = p.get("mime") instanceof String ? (String) p.get("mime") : null;
         e.size = p.get("size") instanceof Number ? ((Number) p.get("size")).longValue() : 0;
         e.duration = p.get("duration") instanceof Number ? ((Number) p.get("duration")).longValue() : 0;
+        if (p.get("folderId") instanceof Number) {
+            e.folderId = ((Number) p.get("folderId")).longValue();
+        }
         e.ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
         AppDatabase db = AppDatabase.getInstance(context);
         AppDatabase.dbExecutor.execute(() -> db.cacheDao().upsertMedia(e));

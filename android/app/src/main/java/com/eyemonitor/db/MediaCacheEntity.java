@@ -21,6 +21,9 @@ public class MediaCacheEntity {
     /** 时长毫秒（视频），照片为 0 */
     public long duration;
 
+    /** 所属图库文件夹 id；null = 未分类 */
+    public Long folderId;
+
     /** 本地缓存完整路径（getFilesDir()/media/{fileId}），未下载为 null */
     public String localPath;
 

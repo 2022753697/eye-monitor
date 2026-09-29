@@ -11,6 +11,30 @@
         android:scaleType="centerCrop"
         android:background="@drawable/bg_media_placeholder" />
 
+    <!-- 批量选中遮罩 + 勾选角标 -->
+    <View
+        android:id="@+id/v_batch_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#59FF6B6B"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/fl_batch_check"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="4dp"
+        android:background="@drawable/bg_icon_circle"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_batch_check" />
+    </FrameLayout>
+
     <LinearLayout
         android:id="@+id/ll_gallery_placeholder"
         android:layout_width="match_parent"

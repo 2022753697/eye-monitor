@@ -93,6 +93,25 @@ public class MediaService {
         }
     }
 
+    /** 按原始文件名后缀推断扩展名（Content-Type 缺失时兜底，如相册 heic/heif 文件） */
+    public static String extOfFileName(String fileName) {
+        if (fileName == null) return null;
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot == fileName.length() - 1) return null;
+        String ext = fileName.substring(dot + 1).toLowerCase();
+        switch (ext) {
+            case "jpg": case "jpeg": return "jpg";
+            case "png": return "png";
+            case "webp": return "webp";
+            case "heic": return "heic";
+            case "heif": return "heif";
+            case "mp4": return "mp4";
+            case "mov": return "mov";
+            case "3gp": return "3gp";
+            default: return null;
+        }
+    }
+
     /** 按 Content-Type 取扩展名 */
     public static String extOf(String contentType) {
         if (contentType == null) return null;
@@ -100,6 +119,8 @@ public class MediaService {
             case "image/jpeg": return "jpg";
             case "image/png": return "png";
             case "image/webp": return "webp";
+            case "image/heic": return "heic";
+            case "image/heif": return "heif";
             case "video/mp4": return "mp4";
             case "video/quicktime": return "mov";
             case "video/3gpp": return "3gp";

@@ -743,6 +743,7 @@ public class MonitorService extends Service {
                 break;
             case "anniversary_sync":
             case "fence_sync":
+            case "folder_sync":
                 // 服务器真源 -> 更新本地缓存（Wave-2 功能读缓存）
                 SyncManager.handleWsMessage(this, message);
                 broadcastEvent(message);

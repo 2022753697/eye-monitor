@@ -9,5 +9,9 @@ public interface MediaFileRepo extends JpaRepository<MediaFileEntity, String> {
 
     List<MediaFileEntity> findByPairCode(String pairCode);
 
+    List<MediaFileEntity> findByPairCodeAndFolderId(String pairCode, Long folderId);
+
+    List<MediaFileEntity> findByFolderId(Long folderId);
+
     void deleteByPairCode(String pairCode);
 }
