@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
@@ -70,6 +71,7 @@ public class GalleryActivity extends AppCompatActivity {
     private RecyclerView rvGallery;
     private TextView tvEmpty;
     private View btnGallerySelect;
+    private View fabAddFolder;
     private View batchBar;
     private TextView tvBatchCount;
     private GalleryAdapter adapter;
@@ -138,13 +140,17 @@ public class GalleryActivity extends AppCompatActivity {
         findViewById(R.id.btn_batch_move).setOnClickListener(v -> showBatchMoveDialog());
         findViewById(R.id.btn_batch_delete).setOnClickListener(v -> confirmBatchDelete());
         findViewById(R.id.btn_batch_cancel).setOnClickListener(v -> toggleBatchMode());
+        fabAddFolder = findViewById(R.id.fab_add_folder);
+        fabAddFolder.setOnClickListener(v -> showCreateFolderDialog());
 
         GridLayoutManager lm = new GridLayoutManager(this, 3);
         lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
                 if (position >= adapter.rows.size()) return 1;
-                return adapter.rows.get(position).type == ROW_HEADER ? 3 : 1;
+                int type = adapter.rows.get(position).type;
+                // 文件夹卡与日期头占满整行（span 3）；媒体项为 1/3 列
+                return (type == ROW_HEADER || type == ROW_FOLDER) ? 3 : 1;
             }
         });
         adapter = new GalleryAdapter();
@@ -180,6 +186,7 @@ public class GalleryActivity extends AppCompatActivity {
         batchSelected.clear();
         batchBar.setVisibility(batchMode ? View.VISIBLE : View.GONE);
         btnGallerySelect.setVisibility(batchMode ? View.GONE : View.VISIBLE);
+        fabAddFolder.setVisibility(batchMode ? View.GONE : View.VISIBLE);
         updateBatchCount();
         adapter.notifyDataSetChanged();
     }
@@ -403,18 +410,17 @@ public class GalleryActivity extends AppCompatActivity {
             AppDatabase db = AppDatabase.getInstance(this);
             List<GalleryRow> newRows = new ArrayList<>();
             if (currentFolderId == null) {
-                // 全部：顶部「新建文件夹」卡片 + 每个文件夹一张卡片（名称 + 最多4张预览 + 查看更多）+ 未分类卡片
-                newRows.add(new GalleryRow(ROW_ADD_FOLDER, null, null));
+                // 全部：每个文件夹一张整行卡片（名称 + 最多5张预览 + 查看更多）+ 未分类卡片；新建入口 = 右下角 FAB
                 for (FolderCacheEntity f : db.cacheDao().getFolders()) {
                     List<MediaCacheEntity> previews = db.cacheDao().getMediaByFolder(f.id);
-                    List<MediaCacheEntity> head = previews.size() > 4
-                            ? previews.subList(0, 4) : previews;
+                    List<MediaCacheEntity> head = previews.size() > 5
+                            ? previews.subList(0, 5) : previews;
                     newRows.add(new GalleryRow(f, head));
                 }
                 List<MediaCacheEntity> unfiled = db.cacheDao().getMediaUnfiled();
                 if (!unfiled.isEmpty()) {
-                    List<MediaCacheEntity> head = unfiled.size() > 4
-                            ? unfiled.subList(0, 4) : unfiled;
+                    List<MediaCacheEntity> head = unfiled.size() > 5
+                            ? unfiled.subList(0, 5) : unfiled;
                     newRows.add(new GalleryRow(null, head));
                 }
             } else {
@@ -435,9 +441,7 @@ public class GalleryActivity extends AppCompatActivity {
             }
             runOnUiThread(() -> {
                 adapter.setRows(newRows);
-                tvEmpty.setVisibility(currentFolderId == null
-                        ? (newRows.size() <= 1 ? View.VISIBLE : View.GONE)
-                        : (newRows.size() <= 1 ? View.VISIBLE : View.GONE));
+                tvEmpty.setVisibility(newRows.isEmpty() ? View.VISIBLE : View.GONE);
                 tvEmpty.setText(currentFolderId == null
                         ? getString(R.string.gallery_empty)
                         : getString(R.string.gallery_folder_empty));

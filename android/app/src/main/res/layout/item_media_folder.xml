@@ -8,21 +8,40 @@
     android:layout_margin="4dp"
     android:padding="10dp">
 
-    <TextView
-        android:id="@+id/tv_folder_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:textColor="@color/text_primary"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
+    <!-- 第一层：文件夹名称 + 查看更多（右侧） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_folder_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_15"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_folder_more"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_8"
+            android:text="@string/gallery_more"
+            android:textColor="@color/primary"
+            android:textSize="@dimen/text_12" />
+    </LinearLayout>
+
+    <!-- 第二层：缩略图铺满整行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/space_8"
         android:gravity="center_vertical">
 
         <LinearLayout
@@ -32,14 +51,5 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="start|center_vertical" />
-
-        <TextView
-            android:id="@+id/tv_folder_more"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/gallery_more"
-            android:textColor="@color/primary"
-            android:textSize="12sp" />
     </LinearLayout>
 </LinearLayout>
