@@ -293,6 +293,7 @@
     <string name="gallery_folder_all">全部</string>
     <string name="gallery_folder_new">➕ 新建文件夹</string>
     <string name="gallery_folder_new_hint">文件夹名称</string>
+    <string name="gallery_folder_create">创建</string>
     <string name="gallery_folder_create_failed">创建文件夹失败：%1$s</string>
     <string name="gallery_folder_delete_title">删除文件夹</string>
     <string name="gallery_folder_delete_message">删除「%1$s」后，里面的照片/视频将归到「全部」，不会被删除。确定吗？</string>
@@ -302,7 +303,7 @@
     <string name="gallery_folder_back_all">← 全部</string>
     <string name="media_download_hint">点击下载</string>
     <string name="media_downloading">下载中…</string>
-    <string name="media_uploading">发送中…</string>
+    <string name="media_uploading">上传中…</string>
     <string name="media_upload_success">上传成功</string>
     <string name="gallery_more">查看更多 →</string>
     <string name="gallery_unfiled">未分类</string>

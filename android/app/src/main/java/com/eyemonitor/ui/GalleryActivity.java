@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
@@ -15,6 +16,8 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -24,6 +27,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import android.app.Dialog;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -316,19 +320,25 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void showCreateFolderDialog() {
-        final EditText input = new EditText(this);
-        input.setHint(R.string.gallery_folder_new_hint);
-        input.setSingleLine(true);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.gallery_folder_new)
-                .setView(input)
-                .setPositiveButton(R.string.ok, (d, w) -> {
-                    String name = input.getText().toString().trim();
-                    if (name.isEmpty()) return;
-                    createFolder(name);
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_create_folder);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            // 透明窗口底 + 布局自带圆角白卡；宽度取屏幕 85%
+            window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            int w = (int) (getResources().getDisplayMetrics().widthPixels * 0.85f);
+            window.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        EditText input = dialog.findViewById(R.id.et_folder_name);
+        dialog.findViewById(R.id.btn_folder_cancel).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.btn_folder_ok).setOnClickListener(v -> {
+            String name = input.getText().toString().trim();
+            if (name.isEmpty()) return;
+            dialog.dismiss();
+            createFolder(name);
+        });
+        dialog.show();
     }
 
     private void createFolder(final String name) {
