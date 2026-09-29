@@ -37,9 +37,25 @@ public class FenceController {
 
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> list(HttpServletRequest request) {
+        long userId = AuthUtil.currentUserId(request);
         String pairCode = requirePairCode(request);
+        // 自愈迁移：本人名下残留旧配对码的围栏（服务器重启换码后遗留）自动归到当前配对，
+        // 避免出现“自己删除自己的围栏却被判无权”的新旧码不一致
+        for (FenceEntity e : fenceRepo.findByOwnerUser(userId)) {
+            if (!pairCode.equals(e.getPairCode())) {
+                e.setPairCode(pairCode);
+                fenceRepo.save(e);
+            }
+        }
         List<Map<String, Object>> out = new ArrayList<>();
+        java.util.LinkedHashMap<Long, FenceEntity> merged = new java.util.LinkedHashMap<>();
         for (FenceEntity e : fenceRepo.findByPairCode(pairCode)) {
+            merged.put(e.getId(), e);
+        }
+        for (FenceEntity e : fenceRepo.findByOwnerUser(userId)) {
+            merged.putIfAbsent(e.getId(), e);
+        }
+        for (FenceEntity e : merged.values()) {
             out.add(view(e));
         }
         return ApiResponse.ok(out);
@@ -77,7 +93,7 @@ public class FenceController {
                                                    @RequestBody Map<String, Object> body,
                                                    HttpServletRequest request) {
         String pairCode = requirePairCode(request);
-        FenceEntity e = stdGet(id, pairCode);
+        FenceEntity e = stdGet(id, pairCode, request);
         if (body.containsKey("name")) {
             String name = body.get("name") == null ? null : String.valueOf(body.get("name")).trim();
             if (name == null || name.isEmpty()) throw new BizException(400, "围栏名称不能为空");
@@ -100,7 +116,7 @@ public class FenceController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         String pairCode = requirePairCode(request);
-        FenceEntity e = stdGet(id, pairCode);
+        FenceEntity e = stdGet(id, pairCode, request);
         fenceRepo.delete(e);
         broadcast(e, "delete", pairCode);
         return ApiResponse.ok(null);
@@ -112,9 +128,13 @@ public class FenceController {
                 e.getCenterLat(), e.getCenterLng(), e.getRadius(), e.isEnabled()));
     }
 
-    private FenceEntity stdGet(long id, String pairCode) {
+    private FenceEntity stdGet(long id, String pairCode, HttpServletRequest request) {
         FenceEntity e = fenceRepo.findById(id).orElseThrow(() -> new BizException(404, "围栏不存在"));
-        if (!pairCode.equals(e.getPairCode())) throw new BizException(403, "无权操作该围栏");
+        long userId = AuthUtil.currentUserId(request);
+        // 判权：当前配对码匹配，或本人创建（即使配对码因重启/重配对变化也能操作自己的围栏）
+        if (!pairCode.equals(e.getPairCode()) && e.getOwnerUser() != userId) {
+            throw new BizException(403, "无权操作该围栏");
+        }
         return e;
     }
 
