@@ -92,8 +92,8 @@ public class GalleryActivity extends AppCompatActivity {
 
     /** 扇形展开参数（与 fabMenuItems 一一对应）：距左轴仰角（度）+ 半径（dp）
      *  等半径 = 气泡落在同一圆弧上（围绕 FAB 的整齐扇形），角度 10°~80° 均分 */
-    private static final float[] FAB_MENU_ANGLES = {10f, 35f, 60f, 80f};
-    private static final float[] FAB_MENU_RADIUS = {150f, 150f, 150f, 150f};
+    private static final float[] FAB_MENU_ANGLES = {5f, 30f, 55f, 80f};
+    private static final float[] FAB_MENU_RADIUS = {110f, 110f, 110f, 110f};
 
     /** 批量选择模式与选中集合 */
     private boolean batchMode;
