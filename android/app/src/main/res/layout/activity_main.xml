@@ -202,35 +202,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- 纪念日：爱心图标，内嵌倒计时天数（中间、适中），点击进纪念日页 -->
-            <FrameLayout
-                android:id="@+id/view_anniversary_heart"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:layout_marginEnd="2dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-
-                <ImageView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_heart"
-                    android:contentDescription="纪念日" />
-
-                <TextView
-                    android:id="@+id/tv_anniversary_heart_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:textColor="@color/white"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:maxLines="1"
-                    android:gravity="center" />
-            </FrameLayout>
-
             <!-- 共享地图（图标 + 文字） -->
             <LinearLayout
                 android:id="@+id/btn_chat_map"
@@ -289,6 +260,41 @@
             </LinearLayout>
         </LinearLayout>
 
+
+        <!-- 纪念日：贴在聊天内容区顶部的爱心徽章（水平居中，内嵌倒计时天数），点击进纪念日页 -->
+        <FrameLayout
+            android:id="@+id/view_anniversary_heart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="2dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_heart"
+                android:contentDescription="纪念日" />
+
+            <TextView
+                android:id="@+id/tv_anniversary_heart_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:gravity="center" />
+        </FrameLayout>
 
         <!-- 消息列表 -->
         <androidx.recyclerview.widget.RecyclerView
