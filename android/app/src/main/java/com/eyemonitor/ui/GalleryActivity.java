@@ -49,6 +49,7 @@ import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.service.SyncManager;
 import com.eyemonitor.util.MediaUtils;
+import com.eyemonitor.util.UiDialogs;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -740,16 +741,15 @@ public class GalleryActivity extends AppCompatActivity {
     /** 长按媒体：删除 / 移动到文件夹 */
     private void showMediaActions(final MediaCacheEntity media) {
         String[] actions = {getString(R.string.media_delete), getString(R.string.media_move_to_folder)};
-        new AlertDialog.Builder(this)
-                .setTitle(media.serverFileName != null ? media.serverFileName : media.fileId)
-                .setItems(actions, (d, which) -> {
+        UiDialogs.list(this,
+                media.serverFileName != null ? media.serverFileName : media.fileId,
+                actions, 0, which -> {
                     if (which == 0) {
                         confirmDelete(media);
                     } else {
                         showMoveFolderDialog(media);
                     }
-                })
-                .show();
+                });
     }
 
     /** 选择目标文件夹（含「未分类」）移动媒体 */
@@ -757,7 +757,7 @@ public class GalleryActivity extends AppCompatActivity {
         AppDatabase.dbExecutor.execute(() -> {
             final List<FolderCacheEntity> list = AppDatabase.getInstance(this).cacheDao().getFolders();
             runOnUiThread(() -> {
-                final String[] names = new String[list.size() + 1];
+                String[] names = new String[list.size() + 1];
                 final long[] ids = new long[list.size() + 1];
                 names[0] = getString(R.string.gallery_unfiled);
                 ids[0] = 0; // 0 = 未分类
@@ -765,10 +765,10 @@ public class GalleryActivity extends AppCompatActivity {
                     names[i + 1] = list.get(i).name;
                     ids[i + 1] = list.get(i).id;
                 }
-                new AlertDialog.Builder(GalleryActivity.this)
-                        .setTitle(R.string.media_move_to_folder_title)
-                        .setItems(names, (d, which) -> moveMediaToFolder(media, ids[which]))
-                        .show();
+                UiDialogs.list(GalleryActivity.this,
+                        getString(R.string.media_move_to_folder_title),
+                        names, -1,
+                        which -> moveMediaToFolder(media, ids[which]));
             });
         });
     }
@@ -800,12 +800,11 @@ public class GalleryActivity extends AppCompatActivity {
     /** 长按确认删除：服务器删行+删文件并广播 media_deleted，本地同步清理缓存/聊天气泡/文件 */
     private void confirmDelete(MediaCacheEntity media) {
         if (media == null || media.fileId == null) return;
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.media_delete_title)
-                .setMessage(R.string.media_delete_confirm)
-                .setPositiveButton(R.string.ok, (d, w) -> deleteMedia(media))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        UiDialogs.confirm(this,
+                getString(R.string.media_delete_title),
+                getString(R.string.media_delete_confirm),
+                getString(R.string.ok), true,
+                () -> deleteMedia(media));
     }
 
     private void deleteMedia(MediaCacheEntity media) {

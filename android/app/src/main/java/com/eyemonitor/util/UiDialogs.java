@@ -2,11 +2,13 @@ package com.eyemonitor.util;
 
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
@@ -108,6 +110,65 @@ public final class UiDialogs {
             cfg.dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
         }
         cfg.dialog.show();
+    }
+
+    /** 列表选择弹窗（长按菜单/移动选择等）：dangerIndex 行显示为状态红 */
+    public static void list(Context ctx, String title, String[] items, int dangerIndex,
+                            java.util.function.Consumer<Integer> onItem) {
+        if (items == null || items.length == 0) return;
+        ListDialogHolder holder = new ListDialogHolder(ctx);
+        holder.title.setText(title);
+        float density = ctx.getResources().getDisplayMetrics().density;
+        LinearLayout rows = holder.rows;
+        for (int i = 0; i < items.length; i++) {
+            final int idx = i;
+            TextView row = new TextView(ctx);
+            row.setText(items[i]);
+            row.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+            row.setPadding(Math.round(16 * density), 0, Math.round(16 * density), 0);
+            row.setMinHeight(Math.round(48 * density));
+            row.setTextSize(15f);
+            row.setTextColor(ContextCompat.getColor(ctx,
+                    i == dangerIndex ? R.color.status_error : R.color.text_primary));
+            row.setBackgroundResource(R.drawable.bg_row_ripple);
+            rows.addView(row);
+            if (i < items.length - 1) {
+                View divider = new View(ctx);
+                divider.setBackgroundColor(ContextCompat.getColor(ctx, R.color.divider));
+                rows.addView(divider, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        Math.round(density)));
+            }
+            row.setOnClickListener(v -> {
+                holder.dialog.dismiss();
+                if (onItem != null) onItem.accept(idx);
+            });
+        }
+        holder.cancel.setOnClickListener(v -> holder.dialog.dismiss());
+        holder.dialog.show();
+    }
+
+    /** 列表弹窗内部装配 */
+    private static final class ListDialogHolder {
+        final android.app.Dialog dialog;
+        final TextView title;
+        final LinearLayout rows;
+        final Button cancel;
+
+        ListDialogHolder(Context ctx) {
+            dialog = new android.app.Dialog(ctx);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(R.layout.dialog_list);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels * 0.82f);
+                window.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT);
+            }
+            title = dialog.findViewById(R.id.tv_list_title);
+            rows = dialog.findViewById(R.id.ll_list_rows);
+            cancel = dialog.findViewById(R.id.btn_list_cancel);
+        }
     }
 
     /** 信息弹窗：单个确认按钮 */
