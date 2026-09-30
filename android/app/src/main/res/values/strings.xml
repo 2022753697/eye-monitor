@@ -288,6 +288,8 @@
     <string name="fence_notification_title">围栏提醒</string>
     <string name="fence_notification_enter">对方已进入围栏：%1$s</string>
     <string name="fence_notification_exit">对方已离开围栏：%1$s</string>
+    <string name="fence_chat_enter">对方进入了围栏「%1$s」</string>
+    <string name="fence_chat_exit">对方离开了围栏「%1$s」</string>
     <!-- 轨迹回放（Wave-2） -->
     <string name="menu_track">轨迹回放</string>
     <string name="track_replay_title">轨迹回放</string>

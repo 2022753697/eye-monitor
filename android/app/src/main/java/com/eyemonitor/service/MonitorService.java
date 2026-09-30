@@ -180,7 +180,28 @@ public class MonitorService extends Service {
                     : R.string.fence_notification_exit, fence.name);
             Log.i(TAG, "围栏翻转: fence=" + fence.name + ", inside=" + nowInside);
             showFenceNotification(text);
+            // 聊天页也要系统提示（持久化，重启/回看历史仍在）
+            appendFenceSystemTip(fence.name, nowInside);
         });
+    }
+
+    /** 围栏进出：除系统通知外，聊天页插一条居中系统提示并落库（同纪念日提醒模式） */
+    private void appendFenceSystemTip(String fenceName, boolean nowInside) {
+        try {
+            long now = System.currentTimeMillis();
+            String text = getString(nowInside
+                    ? R.string.fence_chat_enter : R.string.fence_chat_exit, fenceName);
+            AppDatabase db = AppDatabase.getInstance(this);
+            db.chatDao().insert(new ChatEntity("system", text, null, false, now));
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("text", text);
+            WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(),
+                    prefs.getPairCode(), payload, now);
+            broadcastEvent(tip);
+            Log.i(TAG, "围栏系统提示已落库: " + text);
+        } catch (Exception ex) {
+            Log.w(TAG, "围栏系统提示失败", ex);
+        }
     }
 
     public static void sendRequestPeerLocation(Context context) {
