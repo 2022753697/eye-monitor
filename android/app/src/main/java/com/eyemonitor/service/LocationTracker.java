@@ -25,7 +25,10 @@ import com.eyemonitor.util.GeoMath;
 public class LocationTracker implements AMapLocationListener {
 
     private static final String TAG = "LocationTracker";
+    /** 亮屏定位间隔 */
     private static final long UPDATE_INTERVAL_MS = 30_000L;
+    /** 息屏定位间隔（省电 P1：60-120s 取中值 90s） */
+    private static final long UPDATE_INTERVAL_SCREEN_OFF_MS = 90_000L;
     private static final float MIN_DISTANCE_M = 50f;
     private static final long MIN_LOCATION_INTERVAL_MS = 15_000L; // 最小定位间隔15秒
 
@@ -57,6 +60,7 @@ public class LocationTracker implements AMapLocationListener {
     private volatile double lastLng;
     private volatile float lastAccuracy;
     private volatile long lastUpdateTime;
+    private volatile boolean screenOn = true;
 
     public LocationTracker(Context context) {
         this.context = context.getApplicationContext();
@@ -74,10 +78,48 @@ public class LocationTracker implements AMapLocationListener {
 
     private void initLocationOption() {
         locationOption.setOnceLocation(false);
-        locationOption.setInterval(UPDATE_INTERVAL_MS);
+        locationOption.setInterval(currentIntervalMs());
         locationOption.setNeedAddress(true);
-        locationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+        if (screenOn) {
+            locationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+        } else {
+            // 息屏省电档：省电模式（平衡精度与功耗）
+            locationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Battery_Saving);
+        }
         locationOption.setGpsFirst(true);
+    }
+
+    /** 当前定位间隔（随屏态变化） */
+    private long currentIntervalMs() {
+        return screenOn ? UPDATE_INTERVAL_MS : UPDATE_INTERVAL_SCREEN_OFF_MS;
+    }
+
+    /** 屏态变化：息屏 → 90s 降频 + 省电模式；亮屏 → 30s 高频恢复（大位移立即报/静止不报规则不变） */
+    public void setScreenOn(boolean on) {
+        if (screenOn == on) return;
+        screenOn = on;
+        long interval = currentIntervalMs();
+        Log.i(TAG, "屏态变化: " + (on ? "亮屏" : "息屏") + ", 定位间隔=" + interval + "ms, 模式="
+                + (on ? "Hight_Accuracy" : "Battery_Saving"));
+        // 系统通道：按新间隔重挂监听
+        if (locationManager != null) {
+            try {
+                locationManager.removeUpdates(systemListener);
+            } catch (Exception ignored) {}
+            startSystemLocation();
+        }
+        // 高德通道：更新 option 并重启（无 Key/认证失败时静默降级）
+        if (locationClient != null) {
+            try {
+                locationClient.stopLocation();
+                initLocationOption();
+                locationClient.setLocationOption(locationOption);
+                locationClient.startLocation();
+                Log.d(TAG, "高德定位已按新档重启");
+            } catch (Exception e) {
+                Log.e(TAG, "高德定位切换档位失败（继续系统通道）", e);
+            }
+        }
     }
 
     public void start() {
@@ -101,13 +143,14 @@ public class LocationTracker implements AMapLocationListener {
             return;
         }
         try {
+            long interval = currentIntervalMs();
             if (hasFine) {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                        UPDATE_INTERVAL_MS, MIN_DISTANCE_M, systemListener);
+                        interval, MIN_DISTANCE_M, systemListener);
             }
             if (hasFine || hasCoarse) {
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                        UPDATE_INTERVAL_MS, MIN_DISTANCE_M, systemListener);
+                        interval, MIN_DISTANCE_M, systemListener);
             }
             // 立即取一次最近位置（模拟器 geo fix 后 GPS 有值）
             Location last = hasFine

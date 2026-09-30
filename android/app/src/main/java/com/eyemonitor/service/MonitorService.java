@@ -6,11 +6,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -155,6 +158,18 @@ public class MonitorService extends Service {
     private volatile boolean locationStarted = false;
     private boolean wsFromPairActivity = false;
 
+    /** 省电 P1：当前屏态（默认亮屏，onCreate 里用 isInteractive 校正） */
+    private boolean screenOn = true;
+
+    /** 省电 P1：屏态变化接收器（息屏 → 轮询停/定位90s/上报90s；亮屏 → 立即恢复） */
+    private final BroadcastReceiver screenStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            handleScreenChange(Intent.ACTION_SCREEN_ON.equals(intent.getAction()));
+        }
+    };
+
     /** 位置上报限流状态（R1/R2 判定逻辑在 {@link LocationReportRule}，这里只存状态） */
     private long lastLocationReportTs;
     private double lastReportLat;
@@ -165,7 +180,7 @@ public class MonitorService extends Service {
         public void run() {
             reportLocation();
             reportDeviceStatus();
-            handler.postDelayed(this, 30_000L); // 每30秒上报一次（位置 + 设备状态）
+            handler.postDelayed(this, screenOn ? 30_000L : 90_000L); // 息屏 90s 上报（P1）
         }
     };
 
@@ -186,6 +201,19 @@ public class MonitorService extends Service {
         // P1 轻量保活：幂等注册 15 分钟周期自检（重复启动只保留一个周期任务）
         KeepAliveScheduler.schedule(this);
         prefs = new PrefsManager(this);
+
+        // 省电 P1：屏态监听（息屏停轮询/定位降频/心跳降频）
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        screenOn = pm != null && pm.isInteractive();
+        IntentFilter screenFilter = new IntentFilter();
+        screenFilter.addAction(Intent.ACTION_SCREEN_ON);
+        screenFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenStateReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenStateReceiver, screenFilter);
+        }
+        Log.i(TAG, "屏态监听已注册, 初始screenOn=" + screenOn);
         Log.i(TAG, "本机deviceId: " + prefs.getDeviceId() + ", pairCode: " + prefs.getPairCode());
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
@@ -494,6 +522,7 @@ public class MonitorService extends Service {
         }
         initAccessibilityTracker();
         initUsageStatsTracker();
+        refreshTrackerMode();
         initLocationTracker();
         initDeviceStatusTracker();
 
@@ -517,6 +546,9 @@ public class MonitorService extends Service {
         handler.removeCallbacks(locationReportRunnable);
         handler.removeCallbacks(anniversaryCheckRunnable);
         handler.removeCallbacks(sosReminderRunnable);
+        try {
+            unregisterReceiver(screenStateReceiver);
+        } catch (Exception ignored) {}
         if (locationTracker != null) locationTracker.stop();
         if (deviceStatusTracker != null) {
             deviceStatusTracker.stop();
@@ -725,6 +757,7 @@ public class MonitorService extends Service {
         AppAccessibilityService.setOnServiceReady(() -> {
             Log.i(TAG, "无障碍服务就绪回调触发，准备设置 listener");
             setupAccessibilityListener();
+            refreshTrackerMode(); // 无障碍连上 → 轮询切 60s 兜底档
         });
         Log.i(TAG, "已注册 onServiceReady 回调");
 
@@ -762,9 +795,43 @@ public class MonitorService extends Service {
 
         locationTracker = new LocationTracker(this);
         locationTracker.start();
+        locationTracker.setScreenOn(screenOn); // 服务启动时若已息屏，直接应用降频档
 
         handler.postDelayed(locationReportRunnable, 5_000L);
         Log.i(TAG, "位置追踪已启动");
+    }
+
+    /** 省电 P1：屏态切换分发（轮询档/定位档/上报节奏 + 亮屏顺刷无障碍档位） */
+    private void handleScreenChange(boolean on) {
+        if (screenOn == on) return;
+        screenOn = on;
+        Log.i(TAG, "屏幕状态变化: " + (on ? "亮屏" : "息屏"));
+        if (appUsageTracker != null) {
+            appUsageTracker.setScreenOn(on);
+        }
+        if (locationTracker != null) {
+            locationTracker.setScreenOn(on);
+        }
+        refreshTrackerMode(); // 亮屏时顺带刷新无障碍 → 轮询档位
+        // 上报节奏随屏态：亮屏 5s 内首次即报（追发快照语义）；息屏直接 90s
+        handler.removeCallbacks(locationReportRunnable);
+        handler.postDelayed(locationReportRunnable, on ? 5_000L : 90_000L);
+    }
+
+    /** 无障碍开关状态 → 轮询档位（已启用→60s 兜底；未启用→5s）。读取失败按未启用。 */
+    private void refreshTrackerMode() {
+        boolean has = false;
+        try {
+            String enabled = Settings.Secure.getString(
+                    getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            has = enabled != null && enabled.contains("com.eyemonitor");
+        } catch (Exception e) {
+            Log.w(TAG, "读取无障碍设置失败，按未启用处理", e);
+        }
+        if (appUsageTracker != null) {
+            appUsageTracker.setAccessibilityEnabled(has);
+        }
+        Log.d(TAG, "无障碍状态: " + (has ? "已启用(轮询60s兜底)" : "未启用(轮询5s)"));
     }
 
     /** 定期上报位置 */
