@@ -162,6 +162,8 @@ public class MainActivity extends AppCompatActivity {
     private long voiceStartTs;
     private Runnable voiceTimeoutRunnable;
     private PopupWindow chatMenuPopup;
+    /** 聊天页是否真正在前台（地图等独立页面时 MainActivity 停着但面板可见性仍为 VISIBLE，需此标志兜底） */
+    private boolean chatForeground;
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -453,6 +455,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        chatForeground = true;
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 配对成功后自动启动监控服务（实时检测服务运行状态）
         if (prefs.isPaired() && !isServiceRunning()) {
@@ -465,6 +468,13 @@ public class MainActivity extends AppCompatActivity {
             loadChatHistory();
         }
         refreshAnniversaryCard();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 离开前台（如去地图/切后台）：已读回执不再发送，直到回到聊天页
+        chatForeground = false;
     }
 
     @Override
@@ -979,7 +989,7 @@ public class MainActivity extends AppCompatActivity {
                             getString(R.string.chat_empty), null, "", 0));
                 }
                 // 聊天页可见且有对方消息 → 补发已读回执（对方刷新我的已读态）
-                if (viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
+                if (chatForeground && viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
                     MonitorService.sendChatRead(MainActivity.this, peerUpToTs);
                 }
                 scrollToBottom();
@@ -1458,7 +1468,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 聊天页可见且有对方消息 → 回执已读（含更早未回执的）
         if (now > peerUpToTs) peerUpToTs = now;
-        if (viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
+        if (chatForeground && viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
             MonitorService.sendChatRead(MainActivity.this, peerUpToTs);
         }
     }
