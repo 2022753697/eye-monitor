@@ -119,7 +119,8 @@ public class TrackReplayActivity extends AppCompatActivity {
                 playMarker.setPosition(new LatLng(lat, lng));
                 if (t >= 1f) {
                     drawPolylineUpTo(idx);
-                    updateProgress();
+                    currentIndex = idx + 1; // 关键：推进到下一段（原来漏掉导致永远播同一段）
+                    updateProgress(currentIndex);
                     if (idx + 1 >= points.size()) {
                         finishPlayback();
                     } else {
@@ -468,7 +469,7 @@ public class TrackReplayActivity extends AppCompatActivity {
         playing = true;
         btnPlayPause.setText(R.string.track_pause);
         drawPolylineUpTo(currentIndex);
-        updateProgress();
+        updateProgress(currentIndex + 1);
         handler.removeCallbacks(tickRunnable);
         handler.removeCallbacks(resetRunnable);
         handler.postDelayed(tickRunnable, tickIntervalMs());
@@ -485,7 +486,7 @@ public class TrackReplayActivity extends AppCompatActivity {
     private void finishPlayback() {
         playing = false;
         btnPlayPause.setText(R.string.track_play);
-        updateProgress();
+        updateProgress(currentIndex);
         Log.i(TAG, "轨迹回放结束，自动复位");
         handler.removeCallbacks(resetRunnable);
         handler.postDelayed(resetRunnable, 1200L);
@@ -552,8 +553,9 @@ public class TrackReplayActivity extends AppCompatActivity {
         }
     }
 
-    private void updateProgress() {
-        int shown = Math.min(currentIndex + 1, points.size());
+    /** 进度标签：drawn = 已绘制的点数（含起点） */
+    private void updateProgress(int drawn) {
+        int shown = Math.min(drawn, points.size());
         tvProgress.setText(getString(R.string.track_progress, shown, points.size()));
     }
 
