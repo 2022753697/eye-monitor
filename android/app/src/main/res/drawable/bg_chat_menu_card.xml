@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 消息长按气泡菜单卡片：白圆角 + 细描边（阴影由 PopupWindow elevation 提供） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <corners android:radius="10dp" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/divider" />
+</shape>

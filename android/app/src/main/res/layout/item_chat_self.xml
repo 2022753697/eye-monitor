@@ -29,12 +29,12 @@
         android:maxLines="2"
         android:ellipsize="end"
         android:textSize="12sp"
-        android:textColor="@color/text_on_primary"
-        android:alpha="0.75"
+        android:textColor="@color/text_secondary"
+        android:background="@drawable/bg_quote_ref"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:layout_marginBottom="2dp"
         android:visibility="gone" />
 

@@ -42,6 +42,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -160,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
     private File voiceFile;
     private long voiceStartTs;
     private Runnable voiceTimeoutRunnable;
+    private PopupWindow chatMenuPopup;
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -1262,29 +1264,67 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 长按文本消息菜单：引用（双方）/ 撤回（自己且 2 分钟内） */
-    private void showChatItemActions(ChatItem item, int position) {
-        List<String> actions = new ArrayList<>();
-        actions.add(getString(R.string.chat_action_quote));
-        int dangerIndex = -1;
-        if (item.type == TYPE_SELF && !item.deleted
-                && System.currentTimeMillis() - item.ts <= 2 * 60_000L) {
-            actions.add(getString(R.string.chat_action_recall));
-            dangerIndex = actions.size() - 1;
+    /** 长按文本消息：消息上方弹出 QQ/微信式小菜单（引用 / 撤回，撤回仅自己且 2 分钟内） */
+    private void showChatItemActions(ChatItem item) {
+        dismissChatMenu();
+        boolean canRecall = item.type == TYPE_SELF
+                && System.currentTimeMillis() - item.ts <= 2 * 60_000L;
+        int idx = chatAdapter.items.indexOf(item);
+        View anchor = rvChat.getLayoutManager() != null && idx >= 0
+                ? rvChat.getLayoutManager().findViewByPosition(idx) : null;
+        if (anchor == null) return;
+
+        View menu = LayoutInflater.from(this).inflate(R.layout.menu_chat_item, null, false);
+        menu.findViewById(R.id.menu_action_quote).setOnClickListener(v -> {
+            dismissChatMenu();
+            setPendingQuote(item);
+        });
+        TextView tvRecall = menu.findViewById(R.id.menu_action_recall);
+        if (canRecall) {
+            tvRecall.setVisibility(View.VISIBLE);
+            tvRecall.setOnClickListener(v -> {
+                dismissChatMenu();
+                MonitorService.sendChatRecall(MainActivity.this, item.ts);
+                item.deleted = true;
+                AppDatabase.dbExecutor.execute(() ->
+                        AppDatabase.getInstance(MainActivity.this)
+                                .chatDao().markDeletedByTs(item.ts));
+                int p = chatAdapter.items.indexOf(item);
+                if (p >= 0) chatAdapter.notifyItemChanged(p);
+            });
+        } else {
+            tvRecall.setVisibility(View.GONE);
         }
-        UiDialogs.list(this, getString(R.string.chat_action_title),
-                actions.toArray(new String[0]), dangerIndex, idx -> {
-                    if (idx == 0) {
-                        setPendingQuote(item);
-                    } else if (idx == 1) {
-                        MonitorService.sendChatRecall(MainActivity.this, item.ts);
-                        item.deleted = true;
-                        chatAdapter.notifyItemChanged(position);
-                        AppDatabase.dbExecutor.execute(() ->
-                                AppDatabase.getInstance(MainActivity.this)
-                                        .chatDao().markDeletedByTs(item.ts));
-                    }
-                });
+
+        menu.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        final int w = menu.getMeasuredWidth();
+        final int h = menu.getMeasuredHeight();
+        chatMenuPopup = new PopupWindow(menu, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        chatMenuPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+                android.graphics.Color.TRANSPARENT));
+        chatMenuPopup.setOutsideTouchable(true);
+        if (Build.VERSION.SDK_INT >= 21) {
+            chatMenuPopup.setElevation(10 * getResources().getDisplayMetrics().density);
+        }
+        int density = (int) getResources().getDisplayMetrics().density;
+        int margin = 8 * density;
+        int xOffset = (anchor.getWidth() - w) / 2;
+        // 负 Y 偏移 → 菜单出现在消息上方；顶部空间不足则翻到下方
+        int[] winLoc = new int[2];
+        anchor.getLocationInWindow(winLoc);
+        boolean roomAbove = winLoc[1] - h - margin >= 0;
+        int yOffset = roomAbove ? -(anchor.getHeight() + h + margin)
+                : anchor.getHeight() + margin;
+        chatMenuPopup.showAsDropDown(anchor, xOffset, yOffset);
+    }
+
+    private void dismissChatMenu() {
+        if (chatMenuPopup != null && chatMenuPopup.isShowing()) {
+            chatMenuPopup.dismiss();
+        }
+        chatMenuPopup = null;
     }
 
     // --- 消息接收 ---
@@ -2014,10 +2054,7 @@ public class MainActivity extends AppCompatActivity {
             void bindItemLongPress(ChatItem item) {
                 itemView.setOnLongClickListener(v -> {
                     if (item.deleted) return true;
-                    int p = getBindingAdapterPosition();
-                    if (p >= 0) {
-                        showChatItemActions(item, p);
-                    }
+                    showChatItemActions(item);
                     return true;
                 });
             }
