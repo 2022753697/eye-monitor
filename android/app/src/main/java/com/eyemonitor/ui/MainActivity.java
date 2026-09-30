@@ -2279,27 +2279,38 @@ public class MainActivity extends AppCompatActivity {
 
         final String localPath = meta != null ? meta.localPath : null;
         final boolean downloaded = localPath != null && new File(localPath).exists();
+        final int mediaBoxPx = 180 * density;
         if (audio) {
-            // 语音气泡（微信式）：旋转 wifi 图标 + 秒数，自己/对方镜像
+            // 语音消息：容器收缩为内容大小（微信式小气泡，非图片大卡）
+            ViewGroup.LayoutParams lp = h.flMediaContainer.getLayoutParams();
+            lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            h.flMediaContainer.setLayoutParams(lp);
             h.ivMediaThumb.setVisibility(View.GONE);
             h.llMediaPlaceholder.setVisibility(View.GONE);
             h.llVoiceBubble.setVisibility(View.VISIBLE);
             h.ivVoiceWifi.setScaleX(self ? -1f : 1f);
             h.tvVoiceDuration.setText(formatVoiceDurationSeconds(duration));
-        } else if (downloaded) {
-            h.ivMediaThumb.setVisibility(View.VISIBLE);
-            h.llMediaPlaceholder.setVisibility(View.GONE);
-            h.llVoiceBubble.setVisibility(View.GONE);
-            loadThumb(h.ivMediaThumb, localPath, mime);
         } else {
-            h.ivMediaThumb.setVisibility(View.GONE);
-            h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            // 图片/视频：恢复 180dp 方形容器（防回收复用残留）
+            ViewGroup.LayoutParams lp = h.flMediaContainer.getLayoutParams();
+            lp.width = mediaBoxPx;
+            lp.height = mediaBoxPx;
+            h.flMediaContainer.setLayoutParams(lp);
             h.llVoiceBubble.setVisibility(View.GONE);
-            h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
-            h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_image);
-            h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
-                    getColor(R.color.text_secondary)));
-            h.tvMediaHint.setText(R.string.media_download_hint);
+            if (downloaded) {
+                h.ivMediaThumb.setVisibility(View.VISIBLE);
+                h.llMediaPlaceholder.setVisibility(View.GONE);
+                loadThumb(h.ivMediaThumb, localPath, mime);
+            } else {
+                h.ivMediaThumb.setVisibility(View.GONE);
+                h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+                h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
+                h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_image);
+                h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
+                        getColor(R.color.text_secondary)));
+                h.tvMediaHint.setText(R.string.media_download_hint);
+            }
         }
 
         final boolean unmetered = isUnmeteredConnected();
