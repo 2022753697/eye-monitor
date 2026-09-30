@@ -13,10 +13,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:numColumns="8"
-        android:verticalSpacing="4dp"
+        android:verticalSpacing="2dp"
         android:horizontalSpacing="4dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:listSelector="@android:color/transparent"
         android:stretchMode="columnWidth" />
 </LinearLayout>
