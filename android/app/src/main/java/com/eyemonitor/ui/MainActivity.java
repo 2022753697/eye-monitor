@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
     private String pendingRefText;
     private long lastTypingSentTs;
     private long peerUpToTs;
-    private TextView tvQuoteStrip;
+    private LinearLayout tvQuoteStrip;
     private TextView tvQuoteText;
     private TextView tvTypingHint;
     private final Handler chatUiHandler = new Handler(Looper.getMainLooper());
