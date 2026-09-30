@@ -249,7 +249,16 @@
     <string name="label_charging">充电</string>
     <string name="label_network">网络</string>
     <string name="label_bluetooth">蓝牙</string>
-    <string name="device_status_tip">对方设备每 30 秒上报一次状态，状态变化时即时更新；点击聊天首页状态行可查看详情</string>
+    <string name="device_status_tip">对方设备状态变化时即时更新（亮屏瞬间补报快照）；点击聊天首页状态行可查看详情</string>
+
+    <!-- 省电 P3：电池优化白名单 -->
+    <string name="battery_opt_label">电池优化</string>
+    <string name="battery_opt_exempt">已豁免 ✓</string>
+    <string name="battery_opt_not_exempt">未豁免 · 点击去设置</string>
+    <string name="battery_opt_dialog_title">开启电池优化白名单？</string>
+    <string name="battery_opt_dialog_msg">为保证息屏持续监控精度（位置与消息不被打断），建议将眼互加入系统电池优化白名单。</string>
+    <string name="battery_opt_dialog_ok">去设置</string>
+    <string name="battery_opt_dialog_cancel">暂不</string>
 
     <!-- SOS 紧急求助 -->
     <string name="sos_alert_entrance_desc">SOS 紧急求助（长按 3 秒触发）</string>

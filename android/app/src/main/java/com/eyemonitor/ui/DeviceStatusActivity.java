@@ -4,9 +4,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,6 +38,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
     private TextView tvCharging;
     private TextView tvNetwork;
     private TextView tvBluetooth;
+    private TextView tvBatteryOpt;
 
     private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
         @Override
@@ -61,8 +66,19 @@ public class DeviceStatusActivity extends AppCompatActivity {
         tvCharging = findViewById(R.id.tv_device_charging);
         tvNetwork = findViewById(R.id.tv_device_network);
         tvBluetooth = findViewById(R.id.tv_device_bluetooth);
+        tvBatteryOpt = findViewById(R.id.tv_battery_opt);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
+        // 电池优化白名单入口：点击跳系统设置（拒绝后可从此处后悔）
+        tvBatteryOpt.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                Log.w(TAG, "无法跳转电池优化设置", e);
+            }
+        });
 
         IntentFilter filter = new IntentFilter(MonitorService.ACTION_EVENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -115,6 +131,12 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         tvBluetooth.setText(getString(prefs.getPeerBluetooth()
                 ? R.string.status_on : R.string.status_off));
+
+        // 电池优化白名单（本机豁免状态）
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        boolean exempt = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        tvBatteryOpt.setText(getString(exempt ? R.string.battery_opt_exempt : R.string.battery_opt_not_exempt));
+        tvBatteryOpt.setTextColor(getColor(exempt ? R.color.status_ok : R.color.status_warn));
 
         Log.d(TAG, "刷新状态: online=" + online + ", battery=" + battery
                 + ", charging=" + prefs.getPeerCharging() + ", network=" + network

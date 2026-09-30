@@ -182,7 +182,6 @@ public class MonitorService extends Service {
         @Override
         public void run() {
             reportLocation();
-            reportDeviceStatus();
             handler.postDelayed(this, screenOn ? 30_000L : 90_000L); // 息屏 90s 上报（P1）
         }
     };
@@ -832,6 +831,9 @@ public class MonitorService extends Service {
             Log.i(TAG, "亮屏，补执行息屏期间推迟的同步");
             SyncManager.syncAll(MonitorService.this);
         }
+        if (on) {
+            sendDeviceStatus(); // 亮屏追发一次状态快照（省电 P3，去掉固定周期后的保新语义）
+        }
         // 上报节奏随屏态：亮屏 5s 内首次即报（追发快照语义）；息屏直接 90s
         handler.removeCallbacks(locationReportRunnable);
         handler.postDelayed(locationReportRunnable, on ? 5_000L : 90_000L);
@@ -911,9 +913,14 @@ public class MonitorService extends Service {
         deviceStatusTracker = new DeviceStatusTracker(this, status -> {
             Log.d(TAG, "设备状态变化: battery=" + status.battery + ", charging=" + status.charging
                     + ", network=" + status.network + ", bluetooth=" + status.bluetooth);
+            if (!screenOn) {
+                // 省电 P3：息屏不主动发状态（亮屏快照会携带最新值）
+                Log.d(TAG, "息屏变化不主动发送，亮屏快照兜底");
+                return;
+            }
             sendDeviceStatus();
         });
-        Log.i(TAG, "设备状态追踪已启动");
+        Log.i(TAG, "设备状态追踪已启动（变化驱动）");
     }
 
     /** 定期上报设备状态（复用 30s 位置上报周期） */

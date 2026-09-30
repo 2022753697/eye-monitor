@@ -17,6 +17,7 @@ public class PrefsManager {
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
     private static final String KEY_PERMISSION_PROMPTED = "permission_prompted";
+    private static final String KEY_BATTERY_WHITELIST_PROMPTED = "battery_whitelist_prompted";
     private static final String KEY_GENDER = "gender";
     // 账户体系（R29：登录 token / 资料缓存）
     private static final String KEY_ACCESS_TOKEN = "access_token";
@@ -253,6 +254,15 @@ public class PrefsManager {
 
     public void setPermissionPrompted(boolean prompted) {
         prefs.edit().putBoolean(KEY_PERMISSION_PROMPTED, prompted).apply();
+    }
+
+    /** 省电 P3：电池优化白名单是否已提醒过（拒绝/忽略后不再重复打扰） */
+    public boolean isBatteryWhitelistPrompted() {
+        return prefs.getBoolean(KEY_BATTERY_WHITELIST_PROMPTED, false);
+    }
+
+    public void setBatteryWhitelistPrompted(boolean prompted) {
+        prefs.edit().putBoolean(KEY_BATTERY_WHITELIST_PROMPTED, prompted).apply();
     }
 
     /** 获取性别：female | male，未设置返回 null（默认按粉色） */

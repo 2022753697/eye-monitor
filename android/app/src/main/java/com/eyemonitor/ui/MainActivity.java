@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.Editable;
@@ -2044,6 +2045,33 @@ public class MainActivity extends AppCompatActivity {
             startService(intent);
         }
         serviceRunning = true;
+        maybePromptBatteryOptimization();
+    }
+
+    /** 省电 P3：首次开启监控时引导加入电池优化白名单（仅询问一次；拒绝后状态页可再进） */
+    private void maybePromptBatteryOptimization() {
+        if (prefs == null) prefs = new PrefsManager(this);
+        if (prefs.isBatteryWhitelistPrompted()) return;
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        if (pm != null && pm.isIgnoringBatteryOptimizations(getPackageName())) {
+            prefs.setBatteryWhitelistPrompted(true);
+            return;
+        }
+        // 本次后不再弹（无论去不去）；状态页提供重新入口
+        prefs.setBatteryWhitelistPrompted(true);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.battery_opt_dialog_title)
+                .setMessage(R.string.battery_opt_dialog_msg)
+                .setPositiveButton(R.string.battery_opt_dialog_ok, (d, w) -> {
+                    try {
+                        startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                Uri.parse("package:" + getPackageName())));
+                    } catch (Exception e) {
+                        Log.w(TAG, "无法跳转电池优化设置", e);
+                    }
+                })
+                .setNegativeButton(R.string.battery_opt_dialog_cancel, null)
+                .show();
     }
 
     private boolean checkPermissions() {
