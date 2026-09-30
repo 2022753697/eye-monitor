@@ -39,6 +39,7 @@
             android:background="@drawable/bg_media_placeholder">
 
             <ImageView
+                android:id="@+id/iv_media_placeholder_icon"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_image"

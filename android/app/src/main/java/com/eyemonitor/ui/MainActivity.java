@@ -2099,6 +2099,7 @@ public class MainActivity extends AppCompatActivity {
             LinearLayout llMediaBubble;
             FrameLayout flMediaContainer;
             ImageView ivMediaThumb;
+            ImageView ivMediaPlaceholderIcon;
             LinearLayout llMediaPlaceholder;
             TextView tvMediaHint;
             FrameLayout flVideoBadge;
@@ -2126,6 +2127,7 @@ public class MainActivity extends AppCompatActivity {
                         llMediaBubble = view.findViewById(R.id.ll_media_bubble);
                         flMediaContainer = view.findViewById(R.id.fl_media_container);
                         ivMediaThumb = view.findViewById(R.id.iv_media_thumb);
+                        ivMediaPlaceholderIcon = view.findViewById(R.id.iv_media_placeholder_icon);
                         llMediaPlaceholder = view.findViewById(R.id.ll_media_placeholder);
                         tvMediaHint = view.findViewById(R.id.tv_media_hint);
                         flVideoBadge = view.findViewById(R.id.fl_video_badge);
@@ -2271,9 +2273,13 @@ public class MainActivity extends AppCompatActivity {
         final String localPath = meta != null ? meta.localPath : null;
         final boolean downloaded = localPath != null && new File(localPath).exists();
         if (audio) {
-            // P2 语音消息：始终占位样式（时长 + 播放状态），无缩略图
+            // P2 语音消息：麦克风图标 + 时长/播放状态（不显示图片缩略图）
             h.ivMediaThumb.setVisibility(View.GONE);
             h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
+            h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_mic);
+            h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
+                    getColor(R.color.primary)));
             h.tvMediaHint.setText(getString(R.string.voice_play_hint,
                     formatVoiceDuration(duration)));
         } else if (downloaded) {
@@ -2283,6 +2289,10 @@ public class MainActivity extends AppCompatActivity {
         } else {
             h.ivMediaThumb.setVisibility(View.GONE);
             h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
+            h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_image);
+            h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
+                    getColor(R.color.text_secondary)));
             h.tvMediaHint.setText(R.string.media_download_hint);
         }
 
