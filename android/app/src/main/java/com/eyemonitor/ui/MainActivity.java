@@ -64,6 +64,7 @@ import com.eyemonitor.service.AppUsageTracker;
 import com.eyemonitor.service.DeviceStatusTracker;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
+import com.eyemonitor.util.MapNav;
 import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.util.MediaUtils;
 import com.eyemonitor.util.Transitions;
@@ -1764,14 +1765,31 @@ public class MainActivity extends AppCompatActivity {
         java.util.Map<String, Object> payload = message.getPayload();
         Object t = payload != null ? payload.get("text") : null;
         String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
-        // 「确认」= 发 sos_ack 回执（发送方显示“对方已确认安全”，并停止每分钟重发提醒）
+        // 「确认」= 停止每分钟重发 + 跳转高德导航到发送方位置
         android.app.Dialog dialog = UiDialogs.confirm(this,
                 getString(R.string.sos_notification_title),
                 getString(R.string.sos_peer_alert, text),
                 getString(R.string.sos_ack_action), false,
-                () -> MonitorService.sendSosAck(this));
+                () -> confirmSosNavigate(message));
         dialog.setOnDismissListener(d -> sosDialogShowing = false);
         sosDialogShowing = true;
+    }
+
+    /** 点「确认」：停止重发提醒（服务侧）并跳转高德导航到发送方位置 */
+    private void confirmSosNavigate(WsMessage message) {
+        // 服务侧停止每分钟重发 + 移除通知（不发送任何回执）
+        MonitorService.sendSosAck(this);
+        java.util.Map<String, Object> payload = message.getPayload();
+        Object latObj = payload != null ? payload.get("lat") : null;
+        Object lngObj = payload != null ? payload.get("lng") : null;
+        if (latObj instanceof Number && lngObj instanceof Number) {
+            String who = prefs.getPeerNickname();
+            if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
+            MapNav.navigate(this, ((Number) latObj).doubleValue(),
+                    ((Number) lngObj).doubleValue(), who);
+        } else {
+            Toast.makeText(this, R.string.sos_no_location, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void openPermissionSettings() {

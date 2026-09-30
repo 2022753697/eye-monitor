@@ -246,6 +246,7 @@
     <!-- SOS 紧急求助 -->
     <string name="sos_alert_entrance_desc">SOS 紧急求助（长按 3 秒触发）</string>
     <string name="sos_help_me">我需要帮助，快来接我</string>
+    <string name="map_nav_not_found">未找到可用的地图应用</string>
     <string name="sos_confirm_title">发送 SOS 紧急求助？</string>
     <string name="sos_confirm_message">将立即向对方发送求助通知（含你的位置），60 秒内不可重复触发。</string>
     <string name="sos_confirm_send">发送求助</string>

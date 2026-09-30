@@ -26,6 +26,7 @@ import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.db.LocationCacheEntity;
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.util.MapNav;
 import com.eyemonitor.ui.MainActivity;
 import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.websocket.WSClient;
@@ -85,6 +86,7 @@ public class MonitorService extends Service {
     public static final String ACTION_SEND_SOS = "com.eyemonitor.SEND_SOS";
     public static final String EXTRA_SOS_TEXT = "sos_text";
     public static final String ACTION_SEND_SOS_ACK = "com.eyemonitor.SEND_SOS_ACK";
+    public static final String EXTRA_SOS_NAV = "sos_nav";
     public static final String EXTRA_PROFILE_NICKNAME = "profile_nickname";
     public static final String EXTRA_PROFILE_AVATAR = "profile_avatar";
     public static final String EXTRA_PROFILE_GENDER = "profile_gender";
@@ -137,6 +139,8 @@ public class MonitorService extends Service {
     /** SOS 未确认重发提醒（每分钟一次，直到对方点「确认」） */
     private String lastSosText;
     private String lastSosLocation;
+    private double lastSosLat = Double.NaN;
+    private double lastSosLng = Double.NaN;
     private final Runnable sosReminderRunnable = new Runnable() {
         @Override
         public void run() {
@@ -289,11 +293,12 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
-    /** 发送 SOS 回执「我没事」（通知按钮 / 聊天内快捷按钮） */
+    /** 确认 SOS（弹窗路径）：停止每分钟重发+移除通知；导航由 UI 侧用消息内的位置发起 */
     public static void sendSosAck(Context context) {
         if (context == null) return;
         Intent intent = new Intent(context, MonitorService.class);
         intent.setAction(ACTION_SEND_SOS_ACK);
+        intent.putExtra(EXTRA_SOS_NAV, false);
         context.startService(intent);
     }
 
@@ -407,7 +412,7 @@ public class MonitorService extends Service {
 
         if (intent != null && ACTION_SEND_SOS_ACK.equals(intent.getAction())) {
             Log.i(TAG, "收到 SOS 回执发送请求（我没事）");
-            sendSosAckMessage();
+            handleSosConfirmed(intent);
             return START_NOT_STICKY;
         }
 
@@ -997,7 +1002,8 @@ public class MonitorService extends Service {
     }
 
     /** 双方 SOS 系统提示（\u001F 分段：时间/昵称/动作，渲染端配色：时间灰/昵称粉/动作红）
-     *  senderSide=true：自己侧「你已发送 SOS 求助」；false：对方侧「昵称 发送了 SOS 求助（含位置）」 */
+     *  senderSide=true：自己侧「你已发送 SOS 求助」；false：对方侧「昵称 发送了 SOS 求助」。
+     *  注意：sendSosMessage 跑在主线程，Room 写入必须走 dbExecutor（否则被吞）。 */
     private void appendSosTip(boolean senderSide, long now) {
         try {
             String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
@@ -1011,42 +1017,40 @@ public class MonitorService extends Service {
             }
             String action = getString(senderSide
                     ? R.string.sos_chat_sender_action : R.string.sos_chat_receiver_action);
-            String text = "\u001F" + dt + "\u001F" + who + "\u001F" + action;
+            final String text = "\u001F" + dt + "\u001F" + who + "\u001F" + action;
             AppDatabase db = AppDatabase.getInstance(this);
-            db.chatDao().insert(new ChatEntity("system", text, null, false, now));
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("text", text);
-            WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(),
-                    prefs.getPairCode(), payload, now);
-            broadcastEvent(tip);
-            Log.i(TAG, "SOS 系统提示已落库: " + dt + " " + who + " " + action);
+            AppDatabase.dbExecutor.execute(() -> {
+                try {
+                    db.chatDao().insert(new ChatEntity("system", text, null, false, now));
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("text", text);
+                    WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(),
+                            prefs.getPairCode(), payload, now);
+                    broadcastEvent(tip);
+                    Log.i(TAG, "SOS 系统提示已落库: " + dt + " " + who + " " + action);
+                } catch (Exception ex) {
+                    Log.w(TAG, "SOS 系统提示失败", ex);
+                }
+            });
         } catch (Exception ex) {
-            Log.w(TAG, "SOS 系统提示失败", ex);
+            Log.w(TAG, "SOS 系统提示组装失败", ex);
         }
     }
 
-    /** 发送 SOS 回执「我没事」 */
-    private void sendSosAckMessage() {
-        if (wsClient == null || !wsClient.isConnected()) {
-            Log.w(TAG, "SOS 回执发送失败: WebSocket 未连接");
-            return;
+    /** 对方点「确认」：停止每分钟重发提醒、移除 SOS 通知；
+     *  通知按钮路径（EXTRA_SOS_NAV=true）顺带跳转高德导航到发送方位置（弹窗路径由 UI 导航） */
+    private void handleSosConfirmed(Intent intent) {
+        Log.i(TAG, "SOS 已确认，停止重发提醒");
+        handler.removeCallbacks(sosReminderRunnable);
+        lastSosText = null;
+        lastSosLocation = null;
+        notificationManager.cancel(NOTIFICATION_ID_SOS);
+        boolean navigate = intent != null && intent.getBooleanExtra(EXTRA_SOS_NAV, false);
+        if (navigate && !Double.isNaN(lastSosLat) && !Double.isNaN(lastSosLng)) {
+            MapNav.navigate(this, lastSosLat, lastSosLng, prefs.getPeerNickname());
         }
-        if (prefs.getPairCode() == null || prefs.getPairCode().isEmpty()) {
-            Log.w(TAG, "SOS 回执发送失败: 未配对");
-            return;
-        }
-        WsMessage ack = WsMessage.createSosAck(
-                prefs.getDeviceId(), prefs.getPairCode(),
-                prefs.getNickname() != null ? prefs.getNickname() : getString(R.string.chat_title_default));
-        boolean sent = wsClient.send(ack);
-        Log.i(TAG, "SOS 回执发送结果: " + sent);
-        if (sent) {
-            // 已确认：停止每分钟重发提醒并移除 SOS 通知
-            handler.removeCallbacks(sosReminderRunnable);
-            lastSosText = null;
-            lastSosLocation = null;
-            notificationManager.cancel(NOTIFICATION_ID_SOS);
-        }
+        lastSosLat = Double.NaN;
+        lastSosLng = Double.NaN;
     }
 
     /** 收到对方 SOS：高优先级通知（含求救语+位置）+ 广播 UI */
@@ -1067,6 +1071,8 @@ public class MonitorService extends Service {
         // 未确认则每分钟重发通知，直到对方点「确认」
         lastSosText = text;
         lastSosLocation = locationText;
+        lastSosLat = latObj instanceof Number ? ((Number) latObj).doubleValue() : Double.NaN;
+        lastSosLng = lngObj instanceof Number ? ((Number) lngObj).doubleValue() : Double.NaN;
         handler.removeCallbacks(sosReminderRunnable);
         handler.postDelayed(sosReminderRunnable, 60_000L);
         broadcastEvent(message);
@@ -1369,9 +1375,10 @@ public class MonitorService extends Service {
                 this, (int) System.currentTimeMillis(), open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        // 通知上的「确认」按钮：发 sos_ack 回执（同时停止每分钟重发）
+        // 通知上的「确认」按钮：停止重发 + 跳转高德导航到发送方位置
         Intent ack = new Intent(this, MonitorService.class);
         ack.setAction(ACTION_SEND_SOS_ACK);
+        ack.putExtra(EXTRA_SOS_NAV, true);
         PendingIntent ackPi = PendingIntent.getService(
                 this, (int) System.currentTimeMillis(), ack,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

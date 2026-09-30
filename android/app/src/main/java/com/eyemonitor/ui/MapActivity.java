@@ -39,6 +39,7 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.util.MapNav;
 import com.eyemonitor.service.MonitorService;
 
 import com.google.gson.JsonObject;
@@ -998,16 +999,16 @@ public class MapActivity extends AppCompatActivity {
                 .withEndAction(() -> viewToolsMenu.setVisibility(View.GONE)).start();
     }
 
-    /** 「去找他」：聚焦对方位置 */
+    /** 「去找他」：跳转高德导航到对方当前位置（不再只是聚焦地图） */
     private void goToPeer() {
         if (peerMarkers.isEmpty()) {
             Toast.makeText(this, R.string.toast_peer_no_location, Toast.LENGTH_SHORT).show();
             return;
         }
-        focusWithIdleGuard();
         Marker m = peerMarkers.values().iterator().next();
-        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(m.getPosition(), 16f));
-        m.showInfoWindow();
+        String who = prefs.getPeerNickname();
+        if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
+        MapNav.navigate(this, m.getPosition().latitude, m.getPosition().longitude, who);
     }
 
     /** 用户主动聚焦后临时开启防抢焦（8 秒内位置更新不拉走视角） */
