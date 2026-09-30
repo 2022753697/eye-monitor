@@ -96,6 +96,7 @@
     <string name="chat_recall_failed">撤回失败</string>
     <string name="chat_quote_strip">引用「%1$s」</string>
     <string name="chat_tool_title">快捷工具</string>
+    <string name="chat_tool_photo">照片 / 视频</string>
     <string name="chat_tool_emoji">表情</string>
     <string name="chat_tool_voice">语音</string>
     <string name="voice_recording_title">录音中…</string>

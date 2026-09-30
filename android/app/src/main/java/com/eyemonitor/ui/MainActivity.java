@@ -297,12 +297,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, DeviceStatusActivity.class));
             Transitions.push(this);
         });
-        btnAddMedia.setOnClickListener(v -> pickMedia());
-        // P2：长按媒体按钮 = 表情/语音工具（单击仍为选照片视频）
-        btnAddMedia.setOnLongClickListener(v -> {
-            showChatToolMenu();
-            return true;
-        });
+        btnAddMedia.setOnClickListener(v -> showChatToolMenu());
 
         tvQuoteStrip = findViewById(R.id.ll_quote_strip);
         tvQuoteText = findViewById(R.id.tv_quote_text);
@@ -1009,14 +1004,18 @@ public class MainActivity extends AppCompatActivity {
 
     // --- P2 聊天增强 ---
 
-    /** 长按媒体按钮：表情 / 语音（单击仍是选照片视频） */
+    /** 媒体按钮单击：快捷工具菜单（照片/视频 / 表情 / 语音），功能一目了然 */
     private void showChatToolMenu() {
         UiDialogs.list(this, getString(R.string.chat_tool_title),
-                new String[]{getString(R.string.chat_tool_emoji), getString(R.string.chat_tool_voice)},
+                new String[]{getString(R.string.chat_tool_photo),
+                        getString(R.string.chat_tool_emoji),
+                        getString(R.string.chat_tool_voice)},
                 -1, idx -> {
                     if (idx == 0) {
-                        showEmojiPicker();
+                        pickMedia();
                     } else if (idx == 1) {
+                        showEmojiPicker();
+                    } else if (idx == 2) {
                         startVoiceRecord();
                     }
                 });
