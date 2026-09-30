@@ -224,6 +224,41 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="@dimen/text_15" />
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider" />
+
+        <!-- 备注（微信式：备注优先显示名） -->
+        <LinearLayout
+            android:id="@+id/row_peer_remark"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="@dimen/space_14"
+            android:paddingBottom="@dimen/space_14"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/peer_remark_label"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_15" />
+
+            <TextView
+                android:id="@+id/tv_peer_remark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/peer_remark_not_set"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_15" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView

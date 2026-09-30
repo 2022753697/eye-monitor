@@ -16,6 +16,7 @@ public class PrefsManager {
     private static final String KEY_SERVER_URL = "server_url";
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
+    private static final String KEY_PEER_REMARK = "peer_remark";
     private static final String KEY_PERMISSION_PROMPTED = "permission_prompted";
     private static final String KEY_BATTERY_WHITELIST_PROMPTED = "battery_whitelist_prompted";
     private static final String KEY_GENDER = "gender";
@@ -235,9 +236,30 @@ public class PrefsManager {
         }
     }
 
-    /** 获取对方昵称（从未知来源更新，未设置返回 null） */
+    /**
+     * 获取对方显示名（备注优先；无备注返回自动学习的昵称，均未设置返回 null）。
+     * 全 App 显示统一的对方名称，改这一处即全面生效。
+     */
     public String getPeerNickname() {
+        String remark = getPeerRemark();
+        if (remark != null && !remark.isEmpty()) {
+            return remark;
+        }
         return prefs.getString(KEY_PEER_NICKNAME, null);
+    }
+
+    /** 设置/清除对方备注（空串=清除，恢复显示自动学习的昵称） */
+    public void setPeerRemark(String remark) {
+        if (remark == null || remark.isEmpty()) {
+            prefs.edit().remove(KEY_PEER_REMARK).apply();
+        } else {
+            prefs.edit().putString(KEY_PEER_REMARK, remark.trim()).apply();
+        }
+    }
+
+    /** 获取对方备注（未设置返回 null） */
+    public String getPeerRemark() {
+        return prefs.getString(KEY_PEER_REMARK, null);
     }
 
     /** 记录对方昵称（从收到的聊天消息中学习） */

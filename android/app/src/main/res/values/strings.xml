@@ -288,6 +288,16 @@
     <string name="perm_always_on">默认开启</string>
     <string name="perm_disabled">已停用 · 点击恢复</string>
 
+    <!-- 对方备注（微信式） -->
+    <string name="peer_remark_label">备注</string>
+    <string name="peer_remark_not_set">未设置 · 点击编辑</string>
+    <string name="peer_remark_dialog_title">设置对 TA 的备注</string>
+    <string name="peer_remark_dialog_hint">备注将替代对方的昵称显示（留空清除）</string>
+    <string name="peer_remark_ok">保存</string>
+    <string name="peer_remark_cancel">取消</string>
+    <string name="peer_remark_saved">备注已保存</string>
+    <string name="peer_remark_cleared">备注已清除</string>
+
     <!-- SOS 紧急求助 -->
     <string name="sos_alert_entrance_desc">SOS 紧急求助（长按 3 秒触发）</string>
     <string name="sos_help_me">我需要帮助，快来接我</string>

@@ -20,6 +20,7 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.DeviceStatusTracker;
 import com.eyemonitor.service.MonitorService;
+import com.eyemonitor.util.UiDialogs;
 
 /**
  * 对方设备状态详情页（完整五件套：电量 / 充电 / 网络 / 蓝牙 / 在线）。
@@ -39,6 +40,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
     private TextView tvNetwork;
     private TextView tvBluetooth;
     private TextView tvBatteryOpt;
+    private TextView tvPeerRemark;
 
     private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
         @Override
@@ -67,6 +69,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
         tvNetwork = findViewById(R.id.tv_device_network);
         tvBluetooth = findViewById(R.id.tv_device_bluetooth);
         tvBatteryOpt = findViewById(R.id.tv_battery_opt);
+        tvPeerRemark = findViewById(R.id.tv_peer_remark);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -79,6 +82,10 @@ public class DeviceStatusActivity extends AppCompatActivity {
                 Log.w(TAG, "无法跳转电池优化设置", e);
             }
         });
+
+        // 备注：点击弹编辑框（微信式，备注优先显示；留空清除）
+        findViewById(R.id.row_peer_remark).setOnClickListener(v ->
+                UiDialogs.showRemarkDialog(this, prefs, this::refresh));
 
         IntentFilter filter = new IntentFilter(MonitorService.ACTION_EVENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -137,6 +144,16 @@ public class DeviceStatusActivity extends AppCompatActivity {
         boolean exempt = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
         tvBatteryOpt.setText(getString(exempt ? R.string.battery_opt_exempt : R.string.battery_opt_not_exempt));
         tvBatteryOpt.setTextColor(getColor(exempt ? R.color.status_ok : R.color.status_warn));
+
+        // 备注（未设置=次级灰提示编辑；已设置=主色展示）
+        String remark = prefs.getPeerRemark();
+        if (remark != null && !remark.isEmpty()) {
+            tvPeerRemark.setText(remark);
+            tvPeerRemark.setTextColor(getColor(R.color.text_primary));
+        } else {
+            tvPeerRemark.setText(R.string.peer_remark_not_set);
+            tvPeerRemark.setTextColor(getColor(R.color.text_secondary));
+        }
 
         Log.d(TAG, "刷新状态: online=" + online + ", battery=" + battery
                 + ", charging=" + prefs.getPeerCharging() + ", network=" + network

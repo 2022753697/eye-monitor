@@ -1,5 +1,6 @@
 package com.eyemonitor.util;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
@@ -14,6 +15,7 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 
 import com.eyemonitor.R;
+import com.eyemonitor.config.PrefsManager;
 
 /**
  * 统一样式弹窗（UI 二期组件表）
@@ -86,12 +88,41 @@ public final class UiDialogs {
     /** 输入弹窗：确认时回调文本（空文本不回调） */
     public static void input(Context ctx, String title, String hint,
                             String okText, java.util.function.Consumer<String> onOk) {
-        input(ctx, title, hint, null, okText, onOk);
+        inputInternal(ctx, title, hint, null, okText, false, onOk);
     }
 
     /** 输入弹窗（支持预填 initial） */
     public static void input(Context ctx, String title, String hint, String initial,
                             String okText, java.util.function.Consumer<String> onOk) {
+        inputInternal(ctx, title, hint, initial, okText, false, onOk);
+    }
+
+    /** 输入弹窗：允许留空提交（如清除备注） */
+    public static void inputAllowEmpty(Context ctx, String title, String hint, String initial,
+                                       String okText, java.util.function.Consumer<String> onOk) {
+        inputInternal(ctx, title, hint, initial, okText, true, onOk);
+    }
+
+    /**
+     * 对方备注编辑弹窗（微信式，备注优先显示；留空=清除）。
+     * onSaved 用于保存后刷新界面（头栏/气泡名）。
+     */
+    public static void showRemarkDialog(Activity ctx, PrefsManager prefs, Runnable onSaved) {
+        String cur = prefs.getPeerRemark();
+        inputAllowEmpty(ctx,
+                ctx.getString(R.string.peer_remark_dialog_title),
+                ctx.getString(R.string.peer_remark_dialog_hint),
+                cur != null ? cur : "",
+                ctx.getString(R.string.peer_remark_ok),
+                text -> {
+                    prefs.setPeerRemark(text);
+                    if (onSaved != null) onSaved.run();
+                });
+    }
+
+    private static void inputInternal(Context ctx, String title, String hint, String initial,
+                                      String okText, boolean allowEmpty,
+                                      java.util.function.Consumer<String> onOk) {
         DialogConfig cfg = base(ctx, title);
         EditText et = cfg.dialog.findViewById(R.id.et_dialog_input);
         et.setVisibility(View.VISIBLE);
@@ -101,7 +132,7 @@ public final class UiDialogs {
         cfg.cancel.setOnClickListener(v -> cfg.dialog.dismiss());
         cfg.ok.setOnClickListener(v -> {
             String text = et.getText().toString().trim();
-            if (text.isEmpty()) return;
+            if (text.isEmpty() && !allowEmpty) return;
             cfg.dialog.dismiss();
             if (onOk != null) onOk.accept(text);
         });
