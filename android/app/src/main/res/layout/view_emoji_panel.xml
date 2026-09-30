@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 表情面板（微信式底部上滑，复用更多面板机制）：8 列网格 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="220dp"
+    android:orientation="vertical"
+    android:background="@color/surface"
+    android:elevation="4dp"
+    android:paddingTop="8dp">
+
+    <GridView
+        android:id="@+id/grid_emoji"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:numColumns="8"
+        android:verticalSpacing="4dp"
+        android:horizontalSpacing="4dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:listSelector="@android:color/transparent"
+        android:stretchMode="columnWidth" />
+</LinearLayout>

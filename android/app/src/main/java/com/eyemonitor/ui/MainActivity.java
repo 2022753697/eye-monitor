@@ -39,7 +39,9 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
+import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -138,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
     private ChatAdapter chatAdapter;
     private View bottomBar;
     private View morePanel;
+    private View emojiPanel;
+    private GridView emojiGrid;
 
     // 纪念日：爱心图标固定，左右滑动切换数字与名称
     private View viewAnniversaryHeart;
@@ -310,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
             Transitions.push(this);
         });
         btnMic.setOnClickListener(v -> toggleVoiceMode());
-        btnEmoji.setOnClickListener(v -> showEmojiPicker());
+        btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
         // 微信式按住说话：按下录音 → 松开发送 / 滑到取消按钮释放 = 放弃
         tvVoiceBar.setOnTouchListener((v, ev) -> {
             switch (ev.getActionMasked()) {
@@ -359,6 +363,9 @@ public class MainActivity extends AppCompatActivity {
         // 更多面板：格子绑定
         bottomBar = findViewById(R.id.bottom_bar);
         morePanel = findViewById(R.id.more_panel);
+        emojiPanel = findViewById(R.id.emoji_panel);
+        emojiGrid = findViewById(R.id.grid_emoji);
+        initEmojiGrid();
         morePanel.findViewById(R.id.grid_image).setOnClickListener(v -> pickMedia());
         morePanel.findViewById(R.id.grid_sos).setOnClickListener(v -> {
             hideMorePanel();
@@ -406,7 +413,10 @@ public class MainActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
         // 输入法与更多菜单互斥：点击输入框时收起更多面板
-        etChatInput.setOnClickListener(v -> hideMorePanel());
+        etChatInput.setOnClickListener(v -> {
+            hideMorePanel();
+            hideEmojiPanel();
+        });
         etChatInput.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) hideMorePanel();
         });
@@ -827,6 +837,7 @@ public class MainActivity extends AppCompatActivity {
 
         etChatInput.setText("");
         hideMorePanel();
+        hideEmojiPanel();
         scrollToBottom();
     }
 
@@ -1038,15 +1049,51 @@ public class MainActivity extends AppCompatActivity {
     // --- P2 聊天增强 ---
 
     /** 媒体按钮单击：快捷工具菜单（照片/视频 / 表情 / 语音），功能一目了然 */
-    /** 表情面板：UiDialogs 列表插入光标处 */
-    private void showEmojiPicker() {
+    /** 表情面板（微信式底部上滑）：初始化 8 列网格 */
+    private void initEmojiGrid() {
+        if (emojiGrid == null) return;
         final String[] emojis = {"😀","😁","😂","🤣","😊","😍","🥰","😘","😎","🤔","😅","😭","😢","🥺","😳","😉","😇","🤗","😴","😡","❤️","💕","💔","👍","👌","🙏","✌️","🎉","🔥","✨","🌹","🎂","💪","🤝"};
-        UiDialogs.list(this, getString(R.string.chat_tool_emoji), emojis, -1, idx -> {
-            String emoji = emojis[idx];
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                R.layout.item_emoji, emojis);
+        emojiGrid.setAdapter(adapter);
+        emojiGrid.setOnItemClickListener((parent, v, pos, id) -> {
+            String emoji = emojis[pos];
             int sel = etChatInput.getSelectionEnd();
             if (sel < 0) sel = etChatInput.length();
             etChatInput.getText().insert(sel, emoji);
+            etChatInput.requestFocus();
         });
+    }
+
+    /** 表情面板切换（微信式：滑入/滑出，与更多面板、输入法互斥） */
+    private void toggleEmojiPanel() {
+        if (emojiPanel.getVisibility() == View.VISIBLE) {
+            hideEmojiPanel();
+        } else {
+            hideKeyboard();
+            hideMorePanel();
+            emojiPanel.setVisibility(View.VISIBLE);
+            bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
+            scrollToBottom();
+        }
+    }
+
+    private void hideEmojiPanel() {
+        if (emojiPanel.getVisibility() == View.GONE) return;
+        Animation out = AnimationUtils.loadAnimation(this, R.anim.slide_out_bottom);
+        out.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation a) {}
+
+            @Override
+            public void onAnimationEnd(Animation a) {
+                emojiPanel.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation a) {}
+        });
+        emojiPanel.startAnimation(out);
     }
 
     // --- 语音（微信式按压） ---
@@ -1713,6 +1760,7 @@ public class MainActivity extends AppCompatActivity {
             hideMorePanel();
         } else {
             hideKeyboard();
+            hideEmojiPanel();
             morePanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
             // 最新消息滚到面板上方，不被面板遮挡

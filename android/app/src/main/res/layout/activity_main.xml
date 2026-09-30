@@ -449,6 +449,12 @@
             android:id="@+id/more_panel"
             layout="@layout/view_more_panel"
             android:visibility="gone" />
+
+        <!-- 表情面板（微信式底部上滑） -->
+        <include
+            android:id="@+id/emoji_panel"
+            layout="@layout/view_emoji_panel"
+            android:visibility="gone" />
         </LinearLayout>
         </LinearLayout>
 
