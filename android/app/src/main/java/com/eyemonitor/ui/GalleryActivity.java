@@ -327,11 +327,11 @@ public class GalleryActivity extends AppCompatActivity {
 
     private void confirmBatchDelete() {
         if (batchSelected.isEmpty()) return;
-        new AlertDialog.Builder(this)
-                .setMessage(getString(R.string.batch_delete_confirm, batchSelected.size()))
-                .setPositiveButton(R.string.ok, (d, w) -> batchDelete())
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        UiDialogs.confirm(this,
+                getString(R.string.batch_delete_title),
+                getString(R.string.batch_delete_confirm, batchSelected.size()),
+                getString(R.string.ok), true,
+                this::batchDelete);
     }
 
     /** 批量删除：逐个 DELETE + 本地清理，全部结束后退出批量并刷新 */
@@ -376,10 +376,10 @@ public class GalleryActivity extends AppCompatActivity {
                     names[i + 1] = list.get(i).name;
                     ids[i + 1] = list.get(i).id;
                 }
-                new AlertDialog.Builder(GalleryActivity.this)
-                        .setTitle(R.string.media_move_to_folder_title)
-                        .setItems(names, (d, which) -> batchMoveTo(ids[which]))
-                        .show();
+                UiDialogs.list(GalleryActivity.this,
+                        getString(R.string.media_move_to_folder_title),
+                        names, -1,
+                        which -> batchMoveTo(ids[which]));
             });
         });
     }
