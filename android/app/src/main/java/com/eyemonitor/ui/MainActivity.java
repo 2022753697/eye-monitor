@@ -1081,7 +1081,7 @@ public class MainActivity extends AppCompatActivity {
             hideEmojiPanel();
         } else {
             hideKeyboard();
-            hideMorePanel();
+            hideMorePanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
             emojiPanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
             scrollToBottom();
@@ -1830,12 +1830,24 @@ public class MainActivity extends AppCompatActivity {
             hideMorePanel();
         } else {
             hideKeyboard();
-            hideEmojiPanel();
+            hideEmojiPanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
             morePanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
             // 最新消息滚到面板上方，不被面板遮挡
             scrollToBottom();
         }
+    }
+
+    /** 互斥用：立即隐藏更多面板（不走动画，仅用于切到另一面板时） */
+    private void hideMorePanelInstant() {
+        morePanel.clearAnimation();
+        morePanel.setVisibility(View.GONE);
+    }
+
+    /** 互斥用：立即隐藏表情面板（不走动画，仅用于切到另一面板时） */
+    private void hideEmojiPanelInstant() {
+        emojiPanel.clearAnimation();
+        emojiPanel.setVisibility(View.GONE);
     }
 
     private void hideMorePanel() {
@@ -1969,12 +1981,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openPermissionSettings() {
-        if (prefs.isPaired() && isServiceRunning()) {
-            startActivity(new Intent(this, MonitorActivity.class));
-            Transitions.push(this);
-        } else {
-            requestNotificationPermission();
-        }
+        startActivity(new Intent(this, PermissionActivity.class));
+        Transitions.push(this);
     }
 
     private void showNicknameDialog() {

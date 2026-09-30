@@ -86,7 +86,7 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.MonitorActivity"
+            android:name=".ui.PermissionActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
