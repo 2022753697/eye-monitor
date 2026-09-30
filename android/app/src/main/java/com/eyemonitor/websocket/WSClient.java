@@ -30,7 +30,13 @@ public class WSClient {
     // 重连参数
     private static final long RECONNECT_BASE_DELAY_MS = 1000;
     private static final long RECONNECT_MAX_DELAY_MS = 30_000;
-    private static final long PING_INTERVAL_MS = 30_000;
+    /** OkHttp 原生 ping：固定长值兜底（防 NAT 全空转；真实保活走应用层心跳，见 setScreenOn） */
+    private static final long OKHTTP_PING_INTERVAL_MS = 300_000;
+    /** 应用层心跳：亮屏 30s ／ 息屏 120s（省电 P2） */
+    private static final long HEARTBEAT_SCREEN_ON_MS = 30_000L;
+    private static final long HEARTBEAT_SCREEN_OFF_MS = 120_000L;
+    /** 重连成功后短心跳稳连次数（自适应 NAT：先 30s 稳连，再回落档位） */
+    private static final int HEARTBEAT_STABILIZE_TICKS = 3;
 
     // 回调接口
     public interface WsCallback {
@@ -62,15 +68,26 @@ public class WSClient {
     private long reconnectDelay = RECONNECT_BASE_DELAY_MS;
     private boolean destroyed;
 
-    private final Runnable pingRunnable = this::sendPing;
+    private final Runnable pingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!connected) return;
+            sendPing();
+            scheduleNextPing();
+        }
+    };
     private final Runnable reconnectRunnable = this::doConnect;
+
+    /** 应用层心跳：当前档位（亮屏 30s / 息屏 120s） */
+    private volatile boolean screenOn = true;
+    private int stabilizeTicks;
 
     public WSClient(String serverUrl, WsCallback callback) {
         this.serverUrl = serverUrl;
         this.callback = callback;
-        // OkHttp 客户端：原生 ping 间隔 30s
+        // OkHttp 客户端：原生 ping 拉长到 300s 兜底（省电 P2，真实保活走应用层心跳）
         this.client = new OkHttpClient.Builder()
-                .pingInterval(PING_INTERVAL_MS, TimeUnit.MILLISECONDS)
+                .pingInterval(OKHTTP_PING_INTERVAL_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)  // WebSocket 不设超时
                 .build();
     }
@@ -166,9 +183,42 @@ public class WSClient {
         mainHandler.removeCallbacks(reconnectRunnable);
     }
 
+    /** 屏态变化：亮屏 30s 心跳 ／ 息屏 120s（消息推送不受影响，仍实时到达） */
+    public void setScreenOn(boolean on) {
+        if (screenOn == on) return;
+        screenOn = on;
+        Log.i(TAG, "屏态变化: " + (on ? "亮屏" : "息屏") + ", 心跳间隔=" + currentHeartbeatMs() + "ms");
+        mainHandler.post(() -> {
+            mainHandler.removeCallbacks(pingRunnable);
+            scheduleNextPing();
+        });
+    }
+
+    private long currentHeartbeatMs() {
+        return screenOn ? HEARTBEAT_SCREEN_ON_MS : HEARTBEAT_SCREEN_OFF_MS;
+    }
+
+    /** 连接建立后启动心跳（重连成功先短心跳稳连，自适应 NAT） */
+    private void startHeartbeat() {
+        mainHandler.removeCallbacks(pingRunnable);
+        stabilizeTicks = HEARTBEAT_STABILIZE_TICKS;
+        scheduleNextPing();
+        Log.d(TAG, "心跳已启动, 档=" + currentHeartbeatMs() + "ms");
+    }
+
+    private void scheduleNextPing() {
+        long interval = currentHeartbeatMs();
+        if (stabilizeTicks > 0) {
+            stabilizeTicks--;
+            interval = HEARTBEAT_SCREEN_ON_MS; // 稳连期 30s 短心跳
+        }
+        mainHandler.postDelayed(pingRunnable, interval);
+    }
+
+    /** 发送应用层心跳 ping */
     private void sendPing() {
         if (connected && webSocket != null) {
-            Log.d(TAG, "发送 ping");
+            Log.d(TAG, "HEARTBEAT帧: ping"); // ASCII 计数标记（P4 对比用）
             webSocket.send("{\"type\":\"ping\",\"deviceId\":\"\",\"payload\":{},\"timestamp\":"
                     + System.currentTimeMillis() + "}");
         }
@@ -181,11 +231,13 @@ public class WSClient {
     private void notifyConnected() {
         connected = true;
         reconnectDelay = RECONNECT_BASE_DELAY_MS; // 重置重连延迟
+        startHeartbeat();
         if (callback != null) callback.onConnected();
     }
 
     private void notifyDisconnected() {
         connected = false;
+        cancelPing();
         if (callback != null) callback.onDisconnected();
     }
 

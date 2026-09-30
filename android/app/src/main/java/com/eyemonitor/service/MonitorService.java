@@ -161,6 +161,9 @@ public class MonitorService extends Service {
     /** 省电 P1：当前屏态（默认亮屏，onCreate 里用 isInteractive 校正） */
     private boolean screenOn = true;
 
+    /** 省电 P2：息屏期间推迟的历史/媒体同步，亮屏后补一次 */
+    private boolean pendingSyncOnScreenOn = false;
+
     /** 省电 P1：屏态变化接收器（息屏 → 轮询停/定位90s/上报90s；亮屏 → 立即恢复） */
     private final BroadcastReceiver screenStateReceiver = new BroadcastReceiver() {
         @Override
@@ -606,7 +609,11 @@ public class MonitorService extends Service {
                     if (!accessibilityListenerSet && AppAccessibilityService.getInstance() != null) {
                         setupAccessibilityListener();
                     }
-                    SyncManager.syncAll(MonitorService.this);
+                    if (screenOn) {
+                        SyncManager.syncAll(MonitorService.this);
+                    } else {
+                        pendingSyncOnScreenOn = true; // 息屏不主动拉（P2），亮屏后补
+                    }
                     sendDeviceStatus();
                     broadcastPeerOnline();
                     autoResendPending();
@@ -668,7 +675,11 @@ public class MonitorService extends Service {
                 if (!accessibilityListenerSet && AppAccessibilityService.getInstance() != null) {
                     setupAccessibilityListener();
                 }
-                SyncManager.syncAll(MonitorService.this);
+                if (screenOn) {
+                    SyncManager.syncAll(MonitorService.this);
+                } else {
+                    pendingSyncOnScreenOn = true; // 息屏不主动拉（P2），亮屏后补
+                }
                 sendDeviceStatus();
                 broadcastPeerOnline();
                 autoResendPending();
@@ -812,7 +823,15 @@ public class MonitorService extends Service {
         if (locationTracker != null) {
             locationTracker.setScreenOn(on);
         }
+        if (wsClient != null) {
+            wsClient.setScreenOn(on); // 心跳 30s ↔ 120s（P2）
+        }
         refreshTrackerMode(); // 亮屏时顺带刷新无障碍 → 轮询档位
+        if (on && pendingSyncOnScreenOn) {
+            pendingSyncOnScreenOn = false;
+            Log.i(TAG, "亮屏，补执行息屏期间推迟的同步");
+            SyncManager.syncAll(MonitorService.this);
+        }
         // 上报节奏随屏态：亮屏 5s 内首次即报（追发快照语义）；息屏直接 90s
         handler.removeCallbacks(locationReportRunnable);
         handler.postDelayed(locationReportRunnable, on ? 5_000L : 90_000L);
