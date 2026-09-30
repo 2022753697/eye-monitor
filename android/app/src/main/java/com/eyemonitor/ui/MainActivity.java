@@ -174,6 +174,8 @@ public class MainActivity extends AppCompatActivity {
     private Runnable voiceTimeoutRunnable;
     private boolean voiceMode;
     private boolean voiceCancelling;
+    /** 未送达消息时间戳集合（会话级：loadChatHistory 重载时恢复失败标记，防“重连后自己消失”） */
+    private final java.util.Set<Long> failedMsgTs = new java.util.HashSet<>();
     private PopupWindow chatMenuPopup;
     /** 聊天页是否真正在前台（地图等独立页面时 MainActivity 停着但面板可见性仍为 VISIBLE，需此标志兜底） */
     private boolean chatForeground;
@@ -826,7 +828,9 @@ public class MainActivity extends AppCompatActivity {
         ChatItem ci = new ChatItem(TYPE_SELF, text, from,
                 TIME_FORMAT.format(new Date(now)), now, refId, refText);
         // 发送前预判：未连接（断网/未配对）直接标未送达，等回执细化
-        ci.failed = !MonitorService.isWsConnected();
+        boolean preFailed = !MonitorService.isWsConnected();
+        ci.failed = preFailed;
+        if (preFailed) failedMsgTs.add(now);
         chatAdapter.addItem(ci);
 
         // 本地入库（Room 禁止主线程操作，走 dbExecutor）
@@ -1025,6 +1029,7 @@ public class MainActivity extends AppCompatActivity {
                             e.refMsgId, e.refText);
                     ci.peerRead = e.peerRead;
                     ci.deleted = e.deleted;
+                    ci.failed = failedMsgTs.contains(e.timestamp);
                     if (!e.isSelf) peerUpToTs = Math.max(peerUpToTs, e.timestamp);
                     chatAdapter.addItem(ci);
                 }
@@ -1374,19 +1379,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 发送结果回执：ok=false → 对应消息标「未送达」（断网/发送失败） */
+    /** 发送结果回执（仅失败）：ok=false → 对应消息标「未送达」 */
     private void handleChatSendResult(WsMessage message) {
         Object tsObj = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
         Object okObj = message.getPayload() != null ? message.getPayload().get("ok") : null;
         if (!(tsObj instanceof Number)) return;
         final long msgTs = ((Number) tsObj).longValue();
         final boolean ok = okObj instanceof Boolean && (Boolean) okObj;
-        if (!ok && msgTs == 0) return;
+        if (ok || msgTs == 0) return;
+        failedMsgTs.add(msgTs);
         for (int i = 0; i < chatAdapter.getItemCount(); i++) {
             ChatItem it = chatAdapter.items.get(i);
             if (it.type == TYPE_SELF && it.ts == msgTs) {
-                if (it.failed != !ok) {
-                    it.failed = !ok;
+                if (!it.failed) {
+                    it.failed = true;
                     chatAdapter.notifyItemChanged(i);
                 }
                 return;
@@ -1394,11 +1400,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 点击「未送达」重发：复用原 ts（保持排序与回执匹配），清理本地失败态由回执决定 */
+    /** 服务器送达确认：清除未送达标记 */
+    private void handleChatAck(WsMessage message) {
+        Object tsObj = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
+        if (!(tsObj instanceof Number)) return;
+        final long msgTs = ((Number) tsObj).longValue();
+        failedMsgTs.remove(msgTs);
+        for (int i = 0; i < chatAdapter.getItemCount(); i++) {
+            ChatItem it = chatAdapter.items.get(i);
+            if (it.type == TYPE_SELF && it.ts == msgTs && it.failed) {
+                it.failed = false;
+                chatAdapter.notifyItemChanged(i);
+                return;
+            }
+        }
+    }
+
+    /** 点击「未送达」重发：复用原 ts（保持排序与回执匹配），成功由 ack 清除标记 */
     private void resendChat(ChatItem item) {
         if (item.type != TYPE_SELF || item.deleted || item.text == null) return;
         String from = prefs.getNickname();
         item.failed = false;
+        failedMsgTs.remove(item.ts);
         int p = chatAdapter.items.indexOf(item);
         if (p >= 0) chatAdapter.notifyItemChanged(p);
         MonitorService.sendChat(this, item.text,
@@ -1517,6 +1540,9 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case "chat_send_result":
                 handleChatSendResult(message);
+                break;
+            case "chat_ack":
+                handleChatAck(message);
                 break;
             case "sync_chat_done":
                 // SyncManager 拉取历史后广播：从 Room 全量重载聊天（离线消息显示）

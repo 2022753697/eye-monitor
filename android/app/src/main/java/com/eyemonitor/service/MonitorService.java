@@ -371,12 +371,24 @@ public class MonitorService extends Service {
                 if (ts > 0) chat.setTimestamp(ts);
                 Log.i(TAG, "发送聊天消息: " + text);
                 ok = wsClient.send(chat);
+                if (ok && ts > 0) {
+                    // 等服务器 chat_ack 确认送达；超时（断网但 socket 未死等）标未送达
+                    final long ackTs = ts;
+                    Runnable timeout = () -> {
+                        chatAckTimers.remove(ackTs);
+                        broadcastChatSendResult(ackTs, false);
+                    };
+                    chatAckTimers.put(ackTs, timeout);
+                    handler.postDelayed(timeout, CHAT_ACK_TIMEOUT_MS);
+                }
             } else {
                 Log.w(TAG, "聊天发送失败: text=" + text + ", wsClient=" + wsClient
                         + ", paired=" + (prefs.getPairCode() != null));
             }
-            // 送达状态回执给 UI：未连接/未配对/发送失败 → 消息标「未送达」（可点击重发）
-            broadcastChatSendResult(ts, ok);
+            if (!ok) {
+                // send() 返回 false / 未连接 / 未配对：直接未送达
+                broadcastChatSendResult(ts, false);
+            }
             return START_NOT_STICKY;
         }
 
@@ -905,6 +917,18 @@ public class MonitorService extends Service {
                 break;
             case "chat_recall":
                 // 对方撤回：广播给 UI（本地按时间戳标记已撤回）
+                broadcastEvent(message);
+                break;
+            case "chat_ack":
+                // 服务器确认收到：取消超时任务并广播 UI 清除未送达标记
+                Object ackTs = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
+                if (ackTs instanceof Number) {
+                    long ts = ((Number) ackTs).longValue();
+                    Runnable pending = chatAckTimers.remove(ts);
+                    if (pending != null) {
+                        handler.removeCallbacks(pending);
+                    }
+                }
                 broadcastEvent(message);
                 break;
             case "system_tip":
@@ -1496,6 +1520,10 @@ public class MonitorService extends Service {
         intent.putExtra(EXTRA_EVENT_JSON, message.toJson());
         sendBroadcast(intent);
     }
+
+    /** 聊天送达等待（ack 超时 8s 视为未送达）：msgTs -> 超时任务 */
+    private static final long CHAT_ACK_TIMEOUT_MS = 8_000L;
+    private final java.util.Map<Long, Runnable> chatAckTimers = new java.util.HashMap<>();
 
     /** 聊天发送结果回执：ok=false → UI 把该消息标「未送达」（可点击重发） */
     private void broadcastChatSendResult(long msgTs, boolean ok) {

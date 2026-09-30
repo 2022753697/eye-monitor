@@ -14,6 +14,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -116,6 +117,12 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp(),
                 "chat", refMsgId, refTextS);
         pairService.forwardToPeer(msg.getDeviceId(), msg);
+        // 送达回执给发送方：服务器收到即回 chat_ack{msgTs}（对方离线也视为已送达服务器，离线补收兜底）
+        Map<String, Object> ackPayload = new HashMap<>();
+        ackPayload.put("msgTs", msg.getTimestamp());
+        pairService.sendMessage(session,
+                new WsMessage("chat_ack", msg.getDeviceId(), pairCode,
+                        ackPayload, System.currentTimeMillis()));
     }
 
     /** chat_read：标记对方已读（upToTs 及更早），再转发让对方端刷新自己消息的已读态 */
