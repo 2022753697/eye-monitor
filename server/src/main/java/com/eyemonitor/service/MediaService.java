@@ -108,6 +108,9 @@ public class MediaService {
             case "mp4": return "mp4";
             case "mov": return "mov";
             case "3gp": return "3gp";
+            case "m4a": return "m4a";
+            case "mp3": return "mp3";
+            case "aac": return "aac";
             default: return null;
         }
     }
@@ -124,6 +127,9 @@ public class MediaService {
             case "video/mp4": return "mp4";
             case "video/quicktime": return "mov";
             case "video/3gpp": return "3gp";
+            case "audio/mp4": case "audio/x-m4a": case "audio/m4a": return "m4a";
+            case "audio/mpeg": return "mp3";
+            case "audio/aac": return "aac";
             default: return null;
         }
     }
@@ -137,6 +143,9 @@ public class MediaService {
             case "mp4": return "video/mp4";
             case "mov": return "video/quicktime";
             case "3gp": return "video/3gpp";
+            case "m4a": return "audio/mp4";
+            case "mp3": return "audio/mpeg";
+            case "aac": return "audio/aac";
             default: return "application/octet-stream";
         }
     }

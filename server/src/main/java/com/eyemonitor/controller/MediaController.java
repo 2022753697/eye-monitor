@@ -79,7 +79,7 @@ public class MediaController {
             ext = MediaService.extOfFileName(file.getOriginalFilename());
         }
         if (ext == null) {
-            throw new BizException(400, "仅支持图片(jpg/png/webp)或视频(mp4/mov/3gp)");
+            throw new BizException(400, "仅支持图片(jpg/png/webp)、视频(mp4/mov/3gp)或音频(m4a/mp3/aac)");
         }
 
         String relPath = mediaService.storeMedia(file.getBytes(), ext);
