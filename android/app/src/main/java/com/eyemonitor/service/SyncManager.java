@@ -69,13 +69,19 @@ public final class SyncManager {
                                 if (fileId == null || fileId.isEmpty()) continue;
                                 com.eyemonitor.db.MediaCacheEntity m = new com.eyemonitor.db.MediaCacheEntity();
                                 m.fileId = fileId;
-                                m.mime = o.has("mime") && !o.get("mime").isJsonNull()
+                                String mime = o.has("mime") && !o.get("mime").isJsonNull()
                                         ? o.get("mime").getAsString() : null;
+                                String serverFile = o.has("fileName") && !o.get("fileName").isJsonNull()
+                                        ? o.get("fileName").getAsString() : null;
+                                // 旧数据/上传时丢失 Content-Type 的行 mime 为 octet-stream：按文件名兜底推断
+                                if (mime == null || "application/octet-stream".equals(mime)) {
+                                    mime = com.eyemonitor.util.MediaUtils.inferMime(null, serverFile);
+                                }
+                                m.mime = mime;
                                 m.size = o.has("size") ? o.get("size").getAsLong() : 0L;
                                 m.duration = o.has("duration") && !o.get("duration").isJsonNull()
                                         ? o.get("duration").getAsLong() : 0L;
-                                m.serverFileName = o.has("fileName") && !o.get("fileName").isJsonNull()
-                                        ? o.get("fileName").getAsString() : null;
+                                m.serverFileName = serverFile;
                                 db.cacheDao().upsertMedia(m);
                                 n++;
                             }
@@ -410,7 +416,11 @@ public final class SyncManager {
         MediaCacheEntity e = new MediaCacheEntity();
         e.fileId = (String) fileId;
         e.serverFileName = p.get("fileName") instanceof String ? (String) p.get("fileName") : null;
-        e.mime = p.get("mime") instanceof String ? (String) p.get("mime") : null;
+        String mime = p.get("mime") instanceof String ? (String) p.get("mime") : null;
+        if (mime == null || "application/octet-stream".equals(mime)) {
+            mime = com.eyemonitor.util.MediaUtils.inferMime(null, e.serverFileName);
+        }
+        e.mime = mime;
         e.size = p.get("size") instanceof Number ? ((Number) p.get("size")).longValue() : 0;
         e.duration = p.get("duration") instanceof Number ? ((Number) p.get("duration")).longValue() : 0;
         if (p.get("folderId") instanceof Number) {

@@ -61,7 +61,7 @@ public final class MediaUtils {
 
     /** 系统返回的 mime 为空时，按文件名后缀推断（相册 heic/heif 等场景） */
     public static String inferMime(String mime, String fileName) {
-        if (mime != null && (mime.startsWith("image/") || mime.startsWith("video/"))) {
+        if (mime != null && (mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/"))) {
             return mime;
         }
         if (fileName == null) return null;
@@ -75,6 +75,9 @@ public final class MediaUtils {
             case "mp4": return "video/mp4";
             case "mov": return "video/quicktime";
             case "3gp": return "video/3gpp";
+            case "m4a": return "audio/mp4";
+            case "mp3": return "audio/mpeg";
+            case "aac": return "audio/aac";
             default: return null;
         }
     }

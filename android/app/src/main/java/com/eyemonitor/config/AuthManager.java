@@ -198,9 +198,12 @@ public class AuthManager {
         execAuthed(ctx, "PUT", "/api/user/avatar", body, cb);
     }
 
-    /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode（folderId 可空 = 未分类） */
+    /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode（folderId 可空 = 未分类）
+     *  按文件名推断真实 Content-Type（否则服务器存 octet-stream，mime 全丢，语音/视频识别失败） */
     public void uploadMedia(Context ctx, File file, String pairCode, Long folderId, Callback cb) {
-        RequestBody fileBody = RequestBody.create(file, OCTET);
+        String mime = com.eyemonitor.util.MediaUtils.inferMime(null, file.getName());
+        RequestBody fileBody = RequestBody.create(file,
+                mime != null ? MediaType.parse(mime) : OCTET);
         MultipartBody.Builder mb = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", file.getName(), fileBody)
