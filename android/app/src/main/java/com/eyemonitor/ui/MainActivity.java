@@ -311,24 +311,21 @@ public class MainActivity extends AppCompatActivity {
         });
         btnChatMore.setOnClickListener(v -> toggleMorePanel());
         btnSend.setOnClickListener(v -> sendChatMessage());
-        // 顶栏状态行：单击进对方设备状态详情页；双击弹备注编辑（微信式）
-        final android.view.GestureDetector headerGesture = new android.view.GestureDetector(this,
+        // 顶栏状态行：单击进对方设备状态详情页（恢复原行为）
+        peerStatusBar.setOnClickListener(v -> {
+            startActivity(new Intent(this, DeviceStatusActivity.class));
+            Transitions.push(this);
+        });
+        // 标题（对方名称）：双击弹备注编辑（微信式）
+        final android.view.GestureDetector titleGesture = new android.view.GestureDetector(this,
                 new android.view.GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onDoubleTap(android.view.MotionEvent e) {
                         showPeerRemarkEditor();
                         return true;
                     }
-
-                    @Override
-                    public boolean onSingleTapConfirmed(android.view.MotionEvent e) {
-                        startActivity(new Intent(MainActivity.this, DeviceStatusActivity.class));
-                        Transitions.push(MainActivity.this);
-                        return true;
-                    }
                 });
-        peerStatusBar.setOnTouchListener((v, event) -> headerGesture.onTouchEvent(event));
-        peerStatusBar.setOnClickListener(null);
+        tvChatTitle.setOnTouchListener((v, event) -> titleGesture.onTouchEvent(event));
         btnMic.setOnClickListener(v -> toggleVoiceMode());
         btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
         // 微信式按住说话：按下录音 → 松开发送 / 滑到取消按钮释放 = 放弃
