@@ -1610,7 +1610,7 @@ public class MainActivity extends AppCompatActivity {
             h.tvMediaHint.setText(R.string.media_download_hint);
         }
 
-        final boolean wifi = isWifiConnected();
+        final boolean unmetered = isUnmeteredConnected();
         h.flMediaContainer.setOnClickListener(v -> {
             if (downloaded) {
                 MediaUtils.launchViewer(MainActivity.this, fileId, mime, duration, localPath);
@@ -1639,8 +1639,8 @@ public class MainActivity extends AppCompatActivity {
                         });
             }
         });
-        // WiFi 自动下载：仅下载不打开查看器（避免弹窗打扰）
-        if (!downloaded && wifi && mediaAutoDownloading.add(fileId)) {
+        // 非计费网络（WiFi/Ethernet 等）自动下载：仅下载不打开查看器（避免弹窗打扰）
+        if (!downloaded && unmetered && mediaAutoDownloading.add(fileId)) {
             h.tvMediaHint.setText(R.string.media_downloading);
             MediaUtils.ensureDownloaded(MainActivity.this, fileId, null,
                     new MediaUtils.MediaCb() {
@@ -1662,16 +1662,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 当前是否 Wi-Fi 网络（自动下载策略依据） */
-    private boolean isWifiConnected() {
+    /** 当前是否为非计费网络（WiFi/以太网等 —— 模拟器常以 Ethernet 上报，不能只用 TYPE_WIFI 判断） */
+    private boolean isUnmeteredConnected() {
         ConnectivityManager cm =
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return false;
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(cm.getActiveNetwork());
-            return nc != null && nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI);
+        android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(cm.getActiveNetwork());
+        if (nc != null) {
+            if (nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+                return true;
+            }
         }
+        // 兜底：老接口按网卡类型判断
         NetworkInfo ni = cm.getActiveNetworkInfo();
-        return ni != null && ni.getType() == ConnectivityManager.TYPE_WIFI;
+        return ni != null && (ni.getType() == ConnectivityManager.TYPE_WIFI
+                || ni.getType() == ConnectivityManager.TYPE_ETHERNET);
     }
 }
