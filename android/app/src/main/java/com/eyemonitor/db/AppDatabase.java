@@ -24,8 +24,16 @@ import java.util.concurrent.Executors;
         FenceCacheEntity.class,
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
-        FolderCacheEntity.class}, version = 5, exportSchema = false)
+        FolderCacheEntity.class}, version = 6, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v5 -> v6：聊天发送状态（sent/pending，离线消息持久标记 + 自动补发） */
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `send_state` TEXT NOT NULL DEFAULT 'sent'");
+        }
+    };
 
     /** v4 -> v5：聊天消息 P2 四字段（已读/撤回/引用） */
     public static final Migration MIGRATION_4_5 = new Migration(4, 5) {
@@ -97,7 +105,7 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                                    MIGRATION_4_5)
+                                    MIGRATION_4_5, MIGRATION_5_6)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

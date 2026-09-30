@@ -836,6 +836,7 @@ public class MainActivity extends AppCompatActivity {
         // 本地入库（Room 禁止主线程操作，走 dbExecutor）
         AppDatabase db = AppDatabase.getInstance(this);
         final ChatEntity entity = new ChatEntity("chat", text, from, true, now, refId, refText);
+        entity.sendState = preFailed ? "pending" : "sent"; // 持久化送达状态（重启后未送达仍可见）
         AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(entity));
 
         // 借道 MonitorService 的 WebSocket 发送（带引用 + 显式时间戳，保证本地/服务端 ts 同源）
@@ -1029,7 +1030,7 @@ public class MainActivity extends AppCompatActivity {
                             e.refMsgId, e.refText);
                     ci.peerRead = e.peerRead;
                     ci.deleted = e.deleted;
-                    ci.failed = failedMsgTs.contains(e.timestamp);
+                    ci.failed = "pending".equals(e.sendState) || failedMsgTs.contains(e.timestamp);
                     if (!e.isSelf) peerUpToTs = Math.max(peerUpToTs, e.timestamp);
                     chatAdapter.addItem(ci);
                 }

@@ -42,4 +42,16 @@ public interface ChatDao {
     /** P2：按时间戳标记消息已撤回 */
     @Query("UPDATE chat SET deleted = 1 WHERE timestamp = :msgTs")
     void markDeletedByTs(long msgTs);
+
+    /** 发送状态：标记未送达（待重发） */
+    @Query("UPDATE chat SET send_state = 'pending' WHERE is_self = 1 AND timestamp = :msgTs")
+    void markSendPending(long msgTs);
+
+    /** 发送状态：已送达（chat_ack 确认） */
+    @Query("UPDATE chat SET send_state = 'sent' WHERE is_self = 1 AND timestamp = :msgTs")
+    void markSendSent(long msgTs);
+
+    /** 未送达的自己消息（重连后自动补发） */
+    @Query("SELECT * FROM chat WHERE is_self = 1 AND kind = 'chat' AND send_state = 'pending' ORDER BY timestamp ASC")
+    List<ChatEntity> getPendingSelf();
 }

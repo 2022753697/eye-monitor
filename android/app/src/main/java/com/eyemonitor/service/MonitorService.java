@@ -386,11 +386,19 @@ public class MonitorService extends Service {
                         + ", paired=" + (prefs.getPairCode() != null));
             }
             if (!ok) {
-                // send() 返回 false / 未连接 / 未配对：直接未送达
+                // send() 返回 false / 未连接 / 未配对：直接未送达 + 持久化待重发
                 broadcastChatSendResult(ts, false);
+                markChatSendPending(ts);
             }
             return START_NOT_STICKY;
         }
+
+    /** 未送达持久标记（重连自动补发依赖） */
+    private void markChatSendPending(long msgTs) {
+        if (msgTs <= 0) return;
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().markSendPending(msgTs));
+    }
 
 
 
@@ -578,6 +586,7 @@ public class MonitorService extends Service {
                     SyncManager.syncAll(MonitorService.this);
                     sendDeviceStatus();
                     broadcastPeerOnline();
+                    autoResendPending();
                 }
 
                 @Override
@@ -639,6 +648,7 @@ public class MonitorService extends Service {
                 SyncManager.syncAll(MonitorService.this);
                 sendDeviceStatus();
                 broadcastPeerOnline();
+                autoResendPending();
             }
 
             @Override
@@ -920,7 +930,7 @@ public class MonitorService extends Service {
                 broadcastEvent(message);
                 break;
             case "chat_ack":
-                // 服务器确认收到：取消超时任务并广播 UI 清除未送达标记
+                // 服务器确认收到：取消超时任务、持久化已送达并广播 UI 清除标记
                 Object ackTs = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
                 if (ackTs instanceof Number) {
                     long ts = ((Number) ackTs).longValue();
@@ -928,6 +938,9 @@ public class MonitorService extends Service {
                     if (pending != null) {
                         handler.removeCallbacks(pending);
                     }
+                    AppDatabase db = AppDatabase.getInstance(this);
+                    final long ackTsFinal = ts;
+                    AppDatabase.dbExecutor.execute(() -> db.chatDao().markSendSent(ackTsFinal));
                 }
                 broadcastEvent(message);
                 break;
@@ -1524,6 +1537,29 @@ public class MonitorService extends Service {
     /** 聊天送达等待（ack 超时 8s 视为未送达）：msgTs -> 超时任务 */
     private static final long CHAT_ACK_TIMEOUT_MS = 8_000L;
     private final java.util.Map<Long, Runnable> chatAckTimers = new java.util.HashMap<>();
+
+    /** WS 连接（重连）后自动补发未送达消息：原 ts/引用原样重发，成功由 ack 落 sent */
+    private void autoResendPending() {
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            try {
+                List<ChatEntity> pending = db.chatDao().getPendingSelf();
+                if (pending.isEmpty()) return;
+                for (ChatEntity e : pending) {
+                    if (wsClient == null || !wsClient.isConnected()) break;
+                    String from = e.fromName != null && !e.fromName.isEmpty()
+                            ? e.fromName : prefs.getNickname();
+                    WsMessage chat = WsMessage.createChat(prefs.getDeviceId(),
+                            prefs.getPairCode(), e.text, from, e.refMsgId, e.refText);
+                    if (e.timestamp > 0) chat.setTimestamp(e.timestamp);
+                    boolean ok = wsClient.send(chat);
+                    Log.i(TAG, "自动补发未送达消息: ts=" + e.timestamp + ", ok=" + ok);
+                }
+            } catch (Exception ex) {
+                Log.w(TAG, "自动补发失败", ex);
+            }
+        });
+    }
 
     /** 聊天发送结果回执：ok=false → UI 把该消息标「未送达」（可点击重发） */
     private void broadcastChatSendResult(long msgTs, boolean ok) {

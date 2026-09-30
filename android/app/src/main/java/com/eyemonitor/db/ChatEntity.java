@@ -48,6 +48,10 @@ public class ChatEntity {
     @ColumnInfo(name = "ref_text")
     public String refText;
 
+    /** 发送状态（自己消息）：sent=已送达服务器 / pending=未送达待重发（重启后标记不丢） */
+    @ColumnInfo(name = "send_state", defaultValue = "'sent'")
+    public String sendState = "sent";
+
     public ChatEntity() {}
 
     @androidx.room.Ignore
