@@ -88,6 +88,7 @@
     <!-- P2 聊天增强 -->
     <string name="chat_typing_hint">对方正在输入…</string>
     <string name="chat_read_label">已读</string>
+    <string name="chat_send_failed">未送达</string>
     <string name="chat_recalled_self">你撤回了一条消息</string>
     <string name="chat_recalled_peer">%1$s 撤回了一条消息</string>
     <string name="chat_action_title">消息操作</string>

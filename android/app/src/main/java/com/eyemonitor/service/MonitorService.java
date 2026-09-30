@@ -355,24 +355,32 @@ public class MonitorService extends Service {
             return START_NOT_STICKY;
         }
 
+
+
         if (intent != null && ACTION_SEND_CHAT.equals(intent.getAction())) {
             String text = intent.getStringExtra(EXTRA_CHAT_TEXT);
             String from = intent.getStringExtra(EXTRA_CHAT_FROM);
+            long refId = intent.getLongExtra(EXTRA_CHAT_REF_ID, 0);
+            String refText = intent.getStringExtra(EXTRA_CHAT_REF_TEXT);
+            long ts = intent.getLongExtra(EXTRA_CHAT_TS, 0);
+            boolean ok = false;
             if (text != null && wsClient != null && prefs.getPairCode() != null) {
-                long refId = intent.getLongExtra(EXTRA_CHAT_REF_ID, 0);
-                String refText = intent.getStringExtra(EXTRA_CHAT_REF_TEXT);
-                long ts = intent.getLongExtra(EXTRA_CHAT_TS, 0);
                 WsMessage chat = WsMessage.createChat(prefs.getDeviceId(), prefs.getPairCode(),
                         text, from, refId, refText);
                 // 关键：用 UI 层同一时间戳（本地/服务端 ts 同源，撤回与引用才能精确匹配）
                 if (ts > 0) chat.setTimestamp(ts);
                 Log.i(TAG, "发送聊天消息: " + text);
-                wsClient.send(chat);
+                ok = wsClient.send(chat);
             } else {
-                Log.w(TAG, "聊天发送失败: text=" + text + ", wsClient=" + wsClient + ", paired=" + (prefs.getPairCode() != null));
+                Log.w(TAG, "聊天发送失败: text=" + text + ", wsClient=" + wsClient
+                        + ", paired=" + (prefs.getPairCode() != null));
             }
+            // 送达状态回执给 UI：未连接/未配对/发送失败 → 消息标「未送达」（可点击重发）
+            broadcastChatSendResult(ts, ok);
             return START_NOT_STICKY;
         }
+
+
 
         if (intent != null && ACTION_SEND_TYPING.equals(intent.getAction())) {
             if (wsClient != null && prefs.getPairCode() != null) {
@@ -1487,6 +1495,16 @@ public class MonitorService extends Service {
         Intent intent = new Intent(ACTION_EVENT);
         intent.putExtra(EXTRA_EVENT_JSON, message.toJson());
         sendBroadcast(intent);
+    }
+
+    /** 聊天发送结果回执：ok=false → UI 把该消息标「未送达」（可点击重发） */
+    private void broadcastChatSendResult(long msgTs, boolean ok) {
+        java.util.Map<String, Object> payload = new HashMap<>();
+        payload.put("msgTs", msgTs);
+        payload.put("ok", ok);
+        WsMessage m = new WsMessage("chat_send_result", prefs.getDeviceId(),
+                prefs.getPairCode(), payload, System.currentTimeMillis());
+        broadcastEvent(m);
     }
 
     /** 本地 WS 连接恢复：向 UI 广播对方在线（服务器随后会推送 pair_confirm 修正） */

@@ -823,8 +823,11 @@ public class MainActivity extends AppCompatActivity {
         long now = System.currentTimeMillis();
         long refId = pendingRefMsgId;
         String refText = pendingRefText;
-        chatAdapter.addItem(new ChatItem(TYPE_SELF, text, from,
-                TIME_FORMAT.format(new Date(now)), now, refId, refText));
+        ChatItem ci = new ChatItem(TYPE_SELF, text, from,
+                TIME_FORMAT.format(new Date(now)), now, refId, refText);
+        // 发送前预判：未连接（断网/未配对）直接标未送达，等回执细化
+        ci.failed = !MonitorService.isWsConnected();
+        chatAdapter.addItem(ci);
 
         // 本地入库（Room 禁止主线程操作，走 dbExecutor）
         AppDatabase db = AppDatabase.getInstance(this);
@@ -1371,6 +1374,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** 发送结果回执：ok=false → 对应消息标「未送达」（断网/发送失败） */
+    private void handleChatSendResult(WsMessage message) {
+        Object tsObj = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
+        Object okObj = message.getPayload() != null ? message.getPayload().get("ok") : null;
+        if (!(tsObj instanceof Number)) return;
+        final long msgTs = ((Number) tsObj).longValue();
+        final boolean ok = okObj instanceof Boolean && (Boolean) okObj;
+        if (!ok && msgTs == 0) return;
+        for (int i = 0; i < chatAdapter.getItemCount(); i++) {
+            ChatItem it = chatAdapter.items.get(i);
+            if (it.type == TYPE_SELF && it.ts == msgTs) {
+                if (it.failed != !ok) {
+                    it.failed = !ok;
+                    chatAdapter.notifyItemChanged(i);
+                }
+                return;
+            }
+        }
+    }
+
+    /** 点击「未送达」重发：复用原 ts（保持排序与回执匹配），清理本地失败态由回执决定 */
+    private void resendChat(ChatItem item) {
+        if (item.type != TYPE_SELF || item.deleted || item.text == null) return;
+        String from = prefs.getNickname();
+        item.failed = false;
+        int p = chatAdapter.items.indexOf(item);
+        if (p >= 0) chatAdapter.notifyItemChanged(p);
+        MonitorService.sendChat(this, item.text,
+                from != null ? from : "", item.refMsgId, item.refText, item.ts);
+    }
+
     private void scrollToRef(long refMsgId) {
         List<ChatItem> items = chatAdapter.items;
         for (int i = 0; i < items.size(); i++) {
@@ -1480,6 +1514,9 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case "chat_recall":
                 handleChatRecall(message);
+                break;
+            case "chat_send_result":
+                handleChatSendResult(message);
                 break;
             case "sync_chat_done":
                 // SyncManager 拉取历史后广播：从 Room 全量重载聊天（离线消息显示）
@@ -2064,6 +2101,8 @@ public class MainActivity extends AppCompatActivity {
         public boolean deleted;
         public long refMsgId;
         public String refText;
+        /** 送达状态：发送失败（断网/未连接）时标红「未送达」，可点击重发 */
+        public boolean failed;
 
         public ChatItem(int type, String text, String from, String time, long ts) {
             this(type, text, from, time, ts, 0, null);
@@ -2144,6 +2183,7 @@ public class MainActivity extends AppCompatActivity {
             TextView tvRead;
             TextView tvRef;
             TextView tvRecalled;
+            TextView tvSendStatus;
             // 媒体气泡视图
             LinearLayout llMediaBubble;
             FrameLayout flMediaContainer;
@@ -2166,6 +2206,7 @@ public class MainActivity extends AppCompatActivity {
                         tvRead = view.findViewById(R.id.tv_chat_read);
                         tvRef = view.findViewById(R.id.tv_chat_ref);
                         tvRecalled = view.findViewById(R.id.tv_recalled);
+                        tvSendStatus = view.findViewById(R.id.tv_send_status);
                         break;
                     case TYPE_PEER:
                         tvText = view.findViewById(R.id.tv_chat_text);
@@ -2259,7 +2300,15 @@ public class MainActivity extends AppCompatActivity {
                             boxHiddenForRecalled(false, false);
                             tvText.setText(item.text);
                             tvTime.setText(item.time);
-                            tvRead.setVisibility(item.peerRead ? View.VISIBLE : View.GONE);
+                            // 送达状态：失败标红「未送达」可点击重发；成功则隐藏
+                            if (item.failed) {
+                                tvSendStatus.setVisibility(View.VISIBLE);
+                                tvRead.setVisibility(View.GONE);
+                                tvSendStatus.setOnClickListener(v -> resendChat(item));
+                            } else {
+                                tvSendStatus.setVisibility(View.GONE);
+                                tvRead.setVisibility(item.peerRead ? View.VISIBLE : View.GONE);
+                            }
                             bindQuote(item);
                         }
                         bindItemLongPress(item);
