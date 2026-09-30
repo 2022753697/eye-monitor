@@ -1632,7 +1632,9 @@ public class MainActivity extends AppCompatActivity {
                 new MediaUtils.MediaCb() {
                     @Override
                     public void onReady(String path) {
-                        runOnUiThread(() -> {
+                        // 用 itemView.post 而非 runOnUiThread：下载可能同步完成于 RecyclelerView 布局期，
+                        // runOnUiThread 在主线程立即执行 notifyItemChanged 会抛 "Cannot call while computing layout"
+                        h.itemView.post(() -> {
                             MediaCacheEntity m = mediaByFileId.get(fileId);
                             if (m != null) m.localPath = path;
                             chatAdapter.notifyItemChanged(position);
@@ -1641,7 +1643,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(int code, String msg) {
-                        runOnUiThread(() -> {
+                        h.itemView.post(() -> {
                             h.tvMediaHint.setText(R.string.media_download_hint);
                             Toast.makeText(MainActivity.this, R.string.media_download_failed,
                                     Toast.LENGTH_SHORT).show();
