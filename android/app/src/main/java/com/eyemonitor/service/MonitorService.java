@@ -185,17 +185,19 @@ public class MonitorService extends Service {
         });
     }
 
-    /** 围栏进出：除系统通知外，聊天页插一条居中系统提示并落库（同纪念日提醒模式） */
+    /** 围栏进出：除系统通知外，聊天页插一条居中系统提示并落库（同纪念日提醒模式）
+     *  文本以 \u001F 分隔 [时间, 昵称, 动作, 围栏名]——渲染端按段配色，
+     *  昵称/围栏名任意字符（空格/「」等）都不会破坏分段 */
     private void appendFenceSystemTip(String fenceName, boolean nowInside) {
         try {
             long now = System.currentTimeMillis();
-            // 富文本系统提示：[yyyy年M月d日 HH:mm] 昵称 进入了「围栏名」范围（渲染端按段配色）
             String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
                     java.util.Locale.getDefault()).format(new java.util.Date(now));
             String who = prefs.getPeerNickname();
             if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
-            String text = getString(nowInside
-                    ? R.string.fence_chat_enter : R.string.fence_chat_exit, dt, who, fenceName);
+            String action = getString(nowInside
+                    ? R.string.fence_chat_action_enter : R.string.fence_chat_action_exit);
+            String text = "\u001F" + dt + "\u001F" + who + "\u001F" + action + "\u001F" + fenceName;
             AppDatabase db = AppDatabase.getInstance(this);
             db.chatDao().insert(new ChatEntity("system", text, null, false, now));
             Map<String, Object> payload = new HashMap<>();
@@ -203,7 +205,7 @@ public class MonitorService extends Service {
             WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(),
                     prefs.getPairCode(), payload, now);
             broadcastEvent(tip);
-            Log.i(TAG, "围栏系统提示已落库: " + text);
+            Log.i(TAG, "围栏系统提示已落库: " + dt + " " + who + " " + action + "「" + fenceName + "」");
         } catch (Exception ex) {
             Log.w(TAG, "围栏系统提示失败", ex);
         }

@@ -22,6 +22,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.Editable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextWatcher;
@@ -1578,10 +1579,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** 系统提示富文本：时间（今天=HH:mm / 更早=日期+时间）+ 应用名珊瑚色加粗 */
+    /** 围栏系统提示分段分隔符（控制符，用户输入打不出来，昵称/围栏名随便取都不会破坏分段） */
+    private static final String SYS_SEG_SEP = "\u001F";
+
     private CharSequence styleSystemText(ChatItem item) {
         String text = item.text;
-        // 围栏等自带完整时间戳的富文本系统提示：格式 [yyyy年M月d日 HH:mm] 昵称 进入了「名称」范围
-        if (text != null && text.startsWith("[") && (text.contains("进入了") || text.contains("离开了"))) {
+        // 围栏富文本系统提示：\u001F 分隔 [时间, 昵称, 动作, 围栏名] → 分段配色
+        if (text != null && text.startsWith(SYS_SEG_SEP)) {
             CharSequence rich = styleRichSystemText(text);
             if (rich != null) return rich;
         }
@@ -1601,41 +1605,28 @@ public class MainActivity extends AppCompatActivity {
         return sb;
     }
 
-    /** 围栏系统提示分段配色：时间灰 / 昵称粉 / 动作灰 / 围栏名橙 */
+    /** 围栏系统提示分段渲染：时间灰 / 昵称粉 / 动作灰 / 围栏名橙（任意长度/字符都精确分色） */
     private CharSequence styleRichSystemText(String text) {
-        try {
-            int close = text.indexOf(']');
-            int quoteStart = text.indexOf('「', close + 1);
-            int quoteEnd = text.indexOf('」', quoteStart + 1);
-            if (close <= 0 || quoteStart < 0 || quoteEnd <= quoteStart) return null;
-            // 动作词（进入了/离开了）位于 [..] 之后、昵称之后
-            String afterTime = text.substring(close + 1); // " WW 进入了「测试」范围"
-            int actionIdx = afterTime.indexOf("进入了");
-            if (actionIdx < 0) actionIdx = afterTime.indexOf("离开了");
-            if (actionIdx < 0) return null;
-            String nickname = afterTime.substring(0, actionIdx).trim();
-            int actionLen = 3; // 进入了/离开了 均为 3 字
-            String action = afterTime.substring(actionIdx, actionIdx + actionLen);
-            String fenceName = text.substring(quoteStart + 1, quoteEnd);
+        String[] parts = text.split(SYS_SEG_SEP, -1);
+        if (parts.length != 5) return null; // 0 号元素为空（前缀分隔符）
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        appendColored(sb, parts[1], R.color.text_secondary);
+        sb.append(" ");
+        appendColored(sb, parts[2], R.color.primary);
+        sb.append(" ");
+        appendColored(sb, parts[3], R.color.text_secondary);
+        sb.append("「");
+        appendColored(sb, parts[4], R.color.accent);
+        sb.append("」范围");
+        return sb;
+    }
 
-            SpannableStringBuilder sb = new SpannableStringBuilder(text);
-            int timeEnd = close + 1; // 含 ']'
-            sb.setSpan(new ForegroundColorSpan(getColor(R.color.text_secondary)),
-                    0, timeEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            int nickAbs = close + 1 + actionIdx - nickname.length();
-            if (nickAbs > 0) {
-                sb.setSpan(new ForegroundColorSpan(getColor(R.color.primary)),
-                        nickAbs, nickAbs + nickname.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            int actionAbs = close + 1 + actionIdx;
-            sb.setSpan(new ForegroundColorSpan(getColor(R.color.text_secondary)),
-                    actionAbs, actionAbs + actionLen, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            sb.setSpan(new ForegroundColorSpan(getColor(R.color.accent)),
-                    quoteStart, quoteEnd + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            return sb;
-        } catch (Exception e) {
-            return null;
-        }
+    private void appendColored(SpannableStringBuilder sb, String part, int colorRes) {
+        if (part == null) return;
+        SpannableString span = new SpannableString(part);
+        span.setSpan(new ForegroundColorSpan(getColor(colorRes)),
+                0, part.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sb.append(span);
     }
 
     /** 发送按钮状态色：无输入灰色，有输入粉色 */
