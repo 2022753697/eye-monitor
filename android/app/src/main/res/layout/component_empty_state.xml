@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 空态组件（EmptyState）：图标 + 主标题 + 副文案 + 可选主按钮，垂直居中 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="@dimen/space_24">
+
+    <ImageView
+        android:id="@+id/es_icon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/ic_image"
+        android:alpha="0.5" />
+
+    <TextView
+        android:id="@+id/es_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Title"
+        android:layout_marginTop="@dimen/space_12" />
+
+    <TextView
+        android:id="@+id/es_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Label"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/space_4" />
+
+    <Button
+        android:id="@+id/es_action"
+        style="@style/Widget.EyeMonitor.Button.Primary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_16"
+        android:visibility="gone" />
+</LinearLayout>

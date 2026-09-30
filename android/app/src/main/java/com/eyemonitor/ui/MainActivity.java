@@ -58,6 +58,7 @@ import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
 import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.util.MediaUtils;
+import com.eyemonitor.util.UiDialogs;
 
 import com.bumptech.glide.Glide;
 
@@ -482,21 +483,20 @@ public class MainActivity extends AppCompatActivity {
         if (hasUsageStats || hasAccessibility) return;
 
         prefs.setPermissionPrompted(true);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_monitor_permission_title)
-                .setMessage(R.string.dialog_permission_hint_message)
-                .setPositiveButton(R.string.btn_open_accessibility, (d, w) ->
-                        AccessibilityDiagnostic.openAccessibilitySettings(this))
-                .setNegativeButton(R.string.btn_open_usage_stats, (d, w) -> {
+        UiDialogs.actions(this,
+                getString(R.string.dialog_monitor_permission_title),
+                getString(R.string.dialog_permission_hint_message),
+                getString(R.string.btn_open_accessibility),
+                getString(R.string.btn_open_usage_stats), false,
+                () -> AccessibilityDiagnostic.openAccessibilitySettings(this),
+                () -> {
                     try {
                         startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
                     } catch (Exception e) {
                         Toast.makeText(this, R.string.dialog_monitor_permission_fallback,
                                 Toast.LENGTH_LONG).show();
                     }
-                })
-                .setNeutralButton(R.string.cancel, null)
-                .show();
+                });
     }
 
     // --- 配对面板逻辑（内联，不再跳转 PairActivity） ---
@@ -1155,10 +1155,15 @@ public class MainActivity extends AppCompatActivity {
 
     /** 清空本地聊天记录 */
     private void clearChatHistory() {
-        AppDatabase.dbExecutor.execute(() ->
-                AppDatabase.getInstance(this).chatDao().clear());
-        chatAdapter.clear();
-        Toast.makeText(this, R.string.toast_chat_cleared, Toast.LENGTH_SHORT).show();
+        UiDialogs.confirm(this,
+                getString(R.string.dialog_clear_chat_title),
+                getString(R.string.dialog_clear_chat_message),
+                getString(R.string.ok), true, () -> {
+                    AppDatabase.dbExecutor.execute(() ->
+                            AppDatabase.getInstance(this).chatDao().clear());
+                    chatAdapter.clear();
+                    Toast.makeText(this, R.string.toast_chat_cleared, Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void hideKeyboard() {
@@ -1233,16 +1238,13 @@ public class MainActivity extends AppCompatActivity {
         java.util.Map<String, Object> payload = message.getPayload();
         Object t = payload != null ? payload.get("text") : null;
         String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.sos_notification_title)
-                .setMessage(getString(R.string.sos_peer_alert, text))
-                .setPositiveButton(R.string.sos_ack_action,
-                        (d, w) -> MonitorService.sendSosAck(this))
-                .setNegativeButton(R.string.cancel, null)
-                .setOnDismissListener(d -> sosDialogShowing = false)
-                .create();
+        android.app.Dialog dialog = UiDialogs.confirm(this,
+                getString(R.string.sos_notification_title),
+                getString(R.string.sos_peer_alert, text),
+                getString(R.string.sos_ack_action), false,
+                () -> MonitorService.sendSosAck(this));
+        dialog.setOnDismissListener(d -> sosDialogShowing = false);
         sosDialogShowing = true;
-        dialog.show();
     }
 
     private void openPermissionSettings() {
@@ -1254,24 +1256,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showNicknameDialog() {
-        EditText input = new EditText(this);
-        input.setHint(R.string.dialog_nickname_hint);
-        input.setSingleLine(true);
-        String current = prefs.getNickname();
-        if (current != null) input.setText(current);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_nickname_title)
-                .setView(input)
-                .setPositiveButton(R.string.ok, (d, w) -> {
-                    String nick = input.getText().toString().trim();
-                    if (!nick.isEmpty()) {
-                        prefs.setNickname(nick);
-                        Toast.makeText(this, nick, Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        UiDialogs.input(this,
+                getString(R.string.dialog_nickname_title),
+                getString(R.string.dialog_nickname_hint),
+                prefs.getNickname(),
+                getString(R.string.ok),
+                nick -> {
+                    prefs.setNickname(nick);
+                    Toast.makeText(this, nick, Toast.LENGTH_SHORT).show();
+                });
     }
 
     /** 设置性别（女=粉 / 男=蓝，地图与头像取色依据） */
@@ -1290,10 +1283,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showUnpairDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_unpair_title)
-                .setMessage(R.string.dialog_unpair_message)
-                .setPositiveButton(R.string.ok, (d, w) -> {
+        UiDialogs.confirm(this,
+                getString(R.string.dialog_unpair_title),
+                getString(R.string.dialog_unpair_message),
+                getString(R.string.ok), true, () -> {
                     prefs.clearPairCode();
                     // 清除“等对方加入”停留态，避免残留影响后续流程
                     pairAwaitingPeer = false;
@@ -1303,9 +1296,7 @@ public class MainActivity extends AppCompatActivity {
                             AppDatabase.getInstance(this).chatDao().clear());
                     chatAdapter.clear();
                     switchView(false);
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+                });
     }
 
     // --- 服务与权限（沿用原逻辑） ---

@@ -96,6 +96,8 @@
     <string name="dialog_nickname_hint">输入昵称（对方看到的名字）</string>
     <string name="dialog_unpair_title">解除配对</string>
     <string name="dialog_unpair_message">确定要解除配对吗？本地聊天记录将清空。</string>
+    <string name="dialog_clear_chat_title">清空聊天</string>
+    <string name="dialog_clear_chat_message">确定要清空所有聊天记录吗？此操作不可恢复。</string>
     <string name="ok">确定</string>
     <string name="btn_send">发送</string>
     <string name="menu_my_location">我的位置</string>
