@@ -1,6 +1,7 @@
 package com.eyemonitor.ui;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -13,7 +14,7 @@ import com.eyemonitor.R;
 import java.io.File;
 
 /**
- * 全屏图片查看页（本地缓存文件路径驱动）。
+ * 全屏图片查看页（本地缓存文件路径驱动）。沉浸式：隐藏状态栏，黑底真正全屏。
  */
 public class MediaViewActivity extends AppCompatActivity {
 
@@ -23,6 +24,7 @@ public class MediaViewActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_media_view);
+        enterImmersive();
 
         ImageView ivPhoto = findViewById(R.id.iv_media_photo);
         ImageButton btnBack = findViewById(R.id.btn_media_back);
@@ -39,5 +41,14 @@ public class MediaViewActivity extends AppCompatActivity {
                 .fitCenter()
                 .error(R.drawable.ic_image)
                 .into(ivPhoto);
+    }
+
+    /** 沉浸式：透明状态栏 + 内容延伸到状态栏/导航栏后，媒体页黑底全屏 */
+    private void enterImmersive() {
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     }
 }
