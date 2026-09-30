@@ -1923,6 +1923,7 @@ public class MainActivity extends AppCompatActivity {
             TextView tvFrom;
             TextView tvRead;
             TextView tvRef;
+            TextView tvRecalled;
             // 媒体气泡视图
             LinearLayout llMediaBubble;
             FrameLayout flMediaContainer;
@@ -1939,12 +1940,15 @@ public class MainActivity extends AppCompatActivity {
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvRead = view.findViewById(R.id.tv_chat_read);
+                        tvRef = view.findViewById(R.id.tv_chat_ref);
+                        tvRecalled = view.findViewById(R.id.tv_recalled);
                         break;
                     case TYPE_PEER:
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvFrom = view.findViewById(R.id.tv_chat_from);
                         tvRef = view.findViewById(R.id.tv_chat_ref);
+                        tvRecalled = view.findViewById(R.id.tv_recalled);
                         break;
                     case TYPE_MEDIA_SELF:
                     case TYPE_MEDIA_PEER:
@@ -1967,8 +1971,44 @@ public class MainActivity extends AppCompatActivity {
                 bind(item, getBindingAdapterPosition());
             }
 
-            void bindTextDeleted(ChatItem item, TextView tv) {
-                tv.setText(item.deleted ? getString(R.string.chat_recalled) : item.text);
+            /** 撤回态：气泡/引用/已读/时间隐藏，居中系统提示“X 撤回了一条消息” */
+            void boxHiddenForRecalled(boolean recalled, boolean peer) {
+                tvText.setVisibility(recalled ? View.GONE : View.VISIBLE);
+                tvRef.setVisibility(View.GONE);
+                int density = (int) getResources().getDisplayMetrics().density;
+                if (peer) {
+                    tvFrom.setVisibility(recalled ? View.GONE : View.VISIBLE);
+                    tvTime.setVisibility(recalled ? View.GONE : View.VISIBLE);
+                } else {
+                    tvRead.setVisibility(View.GONE);
+                    View timeRow = (View) tvTime.getParent();
+                    if (timeRow != null) timeRow.setVisibility(recalled ? View.GONE : View.VISIBLE);
+                }
+                int pad = (int) (4 * density);
+                if (recalled) {
+                    // 系统提示居中：两侧内边距对称
+                    itemView.setPadding(12 * density, pad, 12 * density, pad);
+                } else {
+                    final int outer = 60 * density, near = 12 * density;
+                    itemView.setPadding(peer ? near : outer, pad, peer ? outer : near, pad);
+                }
+            }
+
+            void bindQuote(ChatItem item) {
+                if (item.refMsgId > 0 && item.refText != null) {
+                    tvRef.setVisibility(View.VISIBLE);
+                    tvRef.setText(item.refText);
+                    tvRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
+                } else {
+                    tvRef.setVisibility(View.GONE);
+                }
+            }
+
+            String whoSent(ChatItem item) {
+                String from = item.from != null && !item.from.isEmpty()
+                        ? item.from : prefs.getPeerNickname();
+                return from != null && !from.isEmpty()
+                        ? from : getString(R.string.chat_title_default);
             }
 
             void bindItemLongPress(ChatItem item) {
@@ -1985,25 +2025,33 @@ public class MainActivity extends AppCompatActivity {
             void bind(ChatItem item, int position) {
                 switch (viewType) {
                     case TYPE_SELF:
-                        bindTextDeleted(item, tvText);
-                        tvTime.setText(item.time);
-                        tvRead.setVisibility(item.deleted || !item.peerRead
-                                ? View.GONE : View.VISIBLE);
+                        if (item.deleted) {
+                            tvRecalled.setVisibility(View.VISIBLE);
+                            tvRecalled.setText(R.string.chat_recalled_self);
+                            boxHiddenForRecalled(true, false);
+                        } else {
+                            tvRecalled.setVisibility(View.GONE);
+                            boxHiddenForRecalled(false, false);
+                            tvText.setText(item.text);
+                            tvTime.setText(item.time);
+                            tvRead.setVisibility(item.peerRead ? View.VISIBLE : View.GONE);
+                            bindQuote(item);
+                        }
                         bindItemLongPress(item);
                         break;
                     case TYPE_PEER:
-                        bindTextDeleted(item, tvText);
-                        tvTime.setText(item.time);
-                        String from = item.from != null && !item.from.isEmpty()
-                                ? item.from : prefs.getPeerNickname();
-                        tvFrom.setText(from != null && !from.isEmpty()
-                                ? from : getString(R.string.chat_title_default));
-                        if (item.refMsgId > 0 && item.refText != null) {
-                            tvRef.setVisibility(View.VISIBLE);
-                            tvRef.setText(item.refText);
-                            tvRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
+                        if (item.deleted) {
+                            tvRecalled.setVisibility(View.VISIBLE);
+                            tvRecalled.setText(getString(R.string.chat_recalled_peer,
+                                    whoSent(item)));
+                            boxHiddenForRecalled(true, true);
                         } else {
-                            tvRef.setVisibility(View.GONE);
+                            tvRecalled.setVisibility(View.GONE);
+                            boxHiddenForRecalled(false, true);
+                            tvText.setText(item.text);
+                            tvTime.setText(item.time);
+                            tvFrom.setText(whoSent(item));
+                            bindQuote(item);
                         }
                         bindItemLongPress(item);
                         break;

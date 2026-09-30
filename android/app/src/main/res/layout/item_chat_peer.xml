@@ -19,6 +19,16 @@
         android:layout_marginBottom="2dp"
         android:layout_marginStart="4dp" />
 
+    <!-- 已撤回系统提示（居中灰字，撤回后替代气泡） -->
+    <TextView
+        android:id="@+id/tv_recalled"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
     <!-- 引用回复条（refMsgId>0 时显示，点击定位到原消息） -->
     <TextView
         android:id="@+id/tv_chat_ref"
