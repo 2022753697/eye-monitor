@@ -1364,8 +1364,9 @@ public class MainActivity extends AppCompatActivity {
             for (int p : changed) {
                 chatAdapter.notifyItemChanged(p);
             }
-        } else if (chatAdapter.getItemCount() > 0) {
-            // 界面上未找到匹配（回执早于列表加载等）：整表重载，保证 Room 已读态上屏
+        } else if (chatAdapter.getItemCount() == 0) {
+            // 仅当列表尚未加载（回执早于首次渲染）才整表重载；
+            // 已渲染且无新匹配（对方重复已读）时跳过，避免反复 reload + scrollToBottom 拽底抖动
             loadChatHistory();
         }
     }
