@@ -128,7 +128,12 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnChatMore;
     private EditText etChatInput;
     private ImageButton btnSend;
-    private ImageButton btnAddMedia;
+    private ImageButton btnMic;
+    private ImageButton btnEmoji;
+    private TextView tvVoiceBar;
+    private View llRecordPanel;
+    private TextView tvRecordHint;
+    private TextView btnRecordCancel;
     private RecyclerView rvChat;
     private ChatAdapter chatAdapter;
     private View bottomBar;
@@ -163,6 +168,8 @@ public class MainActivity extends AppCompatActivity {
     private File voiceFile;
     private long voiceStartTs;
     private Runnable voiceTimeoutRunnable;
+    private boolean voiceMode;
+    private boolean voiceCancelling;
     private PopupWindow chatMenuPopup;
     /** 聊天页是否真正在前台（地图等独立页面时 MainActivity 停着但面板可见性仍为 VISIBLE，需此标志兜底） */
     private boolean chatForeground;
@@ -261,7 +268,12 @@ public class MainActivity extends AppCompatActivity {
         btnChatMore = findViewById(R.id.btn_chat_more);
         etChatInput = findViewById(R.id.et_chat_input);
         btnSend = findViewById(R.id.btn_send);
-        btnAddMedia = findViewById(R.id.btn_add_media);
+        btnMic = findViewById(R.id.btn_mic);
+        btnEmoji = findViewById(R.id.btn_emoji);
+        tvVoiceBar = findViewById(R.id.tv_voice_bar);
+        llRecordPanel = findViewById(R.id.ll_record_panel);
+        tvRecordHint = findViewById(R.id.tv_record_hint);
+        btnRecordCancel = findViewById(R.id.btn_record_cancel);
         rvChat = findViewById(R.id.rv_chat);
 
         // 注册事件广播（兼容 API 24+）
@@ -297,7 +309,28 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, DeviceStatusActivity.class));
             Transitions.push(this);
         });
-        btnAddMedia.setOnClickListener(v -> showChatToolMenu());
+        btnMic.setOnClickListener(v -> toggleVoiceMode());
+        btnEmoji.setOnClickListener(v -> showEmojiPicker());
+        // 微信式按住说话：按下录音 → 松开发送 / 滑到取消按钮释放 = 放弃
+        tvVoiceBar.setOnTouchListener((v, ev) -> {
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    voiceCancelling = false;
+                    startVoiceRecord();
+                    showRecordPanel();
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    updateVoiceCancelState(ev.getRawX(), ev.getRawY());
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    hideRecordPanel();
+                    finishVoiceRecord(!voiceCancelling);
+                    tvVoiceBar.setText(R.string.voice_hold_hint);
+                    return true;
+            }
+            return false;
+        });
 
         tvQuoteStrip = findViewById(R.id.ll_quote_strip);
         tvQuoteText = findViewById(R.id.tv_quote_text);
@@ -480,7 +513,7 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_VOICE_PERMISSION && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            startVoiceRecord();
+            Toast.makeText(this, R.string.voice_permission_granted, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -1005,22 +1038,6 @@ public class MainActivity extends AppCompatActivity {
     // --- P2 聊天增强 ---
 
     /** 媒体按钮单击：快捷工具菜单（照片/视频 / 表情 / 语音），功能一目了然 */
-    private void showChatToolMenu() {
-        UiDialogs.list(this, getString(R.string.chat_tool_title),
-                new String[]{getString(R.string.chat_tool_photo),
-                        getString(R.string.chat_tool_emoji),
-                        getString(R.string.chat_tool_voice)},
-                -1, idx -> {
-                    if (idx == 0) {
-                        pickMedia();
-                    } else if (idx == 1) {
-                        showEmojiPicker();
-                    } else if (idx == 2) {
-                        startVoiceRecord();
-                    }
-                });
-    }
-
     /** 表情面板：UiDialogs 列表插入光标处 */
     private void showEmojiPicker() {
         final String[] emojis = {"😀","😁","😂","🤣","😊","😍","🥰","😘","😎","🤔","😅","😭","😢","🥺","😳","😉","😇","🤗","😴","😡","❤️","💕","💔","👍","👌","🙏","✌️","🎉","🔥","✨","🌹","🎂","💪","🤝"};
@@ -1032,9 +1049,50 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // --- 语音 ---
+    // --- 语音（微信式按压） ---
 
-    /** 开始录音（60s 上限；弹窗内「结束录音」发送 / 「取消」丢弃） */
+    /** 语音/键盘切换：语音模式隐藏输入框、显示「按住 说话」 */
+    private void toggleVoiceMode() {
+        voiceMode = !voiceMode;
+        etChatInput.setVisibility(voiceMode ? View.GONE : View.VISIBLE);
+        tvVoiceBar.setVisibility(voiceMode ? View.VISIBLE : View.GONE);
+        btnMic.setImageResource(voiceMode ? R.drawable.ic_keyboard : R.drawable.ic_mic);
+        if (voiceMode) {
+            InputMethodManager imm =
+                    (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(etChatInput.getWindowToken(), 0);
+            }
+        } else {
+            etChatInput.requestFocus();
+        }
+    }
+
+    private void showRecordPanel() {
+        if (llRecordPanel != null) llRecordPanel.setVisibility(View.VISIBLE);
+        if (tvRecordHint != null) tvRecordHint.setText(R.string.voice_release_to_send);
+    }
+
+    private void hideRecordPanel() {
+        if (llRecordPanel != null) llRecordPanel.setVisibility(View.GONE);
+    }
+
+    /** 手指是否滑到「取消」按钮上：命中则松开即放弃录音 */
+    private void updateVoiceCancelState(float rawX, float rawY) {
+        if (llRecordPanel == null || llRecordPanel.getVisibility() != View.VISIBLE
+                || btnRecordCancel == null || tvRecordHint == null) {
+            return;
+        }
+        int[] loc = new int[2];
+        btnRecordCancel.getLocationInWindow(loc);
+        boolean over = rawX >= loc[0] && rawX <= loc[0] + btnRecordCancel.getWidth()
+                && rawY >= loc[1] && rawY <= loc[1] + btnRecordCancel.getHeight();
+        voiceCancelling = over;
+        tvRecordHint.setText(over
+                ? R.string.voice_release_cancel : R.string.voice_release_to_send);
+    }
+
+    /** 开始录音（60s 上限；按压条触发，松开发送/滑到取消放弃） */
     private void startVoiceRecord() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -1054,12 +1112,12 @@ public class MainActivity extends AppCompatActivity {
             voiceRecorder.start();
             voiceFile = f;
             voiceStartTs = System.currentTimeMillis();
-            UiDialogs.actions(this, getString(R.string.voice_recording_title),
-                    getString(R.string.voice_recording_hint),
-                    getString(R.string.voice_recording_stop),
-                    getString(R.string.voice_recording_cancel), false,
-                    () -> finishVoiceRecord(true), () -> finishVoiceRecord(false));
-            voiceTimeoutRunnable = () -> finishVoiceRecord(true);
+            showRecordPanel();
+            voiceTimeoutRunnable = () -> {
+                hideRecordPanel();
+                tvVoiceBar.setText(R.string.voice_hold_hint);
+                finishVoiceRecord(true);
+            };
             chatUiHandler.postDelayed(voiceTimeoutRunnable, 60_000L);
         } catch (Exception e) {
             Log.e(TAG, "录音启动失败", e);

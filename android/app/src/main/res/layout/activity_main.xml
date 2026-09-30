@@ -331,15 +331,59 @@
 
 
 
-        <!-- 底部输入栏：输入框 + 发送 + 更多（一组，QQ 风格） -->
+        <!-- 录音浮动条（按压录音时显示：松开发送 · 滑到取消放弃） -->
+        <LinearLayout
+            android:id="@+id/ll_record_panel"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@color/surface"
+            android:elevation="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_record_hint"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/voice_release_to_send"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/btn_record_cancel"
+                android:layout_width="90dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="12dp"
+                android:gravity="center"
+                android:text="@string/voice_cancel"
+                android:textColor="@color/status_error"
+                android:textSize="15sp"
+                android:background="@drawable/bg_record_cancel" />
+        </LinearLayout>
+
+        <!-- 底部输入栏：语音切换 + 输入框/按住说话 + 表情 + 媒体 + 发送 + 更多（微信式） -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@color/surface"
             android:elevation="4dp"
-            android:padding="8dp"
+            android:padding="6dp"
             android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btn_mic"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_mic"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:tint="@color/text_secondary"
+                android:contentDescription="@string/voice_toggle"
+                android:layout_marginEnd="4dp" />
 
             <EditText
                 android:id="@+id/et_chat_input"
@@ -352,40 +396,52 @@
                 android:maxLines="4"
                 android:inputType="textMultiLine" />
 
-            <!-- 媒体（选照片/视频发送；照片选择器免存储权限） -->
-            <ImageButton
-                android:id="@+id/btn_add_media"
-                android:layout_width="46dp"
+            <!-- 按住说话（语音模式时替代输入框） -->
+            <TextView
+                android:id="@+id/tv_voice_bar"
+                android:layout_width="0dp"
                 android:layout_height="46dp"
-                android:src="@drawable/ic_add"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="13dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:background="@drawable/bg_voice_bar"
+                android:text="@string/voice_hold_hint"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btn_emoji"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_emoji"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
                 android:tint="@color/text_secondary"
-                android:contentDescription="@string/menu_image"
-                android:layout_marginStart="8dp" />
+                android:contentDescription="@string/chat_tool_emoji"
+                android:layout_marginStart="4dp" />
 
             <!-- 发送（无输入灰色 / 有输入粉色） -->
             <ImageButton
                 android:id="@+id/btn_send"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:src="@drawable/ic_send"
                 android:background="@drawable/bg_icon_circle"
-                android:padding="12dp"
+                android:padding="11dp"
                 android:contentDescription="@string/btn_send"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="4dp" />
 
             <!-- 更多（底部弹出菜单） -->
             <ImageButton
                 android:id="@+id/btn_chat_more"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@drawable/ic_more"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="14dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="8dp"
                 android:tint="@color/text_secondary"
                 android:contentDescription="@string/menu_more"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="2dp" />
         </LinearLayout>
 
         <!-- 更多面板（QQ 风格网格，弹出时占底部、顶起输入栏） -->
