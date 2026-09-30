@@ -1605,19 +1605,29 @@ public class MainActivity extends AppCompatActivity {
         return sb;
     }
 
-    /** 围栏系统提示分段渲染：时间灰 / 昵称粉 / 动作灰 / 围栏名橙（任意长度/字符都精确分色） */
+    /** 富文本系统提示分段渲染：
+     *  围栏（5 段）= 时间灰/昵称粉/动作灰/围栏名橙；
+     *  SOS（4 段）= 时间灰/昵称粉/动作红 */
     private CharSequence styleRichSystemText(String text) {
         String[] parts = text.split(SYS_SEG_SEP, -1);
-        if (parts.length != 5) return null; // 0 号元素为空（前缀分隔符）
+        if (parts.length != 5 && parts.length != 4) return null;
         SpannableStringBuilder sb = new SpannableStringBuilder();
-        appendColored(sb, parts[1], R.color.text_secondary);
-        sb.append(" ");
-        appendColored(sb, parts[2], R.color.primary);
-        sb.append(" ");
-        appendColored(sb, parts[3], R.color.text_secondary);
-        sb.append("「");
-        appendColored(sb, parts[4], R.color.accent);
-        sb.append("」范围");
+        if (parts.length == 5) {
+            appendColored(sb, parts[1], R.color.text_secondary);
+            sb.append(" ");
+            appendColored(sb, parts[2], R.color.primary);
+            sb.append(" ");
+            appendColored(sb, parts[3], R.color.text_secondary);
+            sb.append("「");
+            appendColored(sb, parts[4], R.color.accent);
+            sb.append("」范围");
+        } else {
+            appendColored(sb, parts[1], R.color.text_secondary);
+            sb.append(" ");
+            appendColored(sb, parts[2], R.color.primary);
+            sb.append(" ");
+            appendColored(sb, parts[3], R.color.status_error);
+        }
         return sb;
     }
 
@@ -1754,6 +1764,7 @@ public class MainActivity extends AppCompatActivity {
         java.util.Map<String, Object> payload = message.getPayload();
         Object t = payload != null ? payload.get("text") : null;
         String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
+        // 「确认」= 发 sos_ack 回执（发送方显示“对方已确认安全”，并停止每分钟重发提醒）
         android.app.Dialog dialog = UiDialogs.confirm(this,
                 getString(R.string.sos_notification_title),
                 getString(R.string.sos_peer_alert, text),

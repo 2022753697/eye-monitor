@@ -253,7 +253,10 @@
     <string name="sos_cooldown">SOS 冷却中，请 %1$d 秒后再试</string>
     <string name="sos_notification_title">TA 发出 SOS 求助</string>
     <string name="sos_notification_text">%1$s（位置：%2$s）</string>
-    <string name="sos_ack_action">我没事</string>
+    <string name="sos_ack_action">确认</string>
+    <string name="sos_chat_sender_you">你</string>
+    <string name="sos_chat_sender_action">已发送 SOS 求助</string>
+    <string name="sos_chat_receiver_action">发送了 SOS 求助（含位置）</string>
     <string name="sos_ack_chat">对方已确认安全 ❤</string>
     <string name="sos_peer_alert">对方发出 SOS 求助：%1$s</string>
     <string name="sos_no_location">未获取到位置</string>

@@ -133,6 +133,19 @@ public class MonitorService extends Service {
     private static final long DAY_MS = 24 * 60 * 60 * 1000L;
     private NotificationManager notificationManager;
     private final Handler handler = new Handler(Looper.getMainLooper());
+
+    /** SOS 未确认重发提醒（每分钟一次，直到对方点「确认」） */
+    private String lastSosText;
+    private String lastSosLocation;
+    private final Runnable sosReminderRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (lastSosText == null) return;
+            Log.i(TAG, "SOS 未确认，1 分钟后重发提醒");
+            showSosNotification(lastSosText, lastSosLocation);
+            handler.postDelayed(this, 60_000L);
+        }
+    };
     private volatile boolean accessibilityListenerSet = false;
     private volatile boolean wsInitialized = false;
     private volatile boolean locationStarted = false;
@@ -479,6 +492,7 @@ public class MonitorService extends Service {
         }
         handler.removeCallbacks(locationReportRunnable);
         handler.removeCallbacks(anniversaryCheckRunnable);
+        handler.removeCallbacks(sosReminderRunnable);
         if (locationTracker != null) locationTracker.stop();
         if (deviceStatusTracker != null) {
             deviceStatusTracker.stop();
@@ -976,6 +990,39 @@ public class MonitorService extends Service {
         WsMessage sos = WsMessage.createSos(prefs.getDeviceId(), prefs.getPairCode(), text, lat, lng);
         boolean sent = wsClient.send(sos);
         Log.i(TAG, "SOS 消息发送结果: " + sent + ", lat=" + lat + ", lng=" + lng);
+        if (sent) {
+            // 自己侧聊天页系统提示（无位置文案）：你已发送 SOS 求助
+            appendSosTip(true, System.currentTimeMillis());
+        }
+    }
+
+    /** 双方 SOS 系统提示（\u001F 分段：时间/昵称/动作，渲染端配色：时间灰/昵称粉/动作红）
+     *  senderSide=true：自己侧「你已发送 SOS 求助」；false：对方侧「昵称 发送了 SOS 求助（含位置）」 */
+    private void appendSosTip(boolean senderSide, long now) {
+        try {
+            String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
+                    java.util.Locale.getDefault()).format(new java.util.Date(now));
+            String who;
+            if (senderSide) {
+                who = getString(R.string.sos_chat_sender_you);
+            } else {
+                who = prefs.getPeerNickname();
+                if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
+            }
+            String action = getString(senderSide
+                    ? R.string.sos_chat_sender_action : R.string.sos_chat_receiver_action);
+            String text = "\u001F" + dt + "\u001F" + who + "\u001F" + action;
+            AppDatabase db = AppDatabase.getInstance(this);
+            db.chatDao().insert(new ChatEntity("system", text, null, false, now));
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("text", text);
+            WsMessage tip = new WsMessage("system_tip", prefs.getDeviceId(),
+                    prefs.getPairCode(), payload, now);
+            broadcastEvent(tip);
+            Log.i(TAG, "SOS 系统提示已落库: " + dt + " " + who + " " + action);
+        } catch (Exception ex) {
+            Log.w(TAG, "SOS 系统提示失败", ex);
+        }
     }
 
     /** 发送 SOS 回执「我没事」 */
@@ -993,6 +1040,13 @@ public class MonitorService extends Service {
                 prefs.getNickname() != null ? prefs.getNickname() : getString(R.string.chat_title_default));
         boolean sent = wsClient.send(ack);
         Log.i(TAG, "SOS 回执发送结果: " + sent);
+        if (sent) {
+            // 已确认：停止每分钟重发提醒并移除 SOS 通知
+            handler.removeCallbacks(sosReminderRunnable);
+            lastSosText = null;
+            lastSosLocation = null;
+            notificationManager.cancel(NOTIFICATION_ID_SOS);
+        }
     }
 
     /** 收到对方 SOS：高优先级通知（含求救语+位置）+ 广播 UI */
@@ -1010,7 +1064,15 @@ public class MonitorService extends Service {
         }
 
         showSosNotification(text, locationText);
+        // 未确认则每分钟重发通知，直到对方点「确认」
+        lastSosText = text;
+        lastSosLocation = locationText;
+        handler.removeCallbacks(sosReminderRunnable);
+        handler.postDelayed(sosReminderRunnable, 60_000L);
         broadcastEvent(message);
+        // 对方侧聊天页系统提示（含位置文案）：昵称 发送了 SOS 求助（含位置）
+        appendSosTip(false, message.getTimestamp() > 0
+                ? message.getTimestamp() : System.currentTimeMillis());
     }
 
     /** 收到对方回执「我没事」：落库 system 提示 + 广播 UI */
@@ -1291,7 +1353,7 @@ public class MonitorService extends Service {
         }
     }
 
-    /** SOS 高优先级通知：标题+求救语+位置，「我没事」按钮发送回执 */
+    /** SOS 高优先级通知：标题+求救语+位置+强震动，「确认」按钮发回执并停止重发 */
     private void showSosNotification(String sosText, String locationText) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -1307,7 +1369,7 @@ public class MonitorService extends Service {
                 this, (int) System.currentTimeMillis(), open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        // 通知上的「我没事」按钮：借道服务发 sos_ack
+        // 通知上的「确认」按钮：发 sos_ack 回执（同时停止每分钟重发）
         Intent ack = new Intent(this, MonitorService.class);
         ack.setAction(ACTION_SEND_SOS_ACK);
         PendingIntent ackPi = PendingIntent.getService(
@@ -1319,9 +1381,10 @@ public class MonitorService extends Service {
                 .setContentText(getString(R.string.sos_notification_text, sosText, locationText))
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(openPi)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE)
+                .setAutoCancel(false)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(Notification.DEFAULT_SOUND)
+                .setVibrate(new long[]{0, 1000, 500, 1000, 500, 1000}) // 强震动：1s 长脉冲 ×3
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .addAction(R.drawable.ic_sos, getString(R.string.sos_ack_action), ackPi)
                 .build();
