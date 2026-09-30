@@ -59,7 +59,8 @@
         <LinearLayout
             android:id="@+id/ll_voice_bubble"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="44dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingStart="16dp"
@@ -68,10 +69,9 @@
 
             <ImageView
                 android:id="@+id/iv_voice_wifi"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
                 android:src="@drawable/ic_wifi_voice"
-                android:rotation="90"
                 android:tint="@color/primary" />
 
             <TextView

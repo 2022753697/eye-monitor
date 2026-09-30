@@ -2289,7 +2289,9 @@ public class MainActivity extends AppCompatActivity {
             h.ivMediaThumb.setVisibility(View.GONE);
             h.llMediaPlaceholder.setVisibility(View.GONE);
             h.llVoiceBubble.setVisibility(View.VISIBLE);
-            h.ivVoiceWifi.setScaleX(self ? -1f : 1f);
+            // 微信式：自己弧线朝左（-90°），对方朝右（+90°），互为 180° 翻转
+            h.ivVoiceWifi.setRotation(self ? -90f : 90f);
+            h.ivVoiceWifi.setScaleX(1f);
             h.tvVoiceDuration.setText(formatVoiceDurationSeconds(duration));
         } else {
             // 图片/视频：恢复 180dp 方形容器（防回收复用残留）
