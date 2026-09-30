@@ -307,7 +307,7 @@
     <string name="track_speed_one">1x</string>
     <string name="track_speed_double">2x</string>
     <string name="track_loading">加载中…</string>
-    <string name="track_progress">%1$d / %2$d</string>
+    <string name="track_progress">%1$d / %2$d · %3$s</string>
     <string name="track_empty">该时间段暂无轨迹</string>
     <string name="track_no_data">暂无对方轨迹数据</string>
     <string name="track_custom_invalid">结束日期不能早于开始日期</string>

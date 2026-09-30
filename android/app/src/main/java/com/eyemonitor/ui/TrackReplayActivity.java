@@ -120,6 +120,12 @@ public class TrackReplayActivity extends AppCompatActivity {
                 if (t >= 1f) {
                     drawPolylineUpTo(idx);
                     currentIndex = idx + 1; // 关键：推进到下一段（原来漏掉导致永远播同一段）
+                    // 到达当前点：marker 气泡显示到达时刻
+                    String arrive = formatTrackTime(points.get(idx).ts);
+                    if (playMarker != null) {
+                        playMarker.setTitle(arrive);
+                        playMarker.showInfoWindow();
+                    }
                     updateProgress(currentIndex);
                     if (idx + 1 >= points.size()) {
                         finishPlayback();
@@ -553,10 +559,24 @@ public class TrackReplayActivity extends AppCompatActivity {
         }
     }
 
-    /** 进度标签：drawn = 已绘制的点数（含起点） */
+    /** 进度标签：drawn = 已绘制的点数（含起点），附带到达时刻 */
     private void updateProgress(int drawn) {
         int shown = Math.min(drawn, points.size());
-        tvProgress.setText(getString(R.string.track_progress, shown, points.size()));
+        String time = shown > 0 ? formatTrackTime(points.get(shown - 1).ts) : "";
+        tvProgress.setText(getString(R.string.track_progress, shown, points.size(), time));
+    }
+
+    /** 到达时刻：当天 HH:mm，跨天 M月d日 HH:mm */
+    private String formatTrackTime(long ts) {
+        if (ts <= 0) return "--:--";
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        java.util.Calendar point = java.util.Calendar.getInstance();
+        point.setTimeInMillis(ts);
+        boolean sameDay = now.get(java.util.Calendar.YEAR) == point.get(java.util.Calendar.YEAR)
+                && now.get(java.util.Calendar.DAY_OF_YEAR) == point.get(java.util.Calendar.DAY_OF_YEAR);
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                sameDay ? "HH:mm" : "M月d日 HH:mm", java.util.Locale.getDefault());
+        return sdf.format(new java.util.Date(ts));
     }
 
     private void clearPolyline() {
