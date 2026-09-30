@@ -1359,8 +1359,13 @@ public class MainActivity extends AppCompatActivity {
                 changed.add(i);
             }
         }
-        for (int p : changed) {
-            chatAdapter.notifyItemChanged(p);
+        if (!changed.isEmpty()) {
+            for (int p : changed) {
+                chatAdapter.notifyItemChanged(p);
+            }
+        } else if (chatAdapter.getItemCount() > 0) {
+            // 界面上未找到匹配（回执早于列表加载等）：整表重载，保证 Room 已读态上屏
+            loadChatHistory();
         }
     }
 
