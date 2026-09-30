@@ -31,7 +31,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override
         public void migrate(SupportSQLiteDatabase db) {
-            db.execSQL("ALTER TABLE `chat` ADD COLUMN `send_state` TEXT NOT NULL DEFAULT 'sent'");
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `send_state` TEXT DEFAULT 'sent'");
         }
     };
 
