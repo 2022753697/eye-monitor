@@ -417,7 +417,7 @@ public class TrackReplayActivity extends AppCompatActivity {
         fitCameraToTracks();
         // 进入页面即显示对方该时间段内最近位置（未播放也可见，提升体验）
         showInitialPosition();
-        tvProgress.setText(getString(R.string.track_progress, 0, points.size()));
+        tvProgress.setText(getString(R.string.track_progress, 0, points.size(), ""));
         Log.i(TAG, "轨迹点已加载: " + points.size() + " 个 (start=" + rangeStart + ", end=" + rangeEnd + ")");
     }
 
@@ -504,7 +504,7 @@ public class TrackReplayActivity extends AppCompatActivity {
         clearPolyline();
         removePlayMarker();
         currentIndex = 0;
-        tvProgress.setText(getString(R.string.track_progress, 0, points.size()));
+        tvProgress.setText(getString(R.string.track_progress, 0, points.size(), ""));
     }
 
     /** 调速即时生效：重排下一拍 */
