@@ -1211,7 +1211,6 @@ public class MainActivity extends AppCompatActivity {
     private void toggleVoice(String fileId, String localPath, long duration,
                              ChatAdapter.ViewHolder h, int position) {
         if (localPath == null || !new File(localPath).exists()) {
-            h.tvMediaHint.setText(R.string.media_downloading);
             MediaUtils.ensureDownloaded(MainActivity.this, fileId, null, new MediaUtils.MediaCb() {
                 @Override
                 public void onReady(String path) {
@@ -1224,11 +1223,8 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(int code, String msg) {
-                    h.itemView.post(() -> {
-                        h.tvMediaHint.setText(R.string.media_download_hint);
-                        Toast.makeText(MainActivity.this, R.string.media_download_failed,
-                                Toast.LENGTH_SHORT).show();
-                    });
+                    h.itemView.post(() -> Toast.makeText(MainActivity.this,
+                            R.string.media_download_failed, Toast.LENGTH_SHORT).show());
                 }
             });
             return;
@@ -1242,13 +1238,13 @@ public class MainActivity extends AppCompatActivity {
             voicePlayer.setDataSource(localPath);
             voicePlayer.prepare();
             voicePlayer.start();
-            h.tvMediaHint.setText(R.string.voice_playing);
+            h.tvVoiceDuration.setText(R.string.voice_playing);
             final MediaPlayer player = voicePlayer;
             player.setOnCompletionListener(mp -> {
                 mp.release();
                 if (voicePlayer == mp) voicePlayer = null;
-                h.itemView.post(() -> h.tvMediaHint.setText(
-                        getString(R.string.voice_play_hint, formatVoiceDuration(duration))));
+                h.itemView.post(() -> h.tvVoiceDuration.setText(
+                        formatVoiceDurationSeconds(duration)));
             });
         } catch (Exception e) {
             Log.e(TAG, "语音播放失败", e);
@@ -1259,6 +1255,11 @@ public class MainActivity extends AppCompatActivity {
         long sec = ms / 1000;
         if (sec < 60) return sec + "″";
         return (sec / 60) + "′" + (sec % 60) + "″";
+    }
+
+    /** 语音气泡秒数：3s / 12s（微信式） */
+    private static String formatVoiceDurationSeconds(long ms) {
+        return (ms / 1000) + "s";
     }
 
     // --- 引用 ---
@@ -2102,6 +2103,9 @@ public class MainActivity extends AppCompatActivity {
             ImageView ivMediaPlaceholderIcon;
             LinearLayout llMediaPlaceholder;
             TextView tvMediaHint;
+            LinearLayout llVoiceBubble;
+            ImageView ivVoiceWifi;
+            TextView tvVoiceDuration;
             FrameLayout flVideoBadge;
 
             ViewHolder(View view, int viewType) {
@@ -2129,6 +2133,9 @@ public class MainActivity extends AppCompatActivity {
                         ivMediaThumb = view.findViewById(R.id.iv_media_thumb);
                         ivMediaPlaceholderIcon = view.findViewById(R.id.iv_media_placeholder_icon);
                         llMediaPlaceholder = view.findViewById(R.id.ll_media_placeholder);
+                        llVoiceBubble = view.findViewById(R.id.ll_voice_bubble);
+                        ivVoiceWifi = view.findViewById(R.id.iv_voice_wifi);
+                        tvVoiceDuration = view.findViewById(R.id.tv_voice_duration);
                         tvMediaHint = view.findViewById(R.id.tv_media_hint);
                         flVideoBadge = view.findViewById(R.id.fl_video_badge);
                         tvTime = view.findViewById(R.id.tv_chat_time);
@@ -2273,22 +2280,21 @@ public class MainActivity extends AppCompatActivity {
         final String localPath = meta != null ? meta.localPath : null;
         final boolean downloaded = localPath != null && new File(localPath).exists();
         if (audio) {
-            // P2 语音消息：麦克风图标 + 时长/播放状态（不显示图片缩略图）
+            // 语音气泡（微信式）：旋转 wifi 图标 + 秒数，自己/对方镜像
             h.ivMediaThumb.setVisibility(View.GONE);
-            h.llMediaPlaceholder.setVisibility(View.VISIBLE);
-            h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
-            h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_mic);
-            h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
-                    getColor(R.color.primary)));
-            h.tvMediaHint.setText(getString(R.string.voice_play_hint,
-                    formatVoiceDuration(duration)));
+            h.llMediaPlaceholder.setVisibility(View.GONE);
+            h.llVoiceBubble.setVisibility(View.VISIBLE);
+            h.ivVoiceWifi.setScaleX(self ? -1f : 1f);
+            h.tvVoiceDuration.setText(formatVoiceDurationSeconds(duration));
         } else if (downloaded) {
             h.ivMediaThumb.setVisibility(View.VISIBLE);
             h.llMediaPlaceholder.setVisibility(View.GONE);
+            h.llVoiceBubble.setVisibility(View.GONE);
             loadThumb(h.ivMediaThumb, localPath, mime);
         } else {
             h.ivMediaThumb.setVisibility(View.GONE);
             h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.llVoiceBubble.setVisibility(View.GONE);
             h.ivMediaPlaceholderIcon.setVisibility(View.VISIBLE);
             h.ivMediaPlaceholderIcon.setImageResource(R.drawable.ic_image);
             h.ivMediaPlaceholderIcon.setImageTintList(ColorStateList.valueOf(
