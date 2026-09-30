@@ -58,7 +58,7 @@ sleep $(( OFF_MIN * 60 ))
 # 注意：Windows Git Bash 把中文参数按 GBK 传给 adb → 设备 grep 匹配不到 UTF-8 日志里的中文
 # 全部用 ASCII 模式计数
 # 5.1 轮询计数（当前无 usage 权限 → 应≈0；P1 后 POLL 标记为 ASCII 可数）
-POLL_COUNT=$("$ADB" -s $D shell "logcat -d 2>/dev/null | grep -c 'queryEvents'" || true)
+POLL_COUNT=$("$ADB" -s $D shell "logcat -d 2>/dev/null | grep -c 'POLL tick'" || true)
 # 5.2 应用层 WS 发送（每帧都含 pairCode，ASCII）
 SEND_TOTAL=$("$ADB" -s $D shell "logcat -d 2>/dev/null | grep -c '\"pairCode\"'" || true)
 STATUS_COUNT=$("$ADB" -s $D shell "logcat -d 2>/dev/null | grep -c '\"type\":\"device_status\"'" || true)
