@@ -189,8 +189,13 @@ public class MonitorService extends Service {
     private void appendFenceSystemTip(String fenceName, boolean nowInside) {
         try {
             long now = System.currentTimeMillis();
+            // 富文本系统提示：[yyyy年M月d日 HH:mm] 昵称 进入了「围栏名」范围（渲染端按段配色）
+            String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
+                    java.util.Locale.getDefault()).format(new java.util.Date(now));
+            String who = prefs.getPeerNickname();
+            if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
             String text = getString(nowInside
-                    ? R.string.fence_chat_enter : R.string.fence_chat_exit, fenceName);
+                    ? R.string.fence_chat_enter : R.string.fence_chat_exit, dt, who, fenceName);
             AppDatabase db = AppDatabase.getInstance(this);
             db.chatDao().insert(new ChatEntity("system", text, null, false, now));
             Map<String, Object> payload = new HashMap<>();

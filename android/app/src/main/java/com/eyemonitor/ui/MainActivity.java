@@ -1579,9 +1579,14 @@ public class MainActivity extends AppCompatActivity {
 
     /** 系统提示富文本：时间（今天=HH:mm / 更早=日期+时间）+ 应用名珊瑚色加粗 */
     private CharSequence styleSystemText(ChatItem item) {
+        String text = item.text;
+        // 围栏等自带完整时间戳的富文本系统提示：格式 [yyyy年M月d日 HH:mm] 昵称 进入了「名称」范围
+        if (text != null && text.startsWith("[") && (text.contains("进入了") || text.contains("离开了"))) {
+            CharSequence rich = styleRichSystemText(text);
+            if (rich != null) return rich;
+        }
         String header = formatSystemTime(item.ts);
         String prefix = getString(R.string.chat_peer_opened_prefix);
-        String text = item.text;
         String full = header.isEmpty() ? text : header + " " + text;
         SpannableStringBuilder sb = new SpannableStringBuilder(full);
         if (text != null && text.startsWith(prefix)) {
@@ -1594,6 +1599,43 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return sb;
+    }
+
+    /** 围栏系统提示分段配色：时间灰 / 昵称粉 / 动作灰 / 围栏名橙 */
+    private CharSequence styleRichSystemText(String text) {
+        try {
+            int close = text.indexOf(']');
+            int quoteStart = text.indexOf('「', close + 1);
+            int quoteEnd = text.indexOf('」', quoteStart + 1);
+            if (close <= 0 || quoteStart < 0 || quoteEnd <= quoteStart) return null;
+            // 动作词（进入了/离开了）位于 [..] 之后、昵称之后
+            String afterTime = text.substring(close + 1); // " WW 进入了「测试」范围"
+            int actionIdx = afterTime.indexOf("进入了");
+            if (actionIdx < 0) actionIdx = afterTime.indexOf("离开了");
+            if (actionIdx < 0) return null;
+            String nickname = afterTime.substring(0, actionIdx).trim();
+            int actionLen = 3; // 进入了/离开了 均为 3 字
+            String action = afterTime.substring(actionIdx, actionIdx + actionLen);
+            String fenceName = text.substring(quoteStart + 1, quoteEnd);
+
+            SpannableStringBuilder sb = new SpannableStringBuilder(text);
+            int timeEnd = close + 1; // 含 ']'
+            sb.setSpan(new ForegroundColorSpan(getColor(R.color.text_secondary)),
+                    0, timeEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int nickAbs = close + 1 + actionIdx - nickname.length();
+            if (nickAbs > 0) {
+                sb.setSpan(new ForegroundColorSpan(getColor(R.color.primary)),
+                        nickAbs, nickAbs + nickname.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            int actionAbs = close + 1 + actionIdx;
+            sb.setSpan(new ForegroundColorSpan(getColor(R.color.text_secondary)),
+                    actionAbs, actionAbs + actionLen, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.setSpan(new ForegroundColorSpan(getColor(R.color.accent)),
+                    quoteStart, quoteEnd + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return sb;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 发送按钮状态色：无输入灰色，有输入粉色 */
