@@ -1006,16 +1006,14 @@ public class MonitorService extends Service {
      *  注意：sendSosMessage 跑在主线程，Room 写入必须走 dbExecutor（否则被吞）。 */
     private void appendSosTip(boolean senderSide, long now) {
         try {
-            String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
+            final String dt = new java.text.SimpleDateFormat("yyyy年M月d日 HH:mm",
                     java.util.Locale.getDefault()).format(new java.util.Date(now));
-            String who;
-            if (senderSide) {
-                who = getString(R.string.sos_chat_sender_you);
-            } else {
-                who = prefs.getPeerNickname();
-                if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
+            String peerNick = prefs.getPeerNickname();
+            if (peerNick == null || peerNick.isEmpty()) {
+                peerNick = getString(R.string.chat_title_default);
             }
-            String action = getString(senderSide
+            final String who = senderSide ? getString(R.string.sos_chat_sender_you) : peerNick;
+            final String action = getString(senderSide
                     ? R.string.sos_chat_sender_action : R.string.sos_chat_receiver_action);
             final String text = "\u001F" + dt + "\u001F" + who + "\u001F" + action;
             AppDatabase db = AppDatabase.getInstance(this);
