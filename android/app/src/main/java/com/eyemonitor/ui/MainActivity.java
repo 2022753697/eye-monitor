@@ -1264,15 +1264,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 长按文本消息：消息上方弹出 QQ/微信式小菜单（引用 / 撤回，撤回仅自己且 2 分钟内） */
-    private void showChatItemActions(ChatItem item) {
+    /** 长按文本消息：紧贴气泡上方弹出 QQ/微信式小菜单（引用 / 撤回，撤回仅自己且 2 分钟内） */
+    private void showChatItemActions(ChatItem item, View bubble) {
         dismissChatMenu();
+        if (bubble == null) return;
         boolean canRecall = item.type == TYPE_SELF
                 && System.currentTimeMillis() - item.ts <= 2 * 60_000L;
-        int idx = chatAdapter.items.indexOf(item);
-        View anchor = rvChat.getLayoutManager() != null && idx >= 0
-                ? rvChat.getLayoutManager().findViewByPosition(idx) : null;
-        if (anchor == null) return;
 
         View menu = LayoutInflater.from(this).inflate(R.layout.menu_chat_item, null, false);
         menu.findViewById(R.id.menu_action_quote).setOnClickListener(v -> {
@@ -1308,16 +1305,21 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 21) {
             chatMenuPopup.setElevation(10 * getResources().getDisplayMetrics().density);
         }
+
         int density = (int) getResources().getDisplayMetrics().density;
         int margin = 8 * density;
-        int xOffset = (anchor.getWidth() - w) / 2;
-        // 负 Y 偏移 → 菜单出现在消息上方；顶部空间不足则翻到下方
-        int[] winLoc = new int[2];
-        anchor.getLocationInWindow(winLoc);
-        boolean roomAbove = winLoc[1] - h - margin >= 0;
-        int yOffset = roomAbove ? -(anchor.getHeight() + h + margin)
-                : anchor.getHeight() + margin;
-        chatMenuPopup.showAsDropDown(anchor, xOffset, yOffset);
+        // 窗口坐标系：菜单水平居中于气泡、垂直紧贴气泡上沿
+        int[] loc = new int[2];
+        bubble.getLocationInWindow(loc);
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        int px = loc[0] + (bubble.getWidth() - w) / 2;
+        if (px < margin) px = margin;
+        if (px + w + margin > screenW) px = screenW - w - margin;
+        int py = loc[1] - h - margin;          // 气泡上方
+        if (py < 0) {
+            py = loc[1] + bubble.getHeight() + margin; // 顶部放不下 → 气泡下方
+        }
+        chatMenuPopup.showAtLocation(bubble, Gravity.NO_GRAVITY, px, py);
     }
 
     private void dismissChatMenu() {
@@ -2054,7 +2056,7 @@ public class MainActivity extends AppCompatActivity {
             void bindItemLongPress(ChatItem item) {
                 itemView.setOnLongClickListener(v -> {
                     if (item.deleted) return true;
-                    showChatItemActions(item);
+                    showChatItemActions(item, tvText);
                     return true;
                 });
             }
