@@ -3,6 +3,7 @@ package com.eyemonitor.handler;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.security.AuthUtil;
 import com.eyemonitor.security.WsSessionManager;
+import com.eyemonitor.repository.MediaFileRepo;
 import com.eyemonitor.service.MessageStore;
 import com.eyemonitor.service.PairService;
 import org.slf4j.Logger;
@@ -29,12 +30,15 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private final PairService pairService;
     private final MessageStore messageStore;
     private final WsSessionManager wsSessionManager;
+    private final MediaFileRepo mediaFileRepo;
 
     public EyeWebSocketHandler(PairService pairService, MessageStore messageStore,
-                               WsSessionManager wsSessionManager) {
+                               WsSessionManager wsSessionManager,
+                               MediaFileRepo mediaFileRepo) {
         this.pairService = pairService;
         this.messageStore = messageStore;
         this.wsSessionManager = wsSessionManager;
+        this.mediaFileRepo = mediaFileRepo;
     }
 
     @Override
@@ -153,6 +157,18 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
                 ? (String) payload.get("fileId") : null;
         if (fileId != null && !fileId.isBlank()) {
             messageStore.saveChat(pairCode, userId, fileId, false, msg.getTimestamp(), "media");
+            // 回写媒体时长（上传端点存 null，语音/视频时长靠 WS 消息补全，/api/media 列表才能返回）
+            Object dur = payload != null ? payload.get("duration") : null;
+            if (dur instanceof Number) {
+                try {
+                    mediaFileRepo.findById(fileId).ifPresent(e -> {
+                        e.setDuration(((Number) dur).longValue());
+                        mediaFileRepo.save(e);
+                    });
+                } catch (Exception ex) {
+                    log.warn("媒体时长回写失败 fileId={}", fileId, ex);
+                }
+            }
         }
         pairService.forwardToPeer(msg.getDeviceId(), msg);
     }
