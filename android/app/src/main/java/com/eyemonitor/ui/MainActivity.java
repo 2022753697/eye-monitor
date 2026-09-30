@@ -1575,8 +1575,9 @@ public class MainActivity extends AppCompatActivity {
         final int density = (int) getResources().getDisplayMetrics().density;
         final int outerPad = 60 * density;
         final int nearPad = 12 * density;
-        int startPad = self ? nearPad : outerPad;
-        int endPad = self ? outerPad : nearPad;
+        // 与文本项边距一致：自己=左 60/右 12，对方=左 12/右 60（之前写反导致对方图片整体右移一格）
+        int startPad = self ? outerPad : nearPad;
+        int endPad = self ? nearPad : outerPad;
         h.llMediaBubble.setGravity(self ? Gravity.END : Gravity.START);
         h.llMediaBubble.setPadding(startPad, 0, endPad, 0);
         h.flMediaContainer.setBackgroundResource(R.drawable.bg_card);
