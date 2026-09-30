@@ -92,6 +92,7 @@
     <string name="chat_action_title">消息操作</string>
     <string name="chat_action_quote">引用</string>
     <string name="chat_action_recall">撤回</string>
+    <string name="chat_recall_failed">撤回失败</string>
     <string name="chat_quote_strip">引用「%1$s」</string>
     <string name="chat_tool_title">快捷工具</string>
     <string name="chat_tool_emoji">表情</string>

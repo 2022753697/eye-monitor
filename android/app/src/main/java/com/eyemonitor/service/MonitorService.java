@@ -69,6 +69,7 @@ public class MonitorService extends Service {
     public static final String EXTRA_CHAT_FROM = "chat_from";
     public static final String EXTRA_CHAT_REF_ID = "chat_ref_id";
     public static final String EXTRA_CHAT_REF_TEXT = "chat_ref_text";
+    public static final String EXTRA_CHAT_TS = "chat_ts";
     public static final String ACTION_SEND_TYPING = "com.eyemonitor.SEND_TYPING";
     public static final String ACTION_SEND_CHAT_READ = "com.eyemonitor.SEND_CHAT_READ";
     public static final String EXTRA_UP_TO_TS = "chat_up_to_ts";
@@ -195,17 +196,18 @@ public class MonitorService extends Service {
 
     /** 发送聊天消息（借道 MonitorService 的 WebSocket 连接） */
     public static void sendChat(Context context, String text, String from) {
-        sendChat(context, text, from, 0, null);
+        sendChat(context, text, from, 0, null, System.currentTimeMillis());
     }
 
-    /** 发送聊天（引用扩展：refMsgId=被引用消息时间戳，refText=摘要；0/null=无引用） */
+    /** 发送聊天（引用扩展 + 显式时间戳：本地 ts 与服务端存储 ts 同源，撤回/引用按 ts 精确匹配） */
     public static void sendChat(Context context, String text, String from,
-                                long refMsgId, String refText) {
+                                long refMsgId, String refText, long ts) {
         if (context == null || text == null) return;
         Intent intent = new Intent(context, MonitorService.class);
         intent.setAction(ACTION_SEND_CHAT);
         intent.putExtra(EXTRA_CHAT_TEXT, text);
         intent.putExtra(EXTRA_CHAT_FROM, from);
+        intent.putExtra(EXTRA_CHAT_TS, ts);
         if (refMsgId > 0) intent.putExtra(EXTRA_CHAT_REF_ID, refMsgId);
         if (refText != null && !refText.isEmpty()) intent.putExtra(EXTRA_CHAT_REF_TEXT, refText);
         context.startService(intent);
@@ -313,8 +315,11 @@ public class MonitorService extends Service {
             if (text != null && wsClient != null && prefs.getPairCode() != null) {
                 long refId = intent.getLongExtra(EXTRA_CHAT_REF_ID, 0);
                 String refText = intent.getStringExtra(EXTRA_CHAT_REF_TEXT);
+                long ts = intent.getLongExtra(EXTRA_CHAT_TS, 0);
                 WsMessage chat = WsMessage.createChat(prefs.getDeviceId(), prefs.getPairCode(),
                         text, from, refId, refText);
+                // 关键：用 UI 层同一时间戳（本地/服务端 ts 同源，撤回与引用才能精确匹配）
+                if (ts > 0) chat.setTimestamp(ts);
                 Log.i(TAG, "发送聊天消息: " + text);
                 wsClient.send(chat);
             } else {
@@ -845,6 +850,10 @@ public class MonitorService extends Service {
                 break;
             case "chat_recall":
                 // 对方撤回：广播给 UI（本地按时间戳标记已撤回）
+                broadcastEvent(message);
+                break;
+            case "system_tip":
+                // 服务端业务提示（如撤回失败）：广播给 UI 渲染为居中系统提示
                 broadcastEvent(message);
                 break;
             case "request_peer_location":

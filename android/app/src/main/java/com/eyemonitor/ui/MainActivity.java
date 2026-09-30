@@ -779,8 +779,8 @@ public class MainActivity extends AppCompatActivity {
         final ChatEntity entity = new ChatEntity("chat", text, from, true, now, refId, refText);
         AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(entity));
 
-        // 借道 MonitorService 的 WebSocket 发送（带引用）
-        MonitorService.sendChat(this, text, from, refId, refText);
+        // 借道 MonitorService 的 WebSocket 发送（带引用 + 显式时间戳，保证本地/服务端 ts 同源）
+        MonitorService.sendChat(this, text, from, refId, refText, now);
         clearPendingQuote();
 
         etChatInput.setText("");
@@ -1356,11 +1356,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 服务器错误处理：配对失效时清空本地配对并引导重新配对 */
+    /** 服务器错误处理：带 code 的业务错误仅提示；无 code 的才视为配对失效清空本地配对 */
     private void handleError(WsMessage message) {
         if (!prefs.isPaired()) return;
-        Object msg = message.getPayload() != null ? message.getPayload().get("message") : null;
+        Map<String, Object> payload = message.getPayload();
+        Object codeObj = payload != null ? payload.get("code") : null;
+        Object msg = payload != null ? payload.get("message") : null;
         String err = msg instanceof String ? (String) msg : "";
+        // 配对类错误 code 恒为 null（见 PairService.createError）；带 code 的是业务级错误（如撤回失败）
+        if (codeObj instanceof String && !((String) codeObj).isEmpty()) {
+            Log.w(TAG, "业务错误(" + codeObj + "): " + err);
+            runOnUiThread(() -> Toast.makeText(this,
+                    err.isEmpty() ? getString(R.string.chat_recall_failed) : err,
+                    Toast.LENGTH_LONG).show());
+            return;
+        }
         Log.w(TAG, "配对失效: " + err);
 
         runOnUiThread(() -> {

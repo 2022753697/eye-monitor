@@ -133,8 +133,9 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         if (messageStore.recallChat(pairCode, msgTs)) {
             pairService.forwardToPeer(msg.getDeviceId(), msg);
         } else {
-            pairService.sendMessage(session,
-                    WsMessage.createError(msg.getDeviceId(), "recall_failed", "撤回失败：超时或消息不存在"));
+            // 业务级失败走 system_tip：type=error 会被客户端误判为配对失效（清配对+跳配对页）
+            pairService.sendMessage(session, new WsMessage("system_tip", msg.getDeviceId(), pairCode,
+                    Map.of("text", "撤回失败：消息不存在或已超时"), System.currentTimeMillis()));
         }
     }
 
