@@ -8,6 +8,8 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.media.ThumbnailUtils;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -133,6 +135,8 @@ public class MainActivity extends AppCompatActivity {
     private android.view.GestureDetector anniversaryGesture;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
+    /** WiFi 自动下载去重（同一 fileId 只自动触发一次） */
+    private final java.util.Set<String> mediaAutoDownloading = new java.util.HashSet<>();
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -933,6 +937,10 @@ public class MainActivity extends AppCompatActivity {
             case "chat":
                 handleChatMessage(message);
                 break;
+            case "sync_chat_done":
+                // SyncManager 拉取历史后广播：从 Room 全量重载聊天（离线消息显示）
+                runOnUiThread(this::loadChatHistory);
+                break;
             case "app_switch":
                 String appName = message.getPayload() != null
                         ? (String) message.getPayload().get("appName") : null;
@@ -1571,8 +1579,7 @@ public class MainActivity extends AppCompatActivity {
         int endPad = self ? outerPad : nearPad;
         h.llMediaBubble.setGravity(self ? Gravity.END : Gravity.START);
         h.llMediaBubble.setPadding(startPad, 0, endPad, 0);
-        h.flMediaContainer.setBackgroundResource(
-                self ? R.drawable.bg_bubble_self : R.drawable.bg_bubble_peer);
+        h.flMediaContainer.setBackgroundResource(R.drawable.bg_card);
         h.tvTime.setText(item.time);
         if (self) {
             h.tvFrom.setVisibility(View.GONE);
@@ -1602,32 +1609,57 @@ public class MainActivity extends AppCompatActivity {
             h.tvMediaHint.setText(R.string.media_download_hint);
         }
 
+        final boolean wifi = isWifiConnected();
         h.flMediaContainer.setOnClickListener(v -> {
             if (downloaded) {
                 MediaUtils.launchViewer(MainActivity.this, fileId, mime, duration, localPath);
             } else {
-                h.tvMediaHint.setText(R.string.media_downloading);
-                MediaUtils.openMedia(MainActivity.this, fileId, mime, duration, null,
-                        new MediaUtils.MediaCb() {
-                            @Override
-                            public void onReady(String path) {
-                                runOnUiThread(() -> {
-                                    MediaCacheEntity m = mediaByFileId.get(fileId);
-                                    if (m != null) m.localPath = path;
-                                    chatAdapter.notifyItemChanged(position);
-                                });
-                            }
-
-                            @Override
-                            public void onError(int code, String msg) {
-                                runOnUiThread(() -> {
-                                    h.tvMediaHint.setText(R.string.media_download_hint);
-                                    Toast.makeText(MainActivity.this, R.string.media_download_failed,
-                                            Toast.LENGTH_SHORT).show();
-                                });
-                            }
-                        });
+                startMediaDownload(h, fileId, mime, duration, position);
             }
         });
+        // WiFi 下未下载的新媒体自动下载；流量/无网络保持「点击下载」手动提示
+        if (!downloaded && wifi && mediaAutoDownloading.add(fileId)) {
+            h.tvMediaHint.setText(R.string.media_downloading);
+            startMediaDownload(h, fileId, mime, duration, position);
+        }
+    }
+
+    /** 下载媒体并更新气泡（点击与 WiFi 自动下载共用） */
+    private void startMediaDownload(ChatAdapter.ViewHolder h, String fileId,
+                                    String mime, long duration, int position) {
+        h.tvMediaHint.setText(R.string.media_downloading);
+        MediaUtils.openMedia(MainActivity.this, fileId, mime, duration, null,
+                new MediaUtils.MediaCb() {
+                    @Override
+                    public void onReady(String path) {
+                        runOnUiThread(() -> {
+                            MediaCacheEntity m = mediaByFileId.get(fileId);
+                            if (m != null) m.localPath = path;
+                            chatAdapter.notifyItemChanged(position);
+                        });
+                    }
+
+                    @Override
+                    public void onError(int code, String msg) {
+                        runOnUiThread(() -> {
+                            h.tvMediaHint.setText(R.string.media_download_hint);
+                            Toast.makeText(MainActivity.this, R.string.media_download_failed,
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
+    }
+
+    /** 当前是否 Wi-Fi 网络（自动下载策略依据） */
+    private boolean isWifiConnected() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(cm.getActiveNetwork());
+            return nc != null && nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI);
+        }
+        NetworkInfo ni = cm.getActiveNetworkInfo();
+        return ni != null && ni.getType() == ConnectivityManager.TYPE_WIFI;
     }
 }

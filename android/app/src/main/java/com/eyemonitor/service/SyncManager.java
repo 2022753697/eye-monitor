@@ -17,6 +17,7 @@ import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.util.AppNameResolver;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /**
@@ -204,34 +205,42 @@ public final class SyncManager {
             long afterTs = db.cacheDao().getMaxChatTs();
             final String pairCode = new PrefsManager(context).getPairCode();
             if (pairCode == null) return;
-            AuthManager.i(context).get(context,
+            // 注意：/api/chats 返回 {code,data:[...]}（data 为数组），必须用 getElement（Callback 只接受对象型 data）
+            AuthManager.i(context).getElement(context,
                     "/api/chats/" + pairCode + "?afterTs=" + afterTs,
-                    new AuthManager.Callback() {
+                    new AuthManager.ElementCallback() {
                         @Override
-                        public void onSuccess(JsonObject data) {
-                            try {
-                                JsonArray arr = data.getAsJsonArray("chats");
-                                if (arr == null) return;
-                                java.util.List<ChatEntity> list = new java.util.ArrayList<>();
-                                for (int i = 0; i < arr.size(); i++) {
-                                    JsonObject o = arr.get(i).getAsJsonObject();
-                                    long ts = o.has("ts") ? o.get("ts").getAsLong() : System.currentTimeMillis();
-                                    String text = o.has("text") ? o.get("text").getAsString() : "";
-                                    boolean isSystem = o.has("isSystem") && o.get("isSystem").getAsBoolean();
-                                    // 服务器 from_id/fromUser 为账号 ID，本地无用户 ID 映射：
-                                    // 历史消息按 peer 消息渲染（isSelf=false），联调阶段待 Wave-2 完善映射
-                                    list.add(new ChatEntity(isSystem ? "system" : "chat",
-                                            text, null, false, ts));
-                                }
-                                AppDatabase.dbExecutor.execute(() -> {
-                                    for (ChatEntity e : list) {
-                                        db.chatDao().insert(e);
-                                    }
-                                    Log.i(TAG, "聊天历史增量同步: " + list.size() + " 条 (afterTs=" + afterTs + ")");
-                                });
-                            } catch (Exception e) {
-                                Log.e(TAG, "同步聊天失败", e);
+                        public void onSuccess(JsonElement data) {
+                            if (data == null || !data.isJsonArray()) return;
+                            JsonArray arr = data.getAsJsonArray();
+                            java.util.List<ChatEntity> list = new java.util.ArrayList<>();
+                            for (int i = 0; i < arr.size(); i++) {
+                                JsonObject o = arr.get(i).getAsJsonObject();
+                                long ts = o.has("ts") ? o.get("ts").getAsLong() : System.currentTimeMillis();
+                                String text = o.has("text") ? o.get("text").getAsString() : "";
+                                boolean isSystem = o.has("isSystem") && o.get("isSystem").getAsBoolean();
+                                // 服务器 fromUser 为账号 ID，本地无用户 ID 映射：
+                                // 历史消息按 peer 渲染（isSelf=false）；单设备离线窗口内多为对方消息，语义可接受
+                                list.add(new ChatEntity(isSystem ? "system" : "chat",
+                                        text, null, false, ts));
                             }
+                            if (list.isEmpty()) return;
+                            AppDatabase.dbExecutor.execute(() -> {
+                                for (ChatEntity e : list) {
+                                    db.chatDao().insert(e);
+                                }
+                                Log.i(TAG, "聊天历史增量同步: " + list.size() + " 条 (afterTs=" + afterTs + ")");
+                                // 通知聊天页从 Room 重载（离线消息显示的关键一步）
+                                try {
+                                    android.content.Intent i = new android.content.Intent(MonitorService.ACTION_EVENT);
+                                    i.putExtra(MonitorService.EXTRA_EVENT_JSON,
+                                            "{\"type\":\"sync_chat_done\",\"deviceId\":\"\",\"pairCode\":\"\","
+                                                    + "\"payload\":{},\"timestamp\":" + System.currentTimeMillis() + "}");
+                                    context.sendBroadcast(i);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "广播聊天刷新失败", e);
+                                }
+                            });
                         }
 
                         @Override
