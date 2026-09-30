@@ -13,6 +13,7 @@ import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.util.GeoMath;
 
 /**
  * 位置追踪器 - 双通道定位
@@ -27,20 +28,6 @@ public class LocationTracker implements AMapLocationListener {
     private static final long UPDATE_INTERVAL_MS = 30_000L;
     private static final float MIN_DISTANCE_M = 50f;
     private static final long MIN_LOCATION_INTERVAL_MS = 15_000L; // 最小定位间隔15秒
-    /** R3 精度过滤：已有位置后，精度>80m 的点不采纳（防漂移污染轨迹） */
-    private static final float ACCURACY_FILTER_M = 80f;
-    /** R4' 跳点过滤：推算速度 > 2000km/h（≈555.6m/s，远高于飞机 900km/h）视为 GPS 抽风 */
-    private static final float MAX_SPEED_MPS = 555.6f;
-
-    public static double distanceMeters(double lat1, double lng1, double lat2, double lng2) {
-        double r = 6371000;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLng = Math.toRadians(lng2 - lng1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-        return 2 * r * Math.asin(Math.sqrt(a));
-    }
 
     private final Context context;
     private AMapLocationClient locationClient;
@@ -177,15 +164,15 @@ public class LocationTracker implements AMapLocationListener {
             return;
         }
         // R3 精度过滤：首次定位例外（保证有初始值），之后精度>80m 的点不采纳
-        if (lastLat != 0 && accuracy > ACCURACY_FILTER_M) {
+        if (lastLat != 0 && accuracy > GeoMath.ACCURACY_FILTER_M) {
             Log.d(TAG, "精度过滤，跳过: accuracy=" + accuracy + "m");
             return;
         }
         // R4' 跳点过滤：物理不可能速度，视为 GPS 抽风（高铁/飞机速度远低于阈值）
         if (lastLat != 0) {
-            double dist = distanceMeters(lastLat, lastLng, lat, lng);
+            double dist = GeoMath.distanceMeters(lastLat, lastLng, lat, lng);
             long dt = now - lastUpdateTime;
-            if (dt > 0 && dist / (dt / 1000.0) > MAX_SPEED_MPS) {
+            if (GeoMath.isImpossibleJump(dist, dt)) {
                 Log.w(TAG, "跳点过滤，跳过: dist=" + (long) dist + "m dt=" + (dt / 1000) + "s");
                 return;
             }

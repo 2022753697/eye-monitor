@@ -62,6 +62,9 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 
+    // 单元测试（纯 JVM，无 Robolectric）
+    testImplementation 'junit:junit:4.13.2'
+
     // 自定义 lint 规则（UI 规范：裸 Button）
     lintChecks project(':lintchecks')
 }

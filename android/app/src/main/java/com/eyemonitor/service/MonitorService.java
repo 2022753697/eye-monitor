@@ -116,10 +116,7 @@ public class MonitorService extends Service {
     private volatile boolean locationStarted = false;
     private boolean wsFromPairActivity = false;
 
-    /** 位置上报限流（R1 静止去重 + R2 最小间隔） */
-    private static final long LOC_MIN_REPORT_INTERVAL_MS = 60_000L;
-    private static final double LOC_SEND_DISTANCE_M = 20.0;
-    private static final double LOC_IMMEDIATE_DISTANCE_M = 200.0;
+    /** 位置上报限流状态（R1/R2 判定逻辑在 {@link LocationReportRule}，这里只存状态） */
     private long lastLocationReportTs;
     private double lastReportLat;
     private double lastReportLng;
@@ -623,19 +620,15 @@ public class MonitorService extends Service {
         long now = System.currentTimeMillis();
         double lat = locationTracker.getLastLat();
         double lng = locationTracker.getLastLng();
-        if (lastLocationReportTs > 0) {
-            double dist = LocationTracker.distanceMeters(lastReportLat, lastReportLng, lat, lng);
-            // R1 静止去重：位移 < 20m 不上报
-            if (dist < LOC_SEND_DISTANCE_M) {
-                Log.d(TAG, "位置静止未变(<" + LOC_SEND_DISTANCE_M + "m)，跳过上报");
-                return;
-            }
-            // R2 最小间隔：<60s 且无大位移(>200m) 不上报（大位移=行车/高铁，立即上报保轨迹）
-            if (now - lastLocationReportTs < LOC_MIN_REPORT_INTERVAL_MS
-                    && dist < LOC_IMMEDIATE_DISTANCE_M) {
-                Log.d(TAG, "位置间隔<60s 且位移<200m，跳过上报");
-                return;
-            }
+        LocationReportRule.Decision decision = LocationReportRule.shouldReport(
+                lastLocationReportTs, lastReportLat, lastReportLng, lat, lng, now);
+        if (decision == LocationReportRule.Decision.SKIP_STATIC) {
+            Log.d(TAG, "位置静止未变(<" + LocationReportRule.SEND_DISTANCE_M + "m)，跳过上报");
+            return;
+        }
+        if (decision == LocationReportRule.Decision.SKIP_RATE_LIMITED) {
+            Log.d(TAG, "位置间隔<60s 且位移<200m，跳过上报");
+            return;
         }
         sendLocation();
         lastLocationReportTs = now;
