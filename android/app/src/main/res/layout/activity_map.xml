@@ -129,26 +129,26 @@
         android:background="@drawable/bg_card"
         android:elevation="6dp"
         android:visibility="gone"
-        android:padding="16dp"
+        android:padding="@dimen/space_16"
         android:layout_gravity="bottom"
-        android:layout_margin="12dp">
+        android:layout_margin="@dimen/space_12">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/fence_panel_title"
             android:textColor="@color/text_primary"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_16"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/fence_center_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:text="@string/fence_hint_pick_center"
             android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:textSize="@dimen/text_13" />
 
         <SeekBar
             android:id="@+id/fence_radius_seek"
@@ -156,21 +156,21 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="50"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="@dimen/space_4" />
 
         <TextView
             android:id="@+id/fence_radius_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/text_primary"
-            android:textSize="13sp" />
+            android:textSize="@dimen/text_13" />
 
         <EditText
             android:id="@+id/fence_name_input"
             style="@style/Widget.EyeMonitor.EditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:inputType="text"
             android:maxLength="20"
             android:hint="@string/fence_name_hint" />
@@ -179,7 +179,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="@dimen/space_12">
 
             <Button
                 android:id="@+id/fence_cancel_btn"
@@ -190,7 +190,7 @@
                 android:text="@string/fence_cancel" />
 
             <Space
-                android:layout_width="12dp"
+                android:layout_width="@dimen/space_12"
                 android:layout_height="1dp" />
 
             <Button
