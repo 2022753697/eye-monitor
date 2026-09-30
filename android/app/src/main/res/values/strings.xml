@@ -309,6 +309,7 @@
     <string name="track_loading">加载中…</string>
     <string name="track_progress">%1$d / %2$d · %3$s</string>
     <string name="track_empty">该时间段暂无轨迹</string>
+    <string name="track_arrive_snippet">轨迹点 %1$d/%2$d · 精度 %3$dm</string>
     <string name="track_no_data">暂无对方轨迹数据</string>
     <string name="track_custom_invalid">结束日期不能早于开始日期</string>
     <!-- 媒体与共享图库（Wave2 多媒体） -->

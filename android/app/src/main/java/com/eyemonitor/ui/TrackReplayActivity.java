@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -120,10 +121,12 @@ public class TrackReplayActivity extends AppCompatActivity {
                 if (t >= 1f) {
                     drawPolylineUpTo(idx);
                     currentIndex = idx + 1; // 关键：推进到下一段（原来漏掉导致永远播同一段）
-                    // 到达当前点：marker 气泡显示到达时刻
+                    // 到达当前点：marker 气泡显示到达时刻 + 轨迹点序/精度
                     String arrive = formatTrackTime(points.get(idx).ts);
                     if (playMarker != null) {
                         playMarker.setTitle(arrive);
+                        playMarker.setSnippet(getString(R.string.track_arrive_snippet,
+                                idx + 1, points.size(), (int) points.get(idx).accuracy));
                         playMarker.showInfoWindow();
                     }
                     updateProgress(currentIndex);
@@ -219,6 +222,27 @@ public class TrackReplayActivity extends AppCompatActivity {
             aMap = mapView.getMap();
             aMap.getUiSettings().setZoomControlsEnabled(true);
             aMap.getUiSettings().setCompassEnabled(true);
+            // 播放 marker 信息窗：白圆角卡片（复用项目设计令牌 info_window + bg_info_window）
+            aMap.setInfoWindowAdapter(new AMap.InfoWindowAdapter() {
+                @Override
+                public View getInfoWindow(Marker marker) {
+                    View v = LayoutInflater.from(TrackReplayActivity.this)
+                            .inflate(R.layout.info_window, null);
+                    TextView title = v.findViewById(R.id.info_title);
+                    TextView snippet = v.findViewById(R.id.info_snippet);
+                    title.setText(marker.getTitle());
+                    String sn = marker.getSnippet();
+                    snippet.setText(sn != null ? sn : "");
+                    snippet.setVisibility(sn != null && !sn.isEmpty()
+                            ? View.VISIBLE : View.GONE);
+                    return v;
+                }
+
+                @Override
+                public View getInfoContents(Marker marker) {
+                    return null;
+                }
+            });
         }
     }
 
