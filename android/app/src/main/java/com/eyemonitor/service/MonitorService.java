@@ -67,6 +67,13 @@ public class MonitorService extends Service {
     public static final String ACTION_SEND_CHAT = "com.eyemonitor.SEND_CHAT";
     public static final String EXTRA_CHAT_TEXT = "chat_text";
     public static final String EXTRA_CHAT_FROM = "chat_from";
+    public static final String EXTRA_CHAT_REF_ID = "chat_ref_id";
+    public static final String EXTRA_CHAT_REF_TEXT = "chat_ref_text";
+    public static final String ACTION_SEND_TYPING = "com.eyemonitor.SEND_TYPING";
+    public static final String ACTION_SEND_CHAT_READ = "com.eyemonitor.SEND_CHAT_READ";
+    public static final String EXTRA_UP_TO_TS = "chat_up_to_ts";
+    public static final String ACTION_SEND_CHAT_RECALL = "com.eyemonitor.SEND_CHAT_RECALL";
+    public static final String EXTRA_MSG_TS = "chat_msg_ts";
     // 地图打开时主动触发一次本机位置上报（让 selfMarker 尽快创建并聚焦）
     public static final String ACTION_REQUEST_SELF_LOCATION = "com.eyemonitor.REQUEST_SELF_LOCATION";
     // 被顶替下线（单设备登录）：通知 UI 清登录态回登录页
@@ -188,11 +195,45 @@ public class MonitorService extends Service {
 
     /** 发送聊天消息（借道 MonitorService 的 WebSocket 连接） */
     public static void sendChat(Context context, String text, String from) {
+        sendChat(context, text, from, 0, null);
+    }
+
+    /** 发送聊天（引用扩展：refMsgId=被引用消息时间戳，refText=摘要；0/null=无引用） */
+    public static void sendChat(Context context, String text, String from,
+                                long refMsgId, String refText) {
         if (context == null || text == null) return;
         Intent intent = new Intent(context, MonitorService.class);
         intent.setAction(ACTION_SEND_CHAT);
         intent.putExtra(EXTRA_CHAT_TEXT, text);
         intent.putExtra(EXTRA_CHAT_FROM, from);
+        if (refMsgId > 0) intent.putExtra(EXTRA_CHAT_REF_ID, refMsgId);
+        if (refText != null && !refText.isEmpty()) intent.putExtra(EXTRA_CHAT_REF_TEXT, refText);
+        context.startService(intent);
+    }
+
+    /** 发送「正在输入…」（ephemeral，防抖由调用方做） */
+    public static void sendTyping(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_TYPING);
+        context.startService(intent);
+    }
+
+    /** 发送已读回执：upToTs = 已读到的对方消息时间戳（含更早） */
+    public static void sendChatRead(Context context, long upToTs) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_CHAT_READ);
+        intent.putExtra(EXTRA_UP_TO_TS, upToTs);
+        context.startService(intent);
+    }
+
+    /** 发送撤回指令：msgTs = 被撤回消息时间戳（2 分钟窗口内） */
+    public static void sendChatRecall(Context context, long msgTs) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_CHAT_RECALL);
+        intent.putExtra(EXTRA_MSG_TS, msgTs);
         context.startService(intent);
     }
 
@@ -270,11 +311,37 @@ public class MonitorService extends Service {
             String text = intent.getStringExtra(EXTRA_CHAT_TEXT);
             String from = intent.getStringExtra(EXTRA_CHAT_FROM);
             if (text != null && wsClient != null && prefs.getPairCode() != null) {
-                WsMessage chat = WsMessage.createChat(prefs.getDeviceId(), prefs.getPairCode(), text, from);
+                long refId = intent.getLongExtra(EXTRA_CHAT_REF_ID, 0);
+                String refText = intent.getStringExtra(EXTRA_CHAT_REF_TEXT);
+                WsMessage chat = WsMessage.createChat(prefs.getDeviceId(), prefs.getPairCode(),
+                        text, from, refId, refText);
                 Log.i(TAG, "发送聊天消息: " + text);
                 wsClient.send(chat);
             } else {
                 Log.w(TAG, "聊天发送失败: text=" + text + ", wsClient=" + wsClient + ", paired=" + (prefs.getPairCode() != null));
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_TYPING.equals(intent.getAction())) {
+            if (wsClient != null && prefs.getPairCode() != null) {
+                wsClient.send(WsMessage.createTyping(prefs.getDeviceId(), prefs.getPairCode()));
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_CHAT_READ.equals(intent.getAction())) {
+            if (wsClient != null && prefs.getPairCode() != null) {
+                long upToTs = intent.getLongExtra(EXTRA_UP_TO_TS, System.currentTimeMillis());
+                wsClient.send(WsMessage.createChatRead(prefs.getDeviceId(), prefs.getPairCode(), upToTs));
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_CHAT_RECALL.equals(intent.getAction())) {
+            if (wsClient != null && prefs.getPairCode() != null) {
+                long msgTs = intent.getLongExtra(EXTRA_MSG_TS, 0);
+                wsClient.send(WsMessage.createChatRecall(prefs.getDeviceId(), prefs.getPairCode(), msgTs));
             }
             return START_NOT_STICKY;
         }
@@ -768,6 +835,18 @@ public class MonitorService extends Service {
                 saveChatMessage(message);
                 broadcastEvent(message);
                 break;
+            case "typing":
+                // 输入中（ephemeral）：直接广播给 UI（3s 超时由 UI 处理）
+                broadcastEvent(message);
+                break;
+            case "chat_read":
+                // 对方已读回执：广播给 UI（标记自己消息的已读态）
+                broadcastEvent(message);
+                break;
+            case "chat_recall":
+                // 对方撤回：广播给 UI（本地按时间戳标记已撤回）
+                broadcastEvent(message);
+                break;
             case "request_peer_location":
                 handleRequestPeerLocation(message);
                 break;
@@ -1068,13 +1147,18 @@ public class MonitorService extends Service {
         java.util.Map<String, Object> payload = message.getPayload();
         Object t = payload != null ? payload.get("text") : null;
         Object f = payload != null ? payload.get("from") : null;
+        Object refId = payload != null ? payload.get("refMsgId") : null;
+        Object refText = payload != null ? payload.get("refText") : null;
         String text = t instanceof String ? (String) t : null;
         String from = f instanceof String ? (String) f : null;
         if (text == null || text.isEmpty()) return;
         long ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        long refMsgId = refId instanceof Number ? ((Number) refId).longValue() : 0L;
+        String refTextS = refText instanceof String && !((String) refText).isEmpty()
+                ? (String) refText : null;
+        ChatEntity e = new ChatEntity("chat", text, from, false, ts, refMsgId, refTextS);
         AppDatabase db = AppDatabase.getInstance(this);
-        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(
-                new ChatEntity("chat", text, from, false, ts)));
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(e));
     }
 
     /**

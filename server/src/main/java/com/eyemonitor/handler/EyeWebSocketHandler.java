@@ -72,6 +72,9 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "pong" -> { /* 心跳回复无需处理 */ }
             case "location" -> handleLocation(session, msg, userId);
             case "chat" -> handleChat(session, msg, userId);
+            case "typing" -> pairService.forwardToPeer(msg.getDeviceId(), msg);
+            case "chat_read" -> handleChatRead(session, msg, userId);
+            case "chat_recall" -> handleChatRecall(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
             case "media" -> handleMedia(session, msg, userId);
             default -> handleForward(session, msg);
@@ -101,8 +104,38 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Map<String, Object> payload = msg.getPayload();
         String text = payload != null && payload.get("text") instanceof String
                 ? (String) payload.get("text") : null;
-        messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp());
+        Object refId = payload != null ? payload.get("refMsgId") : null;
+        Object refText = payload != null ? payload.get("refText") : null;
+        Long refMsgId = refId instanceof Number ? ((Number) refId).longValue() : null;
+        String refTextS = refText instanceof String && !((String) refText).isEmpty()
+                ? (String) refText : null;
+        messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp(),
+                "chat", refMsgId, refTextS);
         pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    /** chat_read：标记对方已读（upToTs 及更早），再转发让对方端刷新自己消息的已读态 */
+    private void handleChatRead(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        Map<String, Object> payload = msg.getPayload();
+        Object upTo = payload != null ? payload.get("upToTs") : null;
+        long upToTs = upTo instanceof Number ? ((Number) upTo).longValue() : System.currentTimeMillis();
+        messageStore.markChatRead(pairCode, userId, upToTs);
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    /** chat_recall：2 分钟窗口校验后置 deleted，成功才转发（否则回错误给发送方） */
+    private void handleChatRecall(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        Map<String, Object> payload = msg.getPayload();
+        Object ts = payload != null ? payload.get("msgTs") : null;
+        long msgTs = ts instanceof Number ? ((Number) ts).longValue() : 0L;
+        if (messageStore.recallChat(pairCode, msgTs)) {
+            pairService.forwardToPeer(msg.getDeviceId(), msg);
+        } else {
+            pairService.sendMessage(session,
+                    WsMessage.createError(msg.getDeviceId(), "recall_failed", "撤回失败：超时或消息不存在"));
+        }
     }
 
     private void handleSos(WebSocketSession session, WsMessage msg, long userId) {

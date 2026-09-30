@@ -1,12 +1,16 @@
 package com.eyemonitor.ui;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -88,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
     // 媒体选择器请求码
     private static final int REQ_PICK_MEDIA = 2002;
+    private static final int REQ_VOICE_PERMISSION = 2005;
 
     // 配对面板
     private EditText etPairCode;
@@ -137,6 +142,24 @@ public class MainActivity extends AppCompatActivity {
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
     /** WiFi 自动下载去重（同一 fileId 只自动触发一次） */
     private final java.util.Set<String> mediaAutoDownloading = new java.util.HashSet<>();
+
+    // --- P2 聊天增强：引用 / 输入中 / 已读 / 撤回 / 语音 ---
+    private long pendingRefMsgId;
+    private String pendingRefText;
+    private long lastTypingSentTs;
+    private long peerUpToTs;
+    private TextView tvQuoteStrip;
+    private TextView tvQuoteText;
+    private TextView tvTypingHint;
+    private final Handler chatUiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable hideTypingRunnable = () -> {
+        if (tvTypingHint != null) tvTypingHint.setVisibility(View.GONE);
+    };
+    private MediaPlayer voicePlayer;
+    private MediaRecorder voiceRecorder;
+    private File voiceFile;
+    private long voiceStartTs;
+    private Runnable voiceTimeoutRunnable;
 
     private PrefsManager prefs;
     private boolean serviceRunning;
@@ -269,6 +292,35 @@ public class MainActivity extends AppCompatActivity {
             Transitions.push(this);
         });
         btnAddMedia.setOnClickListener(v -> pickMedia());
+        // P2：长按媒体按钮 = 表情/语音工具（单击仍为选照片视频）
+        btnAddMedia.setOnLongClickListener(v -> {
+            showChatToolMenu();
+            return true;
+        });
+
+        tvQuoteStrip = findViewById(R.id.ll_quote_strip);
+        tvQuoteText = findViewById(R.id.tv_quote_text);
+        findViewById(R.id.btn_quote_cancel).setOnClickListener(v -> clearPendingQuote());
+        tvTypingHint = findViewById(R.id.tv_typing_hint);
+
+        // P2：输入即发 typing（防抖 2s），对方在线显示「正在输入…」
+        etChatInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s == null || s.toString().trim().isEmpty()) return;
+                long now = System.currentTimeMillis();
+                if (now - lastTypingSentTs > 2000) {
+                    lastTypingSentTs = now;
+                    MonitorService.sendTyping(MainActivity.this);
+                }
+            }
+        });
 
         // 更多面板：格子绑定
         bottomBar = findViewById(R.id.bottom_bar);
@@ -414,7 +466,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_VOICE_PERMISSION && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startVoiceRecord();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
+        chatUiHandler.removeCallbacks(hideTypingRunnable);
+        chatUiHandler.removeCallbacks(voiceTimeoutRunnable);
+        if (voicePlayer != null) {
+            voicePlayer.release();
+            voicePlayer = null;
+        }
         sosHandler.removeCallbacks(sosPressRunnable);
         try {
             unregisterReceiver(eventReceiver);
@@ -701,15 +769,19 @@ public class MainActivity extends AppCompatActivity {
 
         String from = prefs.getNickname();
         long now = System.currentTimeMillis();
-        chatAdapter.addItem(new ChatItem(TYPE_SELF, text, from, TIME_FORMAT.format(new Date(now)), now));
+        long refId = pendingRefMsgId;
+        String refText = pendingRefText;
+        chatAdapter.addItem(new ChatItem(TYPE_SELF, text, from,
+                TIME_FORMAT.format(new Date(now)), now, refId, refText));
 
         // 本地入库（Room 禁止主线程操作，走 dbExecutor）
         AppDatabase db = AppDatabase.getInstance(this);
-        AppDatabase.dbExecutor.execute(() -> db.chatDao()
-                .insert(new ChatEntity("chat", text, from, true, now)));
+        final ChatEntity entity = new ChatEntity("chat", text, from, true, now, refId, refText);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().insert(entity));
 
-        // 借道 MonitorService 的 WebSocket 发送
-        MonitorService.sendChat(this, text, from);
+        // 借道 MonitorService 的 WebSocket 发送（带引用）
+        MonitorService.sendChat(this, text, from, refId, refText);
+        clearPendingQuote();
 
         etChatInput.setText("");
         hideMorePanel();
@@ -882,6 +954,7 @@ public class MainActivity extends AppCompatActivity {
                 mediaByFileId.clear();
                 for (MediaCacheEntity m : media) mediaByFileId.put(m.fileId, m);
                 chatAdapter.clear();
+                peerUpToTs = 0;
                 for (ChatEntity e : all) {
                     int type;
                     if ("media".equals(e.kind)) {
@@ -891,12 +964,21 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         type = e.isSelf ? TYPE_SELF : TYPE_PEER;
                     }
-                    chatAdapter.addItem(new ChatItem(type, e.text, e.fromName,
-                            TIME_FORMAT.format(new Date(e.timestamp)), e.timestamp));
+                    ChatItem ci = new ChatItem(type, e.text, e.fromName,
+                            TIME_FORMAT.format(new Date(e.timestamp)), e.timestamp,
+                            e.refMsgId, e.refText);
+                    ci.peerRead = e.peerRead;
+                    ci.deleted = e.deleted;
+                    if (!e.isSelf) peerUpToTs = Math.max(peerUpToTs, e.timestamp);
+                    chatAdapter.addItem(ci);
                 }
                 if (chatAdapter.getItemCount() == 0) {
                     chatAdapter.addItem(new ChatItem(TYPE_SYSTEM,
                             getString(R.string.chat_empty), null, "", 0));
+                }
+                // 聊天页可见且有对方消息 → 补发已读回执（对方刷新我的已读态）
+                if (viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
+                    MonitorService.sendChatRead(MainActivity.this, peerUpToTs);
                 }
                 scrollToBottom();
             });
@@ -909,6 +991,300 @@ public class MainActivity extends AppCompatActivity {
                 rvChat.scrollToPosition(chatAdapter.getItemCount() - 1);
             }
         });
+    }
+
+    // --- P2 聊天增强 ---
+
+    /** 长按媒体按钮：表情 / 语音（单击仍是选照片视频） */
+    private void showChatToolMenu() {
+        UiDialogs.list(this, getString(R.string.chat_tool_title),
+                new String[]{getString(R.string.chat_tool_emoji), getString(R.string.chat_tool_voice)},
+                -1, idx -> {
+                    if (idx == 0) {
+                        showEmojiPicker();
+                    } else if (idx == 1) {
+                        startVoiceRecord();
+                    }
+                });
+    }
+
+    /** 表情面板：UiDialogs 列表插入光标处 */
+    private void showEmojiPicker() {
+        final String[] emojis = {"😀","😁","😂","🤣","😊","😍","🥰","😘","😎","🤔","😅","😭","😢","🥺","😳","😉","😇","🤗","😴","😡","❤️","💕","💔","👍","👌","🙏","✌️","🎉","🔥","✨","🌹","🎂","💪","🤝"};
+        UiDialogs.list(this, getString(R.string.chat_tool_emoji), emojis, -1, idx -> {
+            String emoji = emojis[idx];
+            int sel = etChatInput.getSelectionEnd();
+            if (sel < 0) sel = etChatInput.length();
+            etChatInput.getText().insert(sel, emoji);
+        });
+    }
+
+    // --- 语音 ---
+
+    /** 开始录音（60s 上限；弹窗内「结束录音」发送 / 「取消」丢弃） */
+    private void startVoiceRecord() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_VOICE_PERMISSION);
+            return;
+        }
+        File dir = new File(getCacheDir(), "voice_send");
+        if (!dir.exists() && !dir.mkdirs()) return;
+        final File f = new File(dir, System.currentTimeMillis() + ".m4a");
+        try {
+            voiceRecorder = new MediaRecorder();
+            voiceRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            voiceRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            voiceRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            voiceRecorder.setOutputFile(f.getAbsolutePath());
+            voiceRecorder.prepare();
+            voiceRecorder.start();
+            voiceFile = f;
+            voiceStartTs = System.currentTimeMillis();
+            UiDialogs.actions(this, getString(R.string.voice_recording_title),
+                    getString(R.string.voice_recording_hint),
+                    getString(R.string.voice_recording_stop),
+                    getString(R.string.voice_recording_cancel), false,
+                    () -> finishVoiceRecord(true), () -> finishVoiceRecord(false));
+            voiceTimeoutRunnable = () -> finishVoiceRecord(true);
+            chatUiHandler.postDelayed(voiceTimeoutRunnable, 60_000L);
+        } catch (Exception e) {
+            Log.e(TAG, "录音启动失败", e);
+            Toast.makeText(this, R.string.voice_record_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void finishVoiceRecord(final boolean send) {
+        chatUiHandler.removeCallbacks(voiceTimeoutRunnable);
+        MediaRecorder r = voiceRecorder;
+        voiceRecorder = null;
+        File f = voiceFile;
+        voiceFile = null;
+        long dur = System.currentTimeMillis() - voiceStartTs;
+        try {
+            if (r != null) {
+                r.stop();
+                r.release();
+            }
+        } catch (Exception ignored) {
+        }
+        if (f == null || !f.exists()) {
+            if (f != null) f.delete();
+            return;
+        }
+        if (!send) {
+            f.delete();
+            return;
+        }
+        if (dur < 1000) {
+            f.delete();
+            Toast.makeText(this, R.string.voice_too_short, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        uploadVoice(f, Math.min(dur, 60_000L));
+    }
+
+    /** 语音走媒体上传管线（复用 /api/media/upload + WS media 元数据） */
+    private void uploadVoice(final File file, final long durationMs) {
+        Toast.makeText(this, R.string.voice_uploading, Toast.LENGTH_SHORT).show();
+        AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), new AuthManager.Callback() {
+            @Override
+            public void onSuccess(com.google.gson.JsonObject data) {
+                final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
+                if (fileId == null || fileId.isEmpty()) {
+                    file.delete();
+                    return;
+                }
+                final long now = System.currentTimeMillis();
+                final MediaCacheEntity e = new MediaCacheEntity();
+                e.fileId = fileId;
+                e.serverFileName = data.has("fileName") && !data.get("fileName").isJsonNull()
+                        ? data.get("fileName").getAsString() : file.getName();
+                e.mime = "audio/mp4";
+                e.size = data.has("size") ? data.get("size").getAsLong() : file.length();
+                e.duration = durationMs;
+                e.ts = now;
+                AppDatabase db = AppDatabase.getInstance(MainActivity.this);
+                AppDatabase.dbExecutor.execute(() -> {
+                    File dst = MediaUtils.localMediaFile(MainActivity.this, fileId);
+                    boolean archived = dst.exists() && dst.length() > 0 || file.renameTo(dst);
+                    if (archived) e.localPath = dst.getAbsolutePath();
+                    file.delete();
+                    db.cacheDao().upsertMedia(e);
+                    db.chatDao().insert(new ChatEntity("media", fileId,
+                            prefs.getNickname(), true, now));
+                    runOnUiThread(() -> {
+                        String from = prefs.getNickname() != null ? prefs.getNickname() : "";
+                        MonitorService.sendMediaMeta(MainActivity.this, fileId,
+                                e.serverFileName, e.mime, e.size, durationMs, from);
+                        mediaByFileId.put(fileId, e);
+                        chatAdapter.addItem(new ChatItem(TYPE_MEDIA_SELF, fileId, from,
+                                TIME_FORMAT.format(new Date(now)), now));
+                        scrollToBottom();
+                    });
+                });
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                file.delete();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                        getString(R.string.voice_upload_failed,
+                                msg != null && !msg.isEmpty() ? msg : "code=" + code),
+                        Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /** 语音气泡点击：未下载先下载；已下载则播放/停止 */
+    private void toggleVoice(String fileId, String localPath, long duration,
+                             ChatAdapter.ViewHolder h, int position) {
+        if (localPath == null || !new File(localPath).exists()) {
+            h.tvMediaHint.setText(R.string.media_downloading);
+            MediaUtils.ensureDownloaded(MainActivity.this, fileId, null, new MediaUtils.MediaCb() {
+                @Override
+                public void onReady(String path) {
+                    h.itemView.post(() -> {
+                        MediaCacheEntity m = mediaByFileId.get(fileId);
+                        if (m != null) m.localPath = path;
+                        chatAdapter.notifyItemChanged(position);
+                    });
+                }
+
+                @Override
+                public void onError(int code, String msg) {
+                    h.itemView.post(() -> {
+                        h.tvMediaHint.setText(R.string.media_download_hint);
+                        Toast.makeText(MainActivity.this, R.string.media_download_failed,
+                                Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+            return;
+        }
+        try {
+            if (voicePlayer != null) {
+                voicePlayer.release();
+                voicePlayer = null;
+            }
+            voicePlayer = new MediaPlayer();
+            voicePlayer.setDataSource(localPath);
+            voicePlayer.prepare();
+            voicePlayer.start();
+            h.tvMediaHint.setText(R.string.voice_playing);
+            final MediaPlayer player = voicePlayer;
+            player.setOnCompletionListener(mp -> {
+                mp.release();
+                if (voicePlayer == mp) voicePlayer = null;
+                h.itemView.post(() -> h.tvMediaHint.setText(
+                        getString(R.string.voice_play_hint, formatVoiceDuration(duration))));
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "语音播放失败", e);
+        }
+    }
+
+    private static String formatVoiceDuration(long ms) {
+        long sec = ms / 1000;
+        if (sec < 60) return sec + "″";
+        return (sec / 60) + "′" + (sec % 60) + "″";
+    }
+
+    // --- 引用 ---
+
+    private void setPendingQuote(ChatItem item) {
+        pendingRefMsgId = item.ts;
+        String t = item.text == null ? "" : item.text;
+        pendingRefText = t.length() > 40 ? t.substring(0, 40) + "…" : t;
+        if (tvQuoteStrip != null) {
+            tvQuoteText.setText(getString(R.string.chat_quote_strip, pendingRefText));
+            tvQuoteStrip.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void clearPendingQuote() {
+        pendingRefMsgId = 0;
+        pendingRefText = null;
+        if (tvQuoteStrip != null) tvQuoteStrip.setVisibility(View.GONE);
+    }
+
+    // --- 输入中 / 已读 / 撤回 ---
+
+    private void showTypingHint() {
+        if (tvTypingHint == null) return;
+        tvTypingHint.setVisibility(View.VISIBLE);
+        chatUiHandler.removeCallbacks(hideTypingRunnable);
+        chatUiHandler.postDelayed(hideTypingRunnable, 3000);
+    }
+
+    private void handleChatRead(WsMessage message) {
+        Object upTo = message.getPayload() != null ? message.getPayload().get("upToTs") : null;
+        final long upToTs = upTo instanceof Number ? ((Number) upTo).longValue() : 0;
+        if (upToTs <= 0) return;
+        AppDatabase.dbExecutor.execute(() ->
+                AppDatabase.getInstance(MainActivity.this).chatDao().markOwnRead(upToTs));
+        List<Integer> changed = new ArrayList<>();
+        for (int i = 0; i < chatAdapter.getItemCount(); i++) {
+            ChatItem it = chatAdapter.items.get(i);
+            if (it.type == TYPE_SELF && !it.peerRead && it.ts <= upToTs) {
+                it.peerRead = true;
+                changed.add(i);
+            }
+        }
+        for (int p : changed) {
+            chatAdapter.notifyItemChanged(p);
+        }
+    }
+
+    private void handleChatRecall(WsMessage message) {
+        Object ts = message.getPayload() != null ? message.getPayload().get("msgTs") : null;
+        final long msgTs = ts instanceof Number ? ((Number) ts).longValue() : 0;
+        if (msgTs <= 0) return;
+        AppDatabase.dbExecutor.execute(() ->
+                AppDatabase.getInstance(MainActivity.this).chatDao().markDeletedByTs(msgTs));
+        for (int i = 0; i < chatAdapter.getItemCount(); i++) {
+            ChatItem it = chatAdapter.items.get(i);
+            if (it.ts == msgTs && !it.deleted) {
+                it.deleted = true;
+                chatAdapter.notifyItemChanged(i);
+                return;
+            }
+        }
+    }
+
+    private void scrollToRef(long refMsgId) {
+        List<ChatItem> items = chatAdapter.items;
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).ts == refMsgId) {
+                rvChat.smoothScrollToPosition(i);
+                return;
+            }
+        }
+    }
+
+    /** 长按文本消息菜单：引用（双方）/ 撤回（自己且 2 分钟内） */
+    private void showChatItemActions(ChatItem item, int position) {
+        List<String> actions = new ArrayList<>();
+        actions.add(getString(R.string.chat_action_quote));
+        int dangerIndex = -1;
+        if (item.type == TYPE_SELF && !item.deleted
+                && System.currentTimeMillis() - item.ts <= 2 * 60_000L) {
+            actions.add(getString(R.string.chat_action_recall));
+            dangerIndex = actions.size() - 1;
+        }
+        UiDialogs.list(this, getString(R.string.chat_action_title),
+                actions.toArray(new String[0]), dangerIndex, idx -> {
+                    if (idx == 0) {
+                        setPendingQuote(item);
+                    } else if (idx == 1) {
+                        MonitorService.sendChatRecall(MainActivity.this, item.ts);
+                        item.deleted = true;
+                        chatAdapter.notifyItemChanged(position);
+                        AppDatabase.dbExecutor.execute(() ->
+                                AppDatabase.getInstance(MainActivity.this)
+                                        .chatDao().markDeletedByTs(item.ts));
+                    }
+                });
     }
 
     // --- 消息接收 ---
@@ -936,6 +1312,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case "chat":
                 handleChatMessage(message);
+                break;
+            case "typing":
+                showTypingHint();
+                break;
+            case "chat_read":
+                handleChatRead(message);
+                break;
+            case "chat_recall":
+                handleChatRecall(message);
                 break;
             case "sync_chat_done":
                 // SyncManager 拉取历史后广播：从 Room 全量重载聊天（离线消息显示）
@@ -1006,10 +1391,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
         long now = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        long refMsgId = 0;
+        String refText = null;
+        if (payload != null) {
+            Object rid = payload.get("refMsgId");
+            if (rid instanceof Number) refMsgId = ((Number) rid).longValue();
+            Object rt = payload.get("refText");
+            if (rt instanceof String) refText = (String) rt;
+        }
         chatAdapter.addItem(new ChatItem(TYPE_PEER, text, from,
-                TIME_FORMAT.format(new Date(now)), now));
+                TIME_FORMAT.format(new Date(now)), now, refMsgId, refText));
         // 持久化已在 MonitorService（服务层）完成，这里只渲染
         scrollToBottom();
+
+        // 聊天页可见且有对方消息 → 回执已读（含更早未回执的）
+        if (now > peerUpToTs) peerUpToTs = now;
+        if (viewChatPanel.getVisibility() == View.VISIBLE && peerUpToTs > 0) {
+            MonitorService.sendChatRead(MainActivity.this, peerUpToTs);
+        }
     }
 
     private void appendSystemItem(String appName) {
@@ -1430,13 +1829,25 @@ public class MainActivity extends AppCompatActivity {
         public final String from;
         public final String time;
         public final long ts;
+        /** P2：对方已读（自己消息） / 已撤回 / 引用 */
+        public boolean peerRead;
+        public boolean deleted;
+        public long refMsgId;
+        public String refText;
 
         public ChatItem(int type, String text, String from, String time, long ts) {
+            this(type, text, from, time, ts, 0, null);
+        }
+
+        public ChatItem(int type, String text, String from, String time, long ts,
+                        long refMsgId, String refText) {
             this.type = type;
             this.text = text;
             this.from = from;
             this.time = time;
             this.ts = ts;
+            this.refMsgId = refMsgId;
+            this.refText = refText;
         }
     }
 
@@ -1500,6 +1911,8 @@ public class MainActivity extends AppCompatActivity {
             TextView tvText;
             TextView tvTime;
             TextView tvFrom;
+            TextView tvRead;
+            TextView tvRef;
             // 媒体气泡视图
             LinearLayout llMediaBubble;
             FrameLayout flMediaContainer;
@@ -1515,11 +1928,13 @@ public class MainActivity extends AppCompatActivity {
                     case TYPE_SELF:
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
+                        tvRead = view.findViewById(R.id.tv_chat_read);
                         break;
                     case TYPE_PEER:
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvFrom = view.findViewById(R.id.tv_chat_from);
+                        tvRef = view.findViewById(R.id.tv_chat_ref);
                         break;
                     case TYPE_MEDIA_SELF:
                     case TYPE_MEDIA_PEER:
@@ -1542,19 +1957,45 @@ public class MainActivity extends AppCompatActivity {
                 bind(item, getBindingAdapterPosition());
             }
 
+            void bindTextDeleted(ChatItem item, TextView tv) {
+                tv.setText(item.deleted ? getString(R.string.chat_recalled) : item.text);
+            }
+
+            void bindItemLongPress(ChatItem item) {
+                itemView.setOnLongClickListener(v -> {
+                    if (item.deleted) return true;
+                    int p = getBindingAdapterPosition();
+                    if (p >= 0) {
+                        showChatItemActions(item, p);
+                    }
+                    return true;
+                });
+            }
+
             void bind(ChatItem item, int position) {
                 switch (viewType) {
                     case TYPE_SELF:
-                        tvText.setText(item.text);
+                        bindTextDeleted(item, tvText);
                         tvTime.setText(item.time);
+                        tvRead.setVisibility(item.deleted || !item.peerRead
+                                ? View.GONE : View.VISIBLE);
+                        bindItemLongPress(item);
                         break;
                     case TYPE_PEER:
-                        tvText.setText(item.text);
+                        bindTextDeleted(item, tvText);
                         tvTime.setText(item.time);
                         String from = item.from != null && !item.from.isEmpty()
                                 ? item.from : prefs.getPeerNickname();
                         tvFrom.setText(from != null && !from.isEmpty()
                                 ? from : getString(R.string.chat_title_default));
+                        if (item.refMsgId > 0 && item.refText != null) {
+                            tvRef.setVisibility(View.VISIBLE);
+                            tvRef.setText(item.refText);
+                            tvRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
+                        } else {
+                            tvRef.setVisibility(View.GONE);
+                        }
+                        bindItemLongPress(item);
                         break;
                     case TYPE_MEDIA_SELF:
                     case TYPE_MEDIA_PEER:
@@ -1598,11 +2039,18 @@ public class MainActivity extends AppCompatActivity {
         final String mime = meta != null ? meta.mime : null;
         final long duration = meta != null ? meta.duration : 0;
         final boolean video = MediaUtils.isVideo(mime);
+        final boolean audio = mime != null && mime.startsWith("audio/");
         h.flVideoBadge.setVisibility(video ? View.VISIBLE : View.GONE);
 
         final String localPath = meta != null ? meta.localPath : null;
         final boolean downloaded = localPath != null && new File(localPath).exists();
-        if (downloaded) {
+        if (audio) {
+            // P2 语音消息：始终占位样式（时长 + 播放状态），无缩略图
+            h.ivMediaThumb.setVisibility(View.GONE);
+            h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.tvMediaHint.setText(getString(R.string.voice_play_hint,
+                    formatVoiceDuration(duration)));
+        } else if (downloaded) {
             h.ivMediaThumb.setVisibility(View.VISIBLE);
             h.llMediaPlaceholder.setVisibility(View.GONE);
             loadThumb(h.ivMediaThumb, localPath, mime);
@@ -1614,7 +2062,10 @@ public class MainActivity extends AppCompatActivity {
 
         final boolean unmetered = isUnmeteredConnected();
         h.flMediaContainer.setOnClickListener(v -> {
-            if (downloaded) {
+            if (audio) {
+                // P2 语音：下载（如有）并播放/停止
+                toggleVoice(fileId, localPath, duration, h, position);
+            } else if (downloaded) {
                 MediaUtils.launchViewer(MainActivity.this, fileId, mime, duration, localPath);
             } else {
                 // 点击占位图：下载并直接打开（原行为）

@@ -34,4 +34,12 @@ public interface ChatDao {
     /** 指定媒体聊天气泡数量（上传后服务器与发送端都可能广播 media，按 fileId 去重） */
     @Query("SELECT COUNT(*) FROM chat WHERE kind = 'media' AND text = :fileId")
     int countMediaChat(String fileId);
+
+    /** P2：标记自己发送、ts 不晚于 upToTs 的消息为对方已读 */
+    @Query("UPDATE chat SET peer_read = 1 WHERE is_self = 1 AND timestamp <= :upToTs")
+    void markOwnRead(long upToTs);
+
+    /** P2：按时间戳标记消息已撤回 */
+    @Query("UPDATE chat SET deleted = 1 WHERE timestamp = :msgTs")
+    void markDeletedByTs(long msgTs);
 }

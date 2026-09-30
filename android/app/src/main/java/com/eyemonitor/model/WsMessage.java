@@ -73,10 +73,35 @@ public class WsMessage {
 
     /** 聊天消息：payload 携带 text（内容）与 from（发送者昵称） */
     public static WsMessage createChat(String deviceId, String pairCode, String text, String from) {
+        return createChat(deviceId, pairCode, text, from, 0, null);
+    }
+
+    /** 聊天消息（引用扩展）：refMsgId=被引用消息时间戳（两端一致），refText=摘要 */
+    public static WsMessage createChat(String deviceId, String pairCode, String text, String from,
+                                       long refMsgId, String refText) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("text", text);
         payload.put("from", from);
+        if (refMsgId > 0) payload.put("refMsgId", refMsgId);
+        if (refText != null && !refText.isEmpty()) payload.put("refText", refText);
         return new WsMessage("chat", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 输入中（ephemeral，不落库；对方在线时 3s 内提示） */
+    public static WsMessage createTyping(String deviceId, String pairCode) {
+        return new WsMessage("typing", deviceId, pairCode, Map.of(), System.currentTimeMillis());
+    }
+
+    /** 已读回执：upToTs=已读到的对方消息时间戳（含更早） */
+    public static WsMessage createChatRead(String deviceId, String pairCode, long upToTs) {
+        return new WsMessage("chat_read", deviceId, pairCode,
+                Map.of("upToTs", upToTs), System.currentTimeMillis());
+    }
+
+    /** 撤回指令：msgTs=被撤回消息时间戳（2 分钟窗口内） */
+    public static WsMessage createChatRecall(String deviceId, String pairCode, long msgTs) {
+        return new WsMessage("chat_recall", deviceId, pairCode,
+                Map.of("msgTs", msgTs), System.currentTimeMillis());
     }
 
     // --- 账户体系扩展消息类型（契约 v1，与 server 侧同步） ---

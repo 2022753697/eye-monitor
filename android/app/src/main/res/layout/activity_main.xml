@@ -145,6 +145,17 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
+                <!-- 对方正在输入…（typing 事件时显示 3s） -->
+                <TextView
+                    android:id="@+id/tv_typing_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/chat_typing_hint"
+                    android:textColor="@color/text_on_primary"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    android:layout_marginTop="1dp" />
+
                 <!-- 对方设备状态一行：电量图标+百分比 · 充电图标 · 网络 · 蓝牙图标 · 在线；点击进详情页 -->
                 <LinearLayout
                     android:id="@+id/peer_status_bar"
@@ -282,6 +293,41 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+        <!-- 引用回复条（选择引用后出现，消息发送后消失） -->
+        <LinearLayout
+            android:id="@+id/ll_quote_strip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_card"
+            android:paddingStart="12dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_quote_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <ImageButton
+                android:id="@+id/btn_quote_cancel"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_close"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:tint="@color/text_secondary"
+                android:contentDescription="@string/cancel" />
+        </LinearLayout>
 
 
 

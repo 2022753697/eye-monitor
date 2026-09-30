@@ -19,6 +19,25 @@
         android:layout_marginBottom="2dp"
         android:layout_marginStart="4dp" />
 
+    <!-- 引用回复条（refMsgId>0 时显示，点击定位到原消息） -->
+    <TextView
+        android:id="@+id/tv_chat_ref"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="220dp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:background="@drawable/bg_quote_ref"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_marginBottom="2dp"
+        android:layout_marginStart="4dp"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/tv_chat_text"
         android:layout_width="wrap_content"

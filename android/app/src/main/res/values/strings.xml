@@ -84,6 +84,28 @@
     <string name="btn_create_pair_code">创建配对码</string>
     <string name="chat_title_default">对方</string>
     <string name="chat_hint_input">输入消息…</string>
+
+    <!-- P2 聊天增强 -->
+    <string name="chat_typing_hint">对方正在输入…</string>
+    <string name="chat_read_label">已读</string>
+    <string name="chat_recalled">已撤回</string>
+    <string name="chat_action_title">消息操作</string>
+    <string name="chat_action_quote">引用</string>
+    <string name="chat_action_recall">撤回</string>
+    <string name="chat_quote_strip">引用「%1$s」</string>
+    <string name="chat_tool_title">快捷工具</string>
+    <string name="chat_tool_emoji">表情</string>
+    <string name="chat_tool_voice">语音</string>
+    <string name="voice_recording_title">录音中…</string>
+    <string name="voice_recording_hint">轻点「结束录音」完成发送，最长 60 秒</string>
+    <string name="voice_recording_stop">结束录音</string>
+    <string name="voice_recording_cancel">取消</string>
+    <string name="voice_record_failed">录音启动失败</string>
+    <string name="voice_too_short">录音太短（至少 1 秒）</string>
+    <string name="voice_uploading">语音上传中…</string>
+    <string name="voice_upload_failed">语音上传失败：%1$s</string>
+    <string name="voice_play_hint">🎵 语音 %1$s · 点按播放</string>
+    <string name="voice_playing">🎵 播放中…</string>
     <string name="chat_empty">配对成功，开始聊天吧～</string>
     <string name="chat_peer_opened">对方打开了 %1$s</string>
     <string name="chat_peer_opened_prefix">对方打开了 </string>

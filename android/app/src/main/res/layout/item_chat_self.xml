@@ -20,12 +20,29 @@
         android:lineSpacingExtra="2dp"
         android:padding="12dp" />
 
-    <TextView
-        android:id="@+id/tv_chat_time"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_secondary"
-        android:textSize="10sp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginTop="2dp"
-        android:layout_marginEnd="4dp" />
+        android:layout_marginEnd="4dp">
+
+        <TextView
+            android:id="@+id/tv_chat_read"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/chat_read_label"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp"
+            android:layout_marginEnd="2dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_chat_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+    </LinearLayout>
 </LinearLayout>

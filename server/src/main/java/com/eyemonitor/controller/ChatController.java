@@ -50,6 +50,10 @@ public class ChatController {
             m.put("isSystem", e.isSystem());
             m.put("kind", e.getKind() == null ? "chat" : e.getKind());
             m.put("ts", e.getTs());
+            m.put("readTs", e.getReadTs());
+            m.put("deleted", e.isDeleted());
+            m.put("refMsgId", e.getRefMsgId());
+            m.put("refText", e.getRefText());
             out.add(m);
         }
         return ApiResponse.ok(out);

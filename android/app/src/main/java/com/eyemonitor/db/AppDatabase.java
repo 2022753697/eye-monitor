@@ -24,8 +24,19 @@ import java.util.concurrent.Executors;
         FenceCacheEntity.class,
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
-        FolderCacheEntity.class}, version = 4, exportSchema = false)
+        FolderCacheEntity.class}, version = 5, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v4 -> v5：聊天消息 P2 四字段（已读/撤回/引用） */
+    public static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `peer_read` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `deleted` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `ref_msg_id` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `chat` ADD COLUMN `ref_text` TEXT");
+        }
+    };
 
     /** v3 -> v4：图库文件夹（media_cache 加 folder_id 列 + folder_cache 表） */
     public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
@@ -85,7 +96,8 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
+                                    MIGRATION_4_5)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

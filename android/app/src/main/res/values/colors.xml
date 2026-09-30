@@ -9,6 +9,7 @@
     <color name="background">#FFF9F7</color>
     <color name="surface">#FFFFFF</color>
     <color name="surface_alt">#FFF0EC</color>
+    <color name="surface_variant">#F6EFEC</color>
 
     <!-- 文本 -->
     <color name="text_primary">#4A3B3D</color>

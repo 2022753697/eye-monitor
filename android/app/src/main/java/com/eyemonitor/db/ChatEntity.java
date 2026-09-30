@@ -32,6 +32,22 @@ public class ChatEntity {
     @ColumnInfo(name = "timestamp")
     public long timestamp;
 
+    /** P2：对方已读我的消息（chat_read 落地） */
+    @ColumnInfo(name = "peer_read", defaultValue = "0")
+    public boolean peerRead;
+
+    /** P2：已撤回（本地+对方+离线补收均渲染「已撤回」） */
+    @ColumnInfo(name = "deleted", defaultValue = "0")
+    public boolean deleted;
+
+    /** P2：被引用消息时间戳（0=无引用；两端一致的消息标识） */
+    @ColumnInfo(name = "ref_msg_id", defaultValue = "0")
+    public long refMsgId;
+
+    /** P2：引用摘要文本 */
+    @ColumnInfo(name = "ref_text")
+    public String refText;
+
     public ChatEntity() {}
 
     @androidx.room.Ignore
@@ -41,5 +57,13 @@ public class ChatEntity {
         this.fromName = fromName;
         this.isSelf = isSelf;
         this.timestamp = timestamp;
+    }
+
+    @androidx.room.Ignore
+    public ChatEntity(String kind, String text, String fromName, boolean isSelf, long timestamp,
+                      long refMsgId, String refText) {
+        this(kind, text, fromName, isSelf, timestamp);
+        this.refMsgId = refMsgId;
+        this.refText = refText;
     }
 }

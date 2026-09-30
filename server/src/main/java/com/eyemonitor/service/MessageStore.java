@@ -31,12 +31,20 @@ public class MessageStore {
         this.sosRepo = sosRepo;
     }
 
+    /** 撤回允许窗口（毫秒）：与规格「撤回限 2 分钟」一致 */
+    public static final long RECALL_WINDOW_MS = 2 * 60_000L;
+
     public void saveChat(String pairCode, long fromUser, String text, boolean isSystem, long ts) {
-        saveChat(pairCode, fromUser, text, isSystem, ts, "chat");
+        saveChat(pairCode, fromUser, text, isSystem, ts, "chat", null, null);
     }
 
     public void saveChat(String pairCode, long fromUser, String text, boolean isSystem,
                          long ts, String kind) {
+        saveChat(pairCode, fromUser, text, isSystem, ts, kind, null, null);
+    }
+
+    public void saveChat(String pairCode, long fromUser, String text, boolean isSystem,
+                         long ts, String kind, Long refMsgId, String refText) {
         try {
             if (pairCode == null || text == null) return;
             ChatMessageEntity e = new ChatMessageEntity();
@@ -46,9 +54,53 @@ public class MessageStore {
             e.setSystem(isSystem);
             e.setTs(ts > 0 ? ts : System.currentTimeMillis());
             e.setKind(kind);
+            e.setRefMsgId(refMsgId != null && refMsgId > 0 ? refMsgId : null);
+            e.setRefText(refText);
             chatRepo.save(e);
         } catch (Exception ex) {
             log.error("聊天消息落库失败", ex);
+        }
+    }
+
+    /**
+     * 标记已读（chat_read）：该配对中非 reader 发送、ts &lt;= upToTs 且未读的消息置 read_ts。
+     *
+     * @return 本次新标记条数
+     */
+    public int markChatRead(String pairCode, long readerUserId, long upToTs) {
+        try {
+            if (pairCode == null) return 0;
+            return chatRepo.markRead(pairCode, readerUserId, upToTs, System.currentTimeMillis());
+        } catch (Exception ex) {
+            log.error("标记已读失败", ex);
+            return 0;
+        }
+    }
+
+    /**
+     * 撤回（chat_recall）：按 时间戳 定位该配对消息，2 分钟窗口内置 deleted。
+     *
+     * @return true=撤回成功（窗口内且找到消息）；false=超时/未找到（不入库不转发）
+     */
+    public boolean recallChat(String pairCode, long msgTs) {
+        try {
+            if (pairCode == null) return false;
+            ChatMessageEntity e = chatRepo.findByPairCodeAndTs(pairCode, msgTs);
+            if (e == null) {
+                log.warn("撤回失败：消息不存在 pair={} ts={}", pairCode, msgTs);
+                return false;
+            }
+            long now = System.currentTimeMillis();
+            if (now - e.getTs() > RECALL_WINDOW_MS) {
+                log.warn("撤回失败：超出 2 分钟窗口 pair={} ts={}", pairCode, msgTs);
+                return false;
+            }
+            e.setDeleted(true);
+            chatRepo.save(e);
+            return true;
+        } catch (Exception ex) {
+            log.error("撤回失败", ex);
+            return false;
         }
     }
 
