@@ -1614,42 +1614,51 @@ public class MainActivity extends AppCompatActivity {
             if (downloaded) {
                 MediaUtils.launchViewer(MainActivity.this, fileId, mime, duration, localPath);
             } else {
-                startMediaDownload(h, fileId, mime, duration, position);
+                // 点击占位图：下载并直接打开（原行为）
+                h.tvMediaHint.setText(R.string.media_downloading);
+                MediaUtils.openMedia(MainActivity.this, fileId, mime, duration,
+                        null, new MediaUtils.MediaCb() {
+                            @Override
+                            public void onReady(String path) {
+                                h.itemView.post(() -> {
+                                    MediaCacheEntity m = mediaByFileId.get(fileId);
+                                    if (m != null) m.localPath = path;
+                                    chatAdapter.notifyItemChanged(position);
+                                });
+                            }
+
+                            @Override
+                            public void onError(int code, String msg) {
+                                h.itemView.post(() -> {
+                                    h.tvMediaHint.setText(R.string.media_download_hint);
+                                    Toast.makeText(MainActivity.this, R.string.media_download_failed,
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        });
             }
         });
-        // WiFi 下未下载的新媒体自动下载；流量/无网络保持「点击下载」手动提示
+        // WiFi 自动下载：仅下载不打开查看器（避免弹窗打扰）
         if (!downloaded && wifi && mediaAutoDownloading.add(fileId)) {
             h.tvMediaHint.setText(R.string.media_downloading);
-            startMediaDownload(h, fileId, mime, duration, position);
+            MediaUtils.ensureDownloaded(MainActivity.this, fileId, null,
+                    new MediaUtils.MediaCb() {
+                        @Override
+                        public void onReady(String path) {
+                            h.itemView.post(() -> {
+                                MediaCacheEntity m = mediaByFileId.get(fileId);
+                                if (m != null) m.localPath = path;
+                                chatAdapter.notifyItemChanged(position);
+                            });
+                        }
+
+                        @Override
+                        public void onError(int code, String msg) {
+                            h.itemView.post(() ->
+                                    h.tvMediaHint.setText(R.string.media_download_hint));
+                        }
+                    });
         }
-    }
-
-    /** 下载媒体并更新气泡（点击与 WiFi 自动下载共用） */
-    private void startMediaDownload(ChatAdapter.ViewHolder h, String fileId,
-                                    String mime, long duration, int position) {
-        h.tvMediaHint.setText(R.string.media_downloading);
-        MediaUtils.openMedia(MainActivity.this, fileId, mime, duration, null,
-                new MediaUtils.MediaCb() {
-                    @Override
-                    public void onReady(String path) {
-                        // 用 itemView.post 而非 runOnUiThread：下载可能同步完成于 RecyclelerView 布局期，
-                        // runOnUiThread 在主线程立即执行 notifyItemChanged 会抛 "Cannot call while computing layout"
-                        h.itemView.post(() -> {
-                            MediaCacheEntity m = mediaByFileId.get(fileId);
-                            if (m != null) m.localPath = path;
-                            chatAdapter.notifyItemChanged(position);
-                        });
-                    }
-
-                    @Override
-                    public void onError(int code, String msg) {
-                        h.itemView.post(() -> {
-                            h.tvMediaHint.setText(R.string.media_download_hint);
-                            Toast.makeText(MainActivity.this, R.string.media_download_failed,
-                                    Toast.LENGTH_SHORT).show();
-                        });
-                    }
-                });
     }
 
     /** 当前是否 Wi-Fi 网络（自动下载策略依据） */
