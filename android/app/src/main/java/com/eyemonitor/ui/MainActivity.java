@@ -58,6 +58,7 @@ import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.AccessibilityDiagnostic;
 import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.util.MediaUtils;
+import com.eyemonitor.util.Transitions;
 import com.eyemonitor.util.UiDialogs;
 
 import com.bumptech.glide.Glide;
@@ -200,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
         if (!prefs.isLoggedIn()) {
             Log.d(TAG, "未登录，进入登录页");
             startActivity(new Intent(this, LoginActivity.class));
+            Transitions.push(this);
             finish();
             return;
         }
@@ -247,12 +249,21 @@ public class MainActivity extends AppCompatActivity {
 
         btnJoinPair.setOnClickListener(v -> joinPair());
         btnCreatePair.setOnClickListener(v -> createPair());
-        btnChatMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
-        btnChatGallery.setOnClickListener(v -> startActivity(new Intent(this, GalleryActivity.class)));
+        btnChatMap.setOnClickListener(v -> {
+            startActivity(new Intent(this, MapActivity.class));
+            Transitions.push(this);
+        });
+        btnChatGallery.setOnClickListener(v -> {
+            startActivity(new Intent(this, GalleryActivity.class));
+            Transitions.push(this);
+        });
         btnChatMore.setOnClickListener(v -> toggleMorePanel());
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 顶栏状态行点击进对方设备状态详情页
-        peerStatusBar.setOnClickListener(v -> startActivity(new Intent(this, DeviceStatusActivity.class)));
+        peerStatusBar.setOnClickListener(v -> {
+            startActivity(new Intent(this, DeviceStatusActivity.class));
+            Transitions.push(this);
+        });
         btnAddMedia.setOnClickListener(v -> pickMedia());
 
         // 更多面板：格子绑定
@@ -282,10 +293,12 @@ public class MainActivity extends AppCompatActivity {
         morePanel.findViewById(R.id.grid_profile).setOnClickListener(v -> {
             hideMorePanel();
             startActivity(new Intent(this, ProfileActivity.class));
+            Transitions.push(this);
         });
         morePanel.findViewById(R.id.grid_track).setOnClickListener(v -> {
             hideMorePanel();
             startActivity(new Intent(this, TrackReplayActivity.class));
+            Transitions.push(this);
         });
 
         // 发送按钮状态色：无输入灰 / 有输入粉
@@ -327,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
                     public boolean onSingleTapUp(android.view.MotionEvent e) {
                         // OnTouchListener 拦截了 click，这里手动触发跳转纪念日页
                         startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
+                        Transitions.push(MainActivity.this);
                         return true;
                     }
                     @Override
@@ -1250,6 +1264,7 @@ public class MainActivity extends AppCompatActivity {
     private void openPermissionSettings() {
         if (prefs.isPaired() && isServiceRunning()) {
             startActivity(new Intent(this, MonitorActivity.class));
+            Transitions.push(this);
         } else {
             requestNotificationPermission();
         }

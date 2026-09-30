@@ -212,6 +212,10 @@ public final class MediaUtils {
             i.putExtra(MediaViewActivity.EXTRA_PATH, localPath);
             context.startActivity(i);
         }
+        // 全屏页由下而上进入
+        if (context instanceof android.app.Activity) {
+            Transitions.up((android.app.Activity) context);
+        }
     }
 
     /** 删除本地缓存文件（Room 行删除由调用方负责） */

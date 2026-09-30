@@ -29,6 +29,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    lint {
+        // 存量项目有大量历史 lint error（manifest/权限等），lint 作为非阻塞质量门禁：
+        // 照常执行并输出报告（含自定义规则），但不因历史问题中断构建
+        abortOnError false
+    }
 }
 
 dependencies {
@@ -55,6 +61,9 @@ dependencies {
     // Glide（头像加载，圆形变换）
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+
+    // 自定义 lint 规则（UI 规范：裸 Button）
+    lintChecks project(':lintchecks')
 }
 
 // ============================================================

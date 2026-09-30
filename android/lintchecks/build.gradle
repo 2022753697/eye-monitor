@@ -1,0 +1,19 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    compileOnly 'com.android.tools.lint:lint-api:31.1.1'
+    compileOnly 'com.android.tools.lint:lint-checks:31.1.1'
+}
+
+jar {
+    manifest {
+        attributes('Lint-Registry': 'com.eyemonitor.lint.EyeMonitorIssueRegistry')
+    }
+}
