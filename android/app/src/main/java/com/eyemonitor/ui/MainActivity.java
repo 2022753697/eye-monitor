@@ -1551,7 +1551,8 @@ public class MainActivity extends AppCompatActivity {
                     case TYPE_PEER:
                         tvText.setText(item.text);
                         tvTime.setText(item.time);
-                        String from = item.from;
+                        String from = item.from != null && !item.from.isEmpty()
+                                ? item.from : prefs.getPeerNickname();
                         tvFrom.setText(from != null && !from.isEmpty()
                                 ? from : getString(R.string.chat_title_default));
                         break;
@@ -1586,7 +1587,8 @@ public class MainActivity extends AppCompatActivity {
             h.tvFrom.setVisibility(View.GONE);
         } else {
             h.tvFrom.setVisibility(View.VISIBLE);
-            String from = item.from;
+            String from = item.from != null && !item.from.isEmpty()
+                    ? item.from : prefs.getPeerNickname();
             h.tvFrom.setText(from != null && !from.isEmpty()
                     ? from : getString(R.string.chat_title_default));
         }
