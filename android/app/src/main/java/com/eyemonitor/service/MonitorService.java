@@ -116,6 +116,14 @@ public class MonitorService extends Service {
     private volatile boolean locationStarted = false;
     private boolean wsFromPairActivity = false;
 
+    /** 位置上报限流（R1 静止去重 + R2 最小间隔） */
+    private static final long LOC_MIN_REPORT_INTERVAL_MS = 60_000L;
+    private static final double LOC_SEND_DISTANCE_M = 20.0;
+    private static final double LOC_IMMEDIATE_DISTANCE_M = 200.0;
+    private long lastLocationReportTs;
+    private double lastReportLat;
+    private double lastReportLng;
+
     private final Runnable locationReportRunnable = new Runnable() {
         @Override
         public void run() {
@@ -612,7 +620,27 @@ public class MonitorService extends Service {
             Log.w(TAG, "WebSocket 未连接，跳过位置上报");
             return;
         }
+        long now = System.currentTimeMillis();
+        double lat = locationTracker.getLastLat();
+        double lng = locationTracker.getLastLng();
+        if (lastLocationReportTs > 0) {
+            double dist = LocationTracker.distanceMeters(lastReportLat, lastReportLng, lat, lng);
+            // R1 静止去重：位移 < 20m 不上报
+            if (dist < LOC_SEND_DISTANCE_M) {
+                Log.d(TAG, "位置静止未变(<" + LOC_SEND_DISTANCE_M + "m)，跳过上报");
+                return;
+            }
+            // R2 最小间隔：<60s 且无大位移(>200m) 不上报（大位移=行车/高铁，立即上报保轨迹）
+            if (now - lastLocationReportTs < LOC_MIN_REPORT_INTERVAL_MS
+                    && dist < LOC_IMMEDIATE_DISTANCE_M) {
+                Log.d(TAG, "位置间隔<60s 且位移<200m，跳过上报");
+                return;
+            }
+        }
         sendLocation();
+        lastLocationReportTs = now;
+        lastReportLat = lat;
+        lastReportLng = lng;
     }
 
     /** 发送当前最新位置（不检查hasLocation，用于即时请求响应） */
