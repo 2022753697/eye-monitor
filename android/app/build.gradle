@@ -65,6 +65,9 @@ dependencies {
     // 单元测试（纯 JVM，无 Robolectric）
     testImplementation 'junit:junit:4.13.2'
 
+    // WorkManager（P1 轻量保活：周期自检拉起监控服务）
+    implementation 'androidx.work:work-runtime:2.9.0'
+
     // 自定义 lint 规则（UI 规范：裸 Button）
     lintChecks project(':lintchecks')
 }

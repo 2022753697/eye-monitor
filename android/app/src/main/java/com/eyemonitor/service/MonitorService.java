@@ -96,6 +96,20 @@ public class MonitorService extends Service {
 
     private PrefsManager prefs;
     private WSClient wsClient;
+
+    /** 进程内单例引用（KeepAliveWorker 存活判定用） */
+    private static volatile MonitorService instance;
+
+    /** 监控服务是否存活（KeepAliveWorker 周期自检用） */
+    public static boolean isRunning() {
+        return instance != null;
+    }
+
+    /** WebSocket 是否已连接（仅诊断日志；断线重连由 WSClient 指数退避自行处理） */
+    public static boolean isWsConnected() {
+        MonitorService s = instance;
+        return s != null && s.wsClient != null && s.wsClient.isConnected();
+    }
     private LocationTracker locationTracker;
     private DeviceStatusTracker deviceStatusTracker;
     private AppUsageTracker appUsageTracker;
@@ -143,6 +157,9 @@ public class MonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
+        instance = this;
+        // P1 轻量保活：幂等注册 15 分钟周期自检（重复启动只保留一个周期任务）
+        KeepAliveScheduler.schedule(this);
         prefs = new PrefsManager(this);
         Log.i(TAG, "本机deviceId: " + prefs.getDeviceId() + ", pairCode: " + prefs.getPairCode());
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -357,6 +374,9 @@ public class MonitorService extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        if (instance == this) {
+            instance = null;
+        }
         handler.removeCallbacks(locationReportRunnable);
         handler.removeCallbacks(anniversaryCheckRunnable);
         if (locationTracker != null) locationTracker.stop();
