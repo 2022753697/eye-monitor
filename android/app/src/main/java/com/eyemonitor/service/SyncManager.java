@@ -46,7 +46,64 @@ public final class SyncManager {
         syncFences(context);
         syncFolders(context);
         syncChats(context);
+        syncMediaMeta(context);
         pruneLocalCaches(context);
+    }
+
+    /** 同步媒体元数据（fileId/mime/duration），离线补收的媒体消息渲染与自动下载依赖它 */
+    private static void syncMediaMeta(Context context) {
+        String pairCode = new PrefsManager(context).getPairCode();
+        if (pairCode == null) return;
+        AppDatabase db = AppDatabase.getInstance(context);
+        AuthManager.i(context).getElement(context, "/api/media",
+                new AuthManager.ElementCallback() {
+                    @Override
+                    public void onSuccess(JsonElement data) {
+                        if (data == null || !data.isJsonArray()) return;
+                        JsonArray arr = data.getAsJsonArray();
+                        AppDatabase.dbExecutor.execute(() -> {
+                            int n = 0;
+                            for (int i = 0; i < arr.size(); i++) {
+                                JsonObject o = arr.get(i).getAsJsonObject();
+                                String fileId = o.has("fileId") ? o.get("fileId").getAsString() : null;
+                                if (fileId == null || fileId.isEmpty()) continue;
+                                com.eyemonitor.db.MediaCacheEntity m = new com.eyemonitor.db.MediaCacheEntity();
+                                m.fileId = fileId;
+                                m.mime = o.has("mime") && !o.get("mime").isJsonNull()
+                                        ? o.get("mime").getAsString() : null;
+                                m.size = o.has("size") ? o.get("size").getAsLong() : 0L;
+                                m.duration = o.has("duration") && !o.get("duration").isJsonNull()
+                                        ? o.get("duration").getAsLong() : 0L;
+                                m.serverFileName = o.has("fileName") && !o.get("fileName").isJsonNull()
+                                        ? o.get("fileName").getAsString() : null;
+                                db.cacheDao().upsertMedia(m);
+                                n++;
+                            }
+                            Log.i(TAG, "媒体元数据同步: " + n + " 条");
+                            if (n > 0) {
+                                broadcastChatReload(context);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(int code, String msg) {
+                        Log.w(TAG, "媒体元数据同步错误: " + code + " " + msg);
+                    }
+                });
+    }
+
+    /** 广播 sync_chat_done：聊天页从 Room 全量重载（历史/媒体气泡显示） */
+    private static void broadcastChatReload(Context context) {
+        try {
+            android.content.Intent i = new android.content.Intent(MonitorService.ACTION_EVENT);
+            i.putExtra(MonitorService.EXTRA_EVENT_JSON,
+                    "{\"type\":\"sync_chat_done\",\"deviceId\":\"\",\"pairCode\":\"\","
+                            + "\"payload\":{},\"timestamp\":" + System.currentTimeMillis() + "}");
+            context.sendBroadcast(i);
+        } catch (Exception e) {
+            Log.e(TAG, "广播聊天刷新失败", e);
+        }
     }
 
     /** 30 天保留清理（与服务器策略一致；媒体缓存不清理——媒体永久保留） */
@@ -219,9 +276,13 @@ public final class SyncManager {
                                 long ts = o.has("ts") ? o.get("ts").getAsLong() : System.currentTimeMillis();
                                 String text = o.has("text") ? o.get("text").getAsString() : "";
                                 boolean isSystem = o.has("isSystem") && o.get("isSystem").getAsBoolean();
+                                String kind = o.has("kind") && !o.get("kind").isJsonNull()
+                                        ? o.get("kind").getAsString() : null;
+                                String localKind = isSystem ? "system"
+                                        : ("media".equals(kind) ? "media" : "chat");
                                 // 服务器 fromUser 为账号 ID，本地无用户 ID 映射：
                                 // 历史消息按 peer 渲染（isSelf=false）；单设备离线窗口内多为对方消息，语义可接受
-                                list.add(new ChatEntity(isSystem ? "system" : "chat",
+                                list.add(new ChatEntity(localKind,
                                         text, null, false, ts));
                             }
                             if (list.isEmpty()) return;
@@ -231,15 +292,7 @@ public final class SyncManager {
                                 }
                                 Log.i(TAG, "聊天历史增量同步: " + list.size() + " 条 (afterTs=" + afterTs + ")");
                                 // 通知聊天页从 Room 重载（离线消息显示的关键一步）
-                                try {
-                                    android.content.Intent i = new android.content.Intent(MonitorService.ACTION_EVENT);
-                                    i.putExtra(MonitorService.EXTRA_EVENT_JSON,
-                                            "{\"type\":\"sync_chat_done\",\"deviceId\":\"\",\"pairCode\":\"\","
-                                                    + "\"payload\":{},\"timestamp\":" + System.currentTimeMillis() + "}");
-                                    context.sendBroadcast(i);
-                                } catch (Exception e) {
-                                    Log.e(TAG, "广播聊天刷新失败", e);
-                                }
+                                broadcastChatReload(context);
                             });
                         }
 

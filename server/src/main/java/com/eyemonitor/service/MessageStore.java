@@ -32,6 +32,11 @@ public class MessageStore {
     }
 
     public void saveChat(String pairCode, long fromUser, String text, boolean isSystem, long ts) {
+        saveChat(pairCode, fromUser, text, isSystem, ts, "chat");
+    }
+
+    public void saveChat(String pairCode, long fromUser, String text, boolean isSystem,
+                         long ts, String kind) {
         try {
             if (pairCode == null || text == null) return;
             ChatMessageEntity e = new ChatMessageEntity();
@@ -40,6 +45,7 @@ public class MessageStore {
             e.setText(text);
             e.setSystem(isSystem);
             e.setTs(ts > 0 ? ts : System.currentTimeMillis());
+            e.setKind(kind);
             chatRepo.save(e);
         } catch (Exception ex) {
             log.error("聊天消息落库失败", ex);

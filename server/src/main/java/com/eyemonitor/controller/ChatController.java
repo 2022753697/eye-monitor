@@ -48,6 +48,7 @@ public class ChatController {
             m.put("fromUser", e.getFromUser());
             m.put("text", e.getText());
             m.put("isSystem", e.isSystem());
+            m.put("kind", e.getKind() == null ? "chat" : e.getKind());
             m.put("ts", e.getTs());
             out.add(m);
         }

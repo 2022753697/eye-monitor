@@ -73,6 +73,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "location" -> handleLocation(session, msg, userId);
             case "chat" -> handleChat(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
+            case "media" -> handleMedia(session, msg, userId);
             default -> handleForward(session, msg);
         }
     }
@@ -110,9 +111,21 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         pairService.forwardToPeer(msg.getDeviceId(), msg);
     }
 
+    /** 媒体消息：落库聊天行（text=fileId, kind=media）保证离线补收，再转发给对方 */
+    private void handleMedia(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        Map<String, Object> payload = msg.getPayload();
+        String fileId = payload != null && payload.get("fileId") instanceof String
+                ? (String) payload.get("fileId") : null;
+        if (fileId != null && !fileId.isBlank()) {
+            messageStore.saveChat(pairCode, userId, fileId, false, msg.getTimestamp(), "media");
+        }
+        pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
     private void handleForward(WebSocketSession session, WsMessage msg) {
         // app_switch / request_peer_location / anniversary_sync / fence_sync /
-        // user_profile / sos_ack / device_status / media / media_deleted
+        // user_profile / sos_ack / device_status / media_deleted
         log.debug("handleForward: type={}, deviceId={}, pairCode={}",
                 msg.getType(), msg.getDeviceId(), msg.getPairCode());
         pairService.forwardToPeer(msg.getDeviceId(), msg);

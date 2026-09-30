@@ -32,6 +32,10 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     private long ts;
 
+    /** 消息种类：chat=文本 / media=媒体(fileId) / system=系统提示（历史同步按此重建聊天气泡） */
+    @Column(nullable = false, length = 16)
+    private String kind = "chat";
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -49,4 +53,7 @@ public class ChatMessageEntity {
 
     public long getTs() { return ts; }
     public void setTs(long ts) { this.ts = ts; }
+
+    public String getKind() { return kind; }
+    public void setKind(String kind) { this.kind = kind == null ? "chat" : kind; }
 }
