@@ -318,6 +318,7 @@
     <string name="media_upload_failed">上传失败：%1$s</string>
     <string name="media_not_paired">请先配对</string>
     <string name="media_download_failed">下载失败</string>
+    <string name="media_auto_download_failed">图片自动下载失败：%1$s</string>
     <string name="media_download_empty">下载内容为空</string>
     <string name="media_file_missing">本地文件不存在</string>
     <string name="media_play_failed">视频播放失败</string>

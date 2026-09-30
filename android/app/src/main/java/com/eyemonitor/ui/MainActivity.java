@@ -1642,6 +1642,7 @@ public class MainActivity extends AppCompatActivity {
         // 非计费网络（WiFi/Ethernet 等）自动下载：仅下载不打开查看器（避免弹窗打扰）
         if (!downloaded && unmetered && mediaAutoDownloading.add(fileId)) {
             h.tvMediaHint.setText(R.string.media_downloading);
+            android.util.Log.i("EyeMonitor", "媒体自动下载开始 fileId=" + fileId);
             MediaUtils.ensureDownloaded(MainActivity.this, fileId, null,
                     new MediaUtils.MediaCb() {
                         @Override
@@ -1655,8 +1656,18 @@ public class MainActivity extends AppCompatActivity {
 
                         @Override
                         public void onError(int code, String msg) {
-                            h.itemView.post(() ->
-                                    h.tvMediaHint.setText(R.string.media_download_hint));
+                            // 失败：移除去重标记允许下次重试；吐司暴露真实失败原因（下载挂了而非没触发）
+                            mediaAutoDownloading.remove(fileId);
+                            android.util.Log.w("EyeMonitor",
+                                    "媒体自动下载失败 fileId=" + fileId + " code=" + code
+                                            + " msg=" + msg);
+                            h.itemView.post(() -> {
+                                h.tvMediaHint.setText(R.string.media_download_hint);
+                                Toast.makeText(MainActivity.this,
+                                        getString(R.string.media_auto_download_failed,
+                                                msg != null && !msg.isEmpty() ? msg : "code=" + code),
+                                        Toast.LENGTH_LONG).show();
+                            });
                         }
                     });
         }
