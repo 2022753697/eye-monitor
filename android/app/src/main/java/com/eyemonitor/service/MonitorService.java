@@ -393,15 +393,6 @@ public class MonitorService extends Service {
             return START_NOT_STICKY;
         }
 
-    /** 未送达持久标记（重连自动补发依赖） */
-    private void markChatSendPending(long msgTs) {
-        if (msgTs <= 0) return;
-        AppDatabase db = AppDatabase.getInstance(this);
-        AppDatabase.dbExecutor.execute(() -> db.chatDao().markSendPending(msgTs));
-    }
-
-
-
         if (intent != null && ACTION_SEND_TYPING.equals(intent.getAction())) {
             if (wsClient != null && prefs.getPairCode() != null) {
                 wsClient.send(WsMessage.createTyping(prefs.getDeviceId(), prefs.getPairCode()));
@@ -1559,6 +1550,13 @@ public class MonitorService extends Service {
                 Log.w(TAG, "自动补发失败", ex);
             }
         });
+    }
+
+    /** 未送达持久标记（重连自动补发依赖） */
+    private void markChatSendPending(long msgTs) {
+        if (msgTs <= 0) return;
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> db.chatDao().markSendPending(msgTs));
     }
 
     /** 聊天发送结果回执：ok=false → UI 把该消息标「未送达」（可点击重发） */
