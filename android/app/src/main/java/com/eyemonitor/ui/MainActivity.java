@@ -1545,30 +1545,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 引用定位闪烁：高亮带 = 行内负顶边距子 View（上探 OVERHANG，真正超出内容上方），
-     * 行高不变（负 margin 抵消），明暗两轮后移除。文本/语音/图片/视频统一。
+     * 引用定位闪烁：高亮带 = view_chat_panel(FrameLayout) 的绝对定位子 View，
+     * 覆盖在目标行上并向上探 overhang——完全不影响消息行布局（不挤内容）。
+     * 明暗两轮后移除。文本/语音/图片/视频统一。
      */
     private void flashRow(android.view.View row, ChatItem item) {
-        if (row == null) return;
+        if (row == null || viewChatPanel == null || !row.isAttachedToWindow()) return;
         int density = (int) getResources().getDisplayMetrics().density;
-        int overhang = 12 * density;                        // 超出上方 12dp
+        int overhang = 12 * density;
         int rowH = row.getHeight() > 0 ? row.getHeight() : 64 * density;
+        int[] rl = new int[2];
+        int[] pl = new int[2];
+        row.getLocationOnScreen(rl);
+        viewChatPanel.getLocationOnScreen(pl);
+
         int highlight = (0x22 << 24) | (getColor(R.color.primary) & 0xFFFFFF);
-
-        android.view.View band = new android.view.View(row.getContext());
+        android.view.View band = new android.view.View(this);
         band.setBackgroundColor(highlight);
-        android.widget.LinearLayout.LayoutParams lp =
-                new android.widget.LinearLayout.LayoutParams(
-                        row.getWidth() - row.getPaddingEnd(), rowH + overhang);
-        lp.topMargin = -overhang;                           // 负顶边距：带从内容上方开始
-        lp.leftMargin = -row.getPaddingStart();             // 左对齐行左缘（越过 start 内边距）
-        band.setLayoutParams(lp);
-
-        android.view.ViewGroup vg = (android.view.ViewGroup) row; // clip 系列是 ViewGroup 方法
-        boolean wasClipChildren = vg.getClipChildren();
-        vg.setClipChildren(false);
-        vg.setClipToPadding(false);
-        vg.addView(band, 0);
+        android.widget.FrameLayout.LayoutParams lp =
+                new android.widget.FrameLayout.LayoutParams(row.getWidth(), rowH + overhang);
+        lp.leftMargin = rl[0] - pl[0];
+        lp.topMargin = rl[1] - pl[1] - overhang;   // 向上探 overhang
+        viewChatPanel.addView(band, lp);
 
         android.animation.ObjectAnimator anim =
                 android.animation.ObjectAnimator.ofInt(band, "alpha", 255, 0);
@@ -1579,9 +1577,7 @@ public class MainActivity extends AppCompatActivity {
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                vg.removeView(band);
-                vg.setClipChildren(wasClipChildren);
-                vg.setClipToPadding(true);
+                viewChatPanel.removeView(band);
                 item.flash = false;
             }
         });
