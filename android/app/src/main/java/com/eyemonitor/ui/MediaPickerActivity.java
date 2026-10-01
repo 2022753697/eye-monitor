@@ -289,14 +289,11 @@ public class MediaPickerActivity extends BaseActivity {
     private void updateBottomBar() {
         tvSelected.setText(getString(R.string.picker_selected_count,
                 selected.size(), MAX_SELECT));
-        if (selected.isEmpty()) {
-            // 未选：按钮常显示「发送」但半透明（微信式灰置感）
-            btnSend.setText(R.string.picker_send);
-            btnSend.setAlpha(0.35f);
-        } else {
-            btnSend.setText(getString(R.string.picker_send_count, selected.size()));
-            btnSend.setAlpha(1f);
-        }
+        // 按钮文字始终清晰可见（发送/发送(n)），未选时仅文案变化，点击由 confirmSend 拦截
+        btnSend.setText(selected.isEmpty()
+                ? getString(R.string.picker_send)
+                : getString(R.string.picker_send_count, selected.size()));
+        btnSend.setAlpha(1f);
     }
 
     // --- 图片预览（微信式：点图片中部放大，左右滑切换照片，右上角圆圈选择） ---
