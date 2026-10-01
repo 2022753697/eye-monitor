@@ -1553,7 +1553,7 @@ public class MainActivity extends AppCompatActivity {
         int highlight = (0x22 << 24) | (getColor(R.color.primary) & 0xFFFFFF);
         android.graphics.drawable.ColorDrawable bg =
                 new android.graphics.drawable.ColorDrawable(highlight);
-        int insetPx = (int) (8 * getResources().getDisplayMetrics().density);
+        int insetPx = (int) (4 * getResources().getDisplayMetrics().density);
         android.graphics.drawable.InsetDrawable inset =
                 new android.graphics.drawable.InsetDrawable(bg, 0, insetPx, 0, insetPx);
         row.setBackground(inset);
