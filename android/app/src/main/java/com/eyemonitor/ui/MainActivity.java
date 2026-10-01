@@ -1545,20 +1545,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 引用定位闪烁：整行背景高亮（主题色 ~13% 透明），明暗两轮后消失。
-     * 行高 = 自然行高 + 上下 8dp 对称 inset（顶部不贴内容、与下方间距一致）。
+     * 引用定位闪烁：高亮带 = 行内负顶边距子 View（上探 OVERHANG，真正超出内容上方），
+     * 行高不变（负 margin 抵消），明暗两轮后移除。文本/语音/图片/视频统一。
      */
     private void flashRow(android.view.View row, ChatItem item) {
         if (row == null) return;
+        int density = (int) getResources().getDisplayMetrics().density;
+        int overhang = 12 * density;                        // 超出上方 12dp
+        int rowH = row.getHeight() > 0 ? row.getHeight() : 64 * density;
         int highlight = (0x22 << 24) | (getColor(R.color.primary) & 0xFFFFFF);
-        android.graphics.drawable.ColorDrawable bg =
-                new android.graphics.drawable.ColorDrawable(highlight);
-        int insetPx = (int) (4 * getResources().getDisplayMetrics().density);
-        android.graphics.drawable.InsetDrawable inset =
-                new android.graphics.drawable.InsetDrawable(bg, 0, -2 * insetPx, 0, insetPx);
-        row.setBackground(inset);
+
+        android.view.View band = new android.view.View(row.getContext());
+        band.setBackgroundColor(highlight);
+        android.widget.LinearLayout.LayoutParams lp =
+                new android.widget.LinearLayout.LayoutParams(
+                        row.getWidth() - row.getPaddingEnd(), rowH + overhang);
+        lp.topMargin = -overhang;                           // 负顶边距：带从内容上方开始
+        lp.leftMargin = -row.getPaddingStart();             // 左对齐行左缘（越过 start 内边距）
+        band.setLayoutParams(lp);
+
+        boolean wasClipChildren = row.getClipChildren();
+        row.setClipChildren(false);
+        row.setClipToPadding(false);
+        row.addView(band, 0);
+
         android.animation.ObjectAnimator anim =
-                android.animation.ObjectAnimator.ofInt(inset, "alpha", 255, 0);
+                android.animation.ObjectAnimator.ofInt(band, "alpha", 255, 0);
         anim.setDuration(650);
         anim.setRepeatCount(1);
         anim.setRepeatMode(android.animation.ValueAnimator.REVERSE); // 亮→淡→亮→淡（≈2s）
@@ -1566,7 +1578,9 @@ public class MainActivity extends AppCompatActivity {
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                row.setBackground(null);
+                row.removeView(band);
+                row.setClipChildren(wasClipChildren);
+                row.setClipToPadding(true);
                 item.flash = false;
             }
         });
