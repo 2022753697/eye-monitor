@@ -1555,7 +1555,7 @@ public class MainActivity extends AppCompatActivity {
                 new android.graphics.drawable.ColorDrawable(highlight);
         int insetPx = (int) (4 * getResources().getDisplayMetrics().density);
         android.graphics.drawable.InsetDrawable inset =
-                new android.graphics.drawable.InsetDrawable(bg, 0, -insetPx, 0, insetPx);
+                new android.graphics.drawable.InsetDrawable(bg, 0, -2 * insetPx, 0, insetPx);
         row.setBackground(inset);
         android.animation.ObjectAnimator anim =
                 android.animation.ObjectAnimator.ofInt(inset, "alpha", 255, 0);
