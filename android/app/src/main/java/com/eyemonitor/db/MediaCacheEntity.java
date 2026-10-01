@@ -21,6 +21,9 @@ public class MediaCacheEntity {
     /** 时长毫秒（视频），照片为 0 */
     public long duration;
 
+    /** 语音波形包络（WaveformAnalyzer 算的 40 段 CSV "0.31,0.52,..."）；旧消息/未分析为 null */
+    public String waveform;
+
     /** 所属图库文件夹 id；null = 未分类 */
     public Long folderId;
 

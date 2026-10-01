@@ -24,8 +24,16 @@ import java.util.concurrent.Executors;
         FenceCacheEntity.class,
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
-        FolderCacheEntity.class}, version = 6, exportSchema = false)
+        FolderCacheEntity.class}, version = 7, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v6 -> v7：语音波形缓存（WaveformAnalyzer 算的包络 CSV，新消息有，旧消息 null） */
+    public static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `media_cache` ADD COLUMN `waveform` TEXT");
+        }
+    };
 
     /** v5 -> v6：聊天发送状态（sent/pending，离线消息持久标记 + 自动补发） */
     public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
@@ -105,7 +113,7 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                                    MIGRATION_4_5, MIGRATION_5_6)
+                                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();
