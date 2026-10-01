@@ -1520,10 +1520,47 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).ts == refMsgId) {
                 rvChat.smoothScrollToPosition(i);
+                flashRefItem(refMsgId);
                 return;
             }
         }
     }
+
+    /** 引用跳转闪烁：等滚动停稳 → 置 flash 标记 → 0.9s 后清除（绑定行明暗脉动一次） */
+    private void flashRefItem(long refMsgId) {
+        chatUiHandler.postDelayed(() -> {
+            int idx = indexOfTs(refMsgId);
+            if (idx < 0) return;
+            ChatItem it = chatAdapter.items.get(idx);
+            it.flash = true;
+            chatAdapter.notifyItemChanged(idx);
+            chatUiHandler.postDelayed(() -> {
+                int idx2 = indexOfTs(refMsgId);
+                if (idx2 >= 0 && chatAdapter.items.get(idx2) == it) {
+                    it.flash = false;
+                    chatAdapter.notifyItemChanged(idx2);
+                }
+            }, 900);
+        }, 350);
+    }
+
+    private int indexOfTs(long ts) {
+        for (int i = 0; i < chatAdapter.items.size(); i++) {
+            if (chatAdapter.items.get(i).ts == ts) return i;
+        }
+        return -1;
+    }
+
+    /** 定位闪烁动画：明暗脉冲一次 */
+    private void animateFlashRow(android.view.View row) {
+        if (row == null) return;
+        row.animate()
+                .alpha(0.25f).setDuration(140)
+                .withEndAction(() -> row.animate()
+                        .alpha(1f).setDuration(140).start())
+                .start();
+    }
+
 
     /** 长按文本消息：紧贴气泡上方弹出 QQ/微信式小菜单（引用 / 撤回，撤回仅自己且 2 分钟内） */
     private void showChatItemActions(ChatItem item, View bubble) {
@@ -2259,6 +2296,8 @@ public class MainActivity extends AppCompatActivity {
         public String refText;
         /** 送达状态：发送失败（断网/未连接）时标红「未送达」，可点击重发 */
         public boolean failed;
+        /** 引用跳转定位闪烁（瞬态 UI 标记：bind 时脉动高亮） */
+        public boolean flash;
 
         public ChatItem(int type, String text, String from, String time, long ts) {
             this(type, text, from, time, ts, 0, null);
@@ -2470,6 +2509,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             void bind(ChatItem item, int position) {
+                if (item.flash) {
+                    animateFlashRow(itemView);
+                }
                 switch (viewType) {
                     case TYPE_SELF:
                         if (item.deleted) {
