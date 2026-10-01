@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -51,6 +52,8 @@ public class MediaPickerActivity extends BaseActivity {
     private TextView tvAlbumName;
     private TextView tvSelected;
     private Button btnSend;
+    private FrameLayout previewOverlay;
+    private ZoomImageView previewImage;
 
     private final List<MediaItem> allMedia = new ArrayList<>();
     private final List<MediaItem> shownMedia = new ArrayList<>();
@@ -72,6 +75,8 @@ public class MediaPickerActivity extends BaseActivity {
         tvSelected = findViewById(R.id.tv_selected);
         btnSend = findViewById(R.id.btn_send);
         albumPanel = findViewById(R.id.album_panel);
+        previewOverlay = findViewById(R.id.preview_overlay);
+        previewImage = findViewById(R.id.preview_image);
 
         RecyclerView rvGrid = findViewById(R.id.rv_grid);
         gridAdapter = new GridAdapter();
@@ -85,17 +90,21 @@ public class MediaPickerActivity extends BaseActivity {
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_album_dropdown).setOnClickListener(v -> toggleAlbumPanel());
+        findViewById(R.id.preview_close).setOnClickListener(v -> closePreview());
         btnSend.setOnClickListener(v -> confirmSend());
 
         updateBottomBar();
         loadMediaAndAlbums();
     }
 
-    // --- 权限（仅 API 24-28 需要 READ_EXTERNAL_STORAGE） ---
+    // --- 权限（Android 13+ READ_MEDIA_*；Android 9-12 READ_EXTERNAL_STORAGE；≤8 同前） ---
 
     private boolean canReadMedia() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES)
+                    == PackageManager.PERMISSION_GRANTED
+                    && checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO)
+                    == PackageManager.PERMISSION_GRANTED;
         }
         return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED;
@@ -106,7 +115,13 @@ public class MediaPickerActivity extends BaseActivity {
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_READ_STORAGE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            boolean granted = grantResults.length > 0;
+            for (int r : grantResults) {
+                if (r != PackageManager.PERMISSION_GRANTED) {
+                    granted = false;
+                }
+            }
+            if (granted) {
                 loadMediaAndAlbums();
             } else {
                 Toast.makeText(this, R.string.picker_need_storage, Toast.LENGTH_SHORT).show();
@@ -118,8 +133,13 @@ public class MediaPickerActivity extends BaseActivity {
 
     private void loadMediaAndAlbums() {
         if (!canReadMedia()) {
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    REQ_READ_STORAGE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VIDEO}, REQ_READ_STORAGE);
+            } else {
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        REQ_READ_STORAGE);
+            }
             return;
         }
         new Thread(this::queryMediaStore).start();
@@ -245,11 +265,39 @@ public class MediaPickerActivity extends BaseActivity {
     private void updateBottomBar() {
         tvSelected.setText(getString(R.string.picker_selected_count,
                 selected.size(), MAX_SELECT));
-        btnSend.setText(getString(R.string.picker_send_count, selected.size()));
-        btnSend.setEnabled(!selected.isEmpty());
+        if (selected.isEmpty()) {
+            // 未选：按钮常显示「发送」但半透明（微信式灰置感）
+            btnSend.setText(R.string.picker_send);
+            btnSend.setAlpha(0.35f);
+        } else {
+            btnSend.setText(getString(R.string.picker_send_count, selected.size()));
+            btnSend.setAlpha(1f);
+        }
+    }
+
+    // --- 图片预览（微信式：点图片中部放大，右上角圈是选择） ---
+
+    private void showPreview(MediaItem item) {
+        if (item == null || item.video) {
+            return;
+        }
+        previewImage.reset();
+        Glide.with(this).load(item.uri).into(previewImage);
+        previewOverlay.setVisibility(View.VISIBLE);
+        // 布局完成后居中适应
+        previewImage.post(previewImage::centerFit);
+        albumPanel.setVisibility(View.GONE);
+    }
+
+    private void closePreview() {
+        previewOverlay.setVisibility(View.GONE);
+        previewImage.reset();
     }
 
     private void confirmSend() {
+        if (selected.isEmpty()) {
+            return;
+        }
         ArrayList<Uri> uris = new ArrayList<>();
         for (Long id : selected.keySet()) {
             for (MediaItem m : allMedia) {
@@ -335,8 +383,15 @@ public class MediaPickerActivity extends BaseActivity {
 
             h.itemView.setOnClickListener(v -> {
                 albumPanel.setVisibility(View.GONE);
-                toggleSelect(item);
+                // 微信式：点图片中部 = 预览放大；点右上角圆圈 = 选择
+                if (item.video) {
+                    toggleSelect(item);
+                } else {
+                    showPreview(item);
+                }
             });
+            // 右上角圆圈：独立点击区（选中/取消）
+            h.tvSelectBadge.setOnClickListener(v -> toggleSelect(item));
         }
 
         @Override

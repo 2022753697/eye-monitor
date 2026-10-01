@@ -11,8 +11,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <!-- 旧系统（API 24-28）读取相册需要；Android 10+ 用 MediaStore 免权限 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- 读取相册：Android 9-12 用 READ_EXTERNAL_STORAGE（maxSdk 28 改为 32）；Android 13+ 用 READ_MEDIA_* -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <!-- 使用情况访问：声明后才会出现在系统「使用情况访问」设置列表中 -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
     <!-- SOS 锁屏全屏弹出（闹钟级） -->
