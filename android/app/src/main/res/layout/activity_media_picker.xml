@@ -124,7 +124,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 图片预览层（微信式：点图片中部放大） -->
+    <!-- 图片预览层（微信式：点图片中部放大，可左右滑切换，右上角圆圈选择） -->
     <FrameLayout
         android:id="@+id/preview_overlay"
         android:layout_width="match_parent"
@@ -132,8 +132,8 @@
         android:background="@color/black"
         android:visibility="gone">
 
-        <com.eyemonitor.ui.ZoomImageView
-            android:id="@+id/preview_image"
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/preview_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
@@ -149,5 +149,21 @@
             android:background="@drawable/bg_btn_round_white"
             android:padding="10dp"
             android:contentDescription="@string/back" />
+
+        <!-- 预览页右上角选择圈（与网格一致：实心=已选+序号；空心=未选） -->
+        <TextView
+            android:id="@+id/tv_preview_badge"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_select_badge_off"
+            android:textColor="@color/text_on_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="@dimen/space_24"
+            android:layout_marginEnd="@dimen/space_16" />
     </FrameLayout>
 </FrameLayout>

@@ -18,6 +18,19 @@ public class ZoomImageView extends AppCompatImageView {
 
     private static final float MAX_SCALE = 5f;
 
+    /** 未缩放时水平滑动回调（预览翻页用） */
+    public interface SwipeListener {
+        void onSwipe(boolean next);
+    }
+
+    private SwipeListener swipeListener;
+    private float swipeDx;
+    private float swipeDy;
+
+    public void setSwipeListener(SwipeListener listener) {
+        this.swipeListener = listener;
+    }
+
     private final Matrix matrix = new Matrix();
     private float scale = 1f;              // 相对中心适应态的相对缩放
     private float baseScale = 1f;          // 中心适应时的原始缩放
@@ -130,18 +143,30 @@ public class ZoomImageView extends AppCompatImageView {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 down.set(event.getX(), event.getY());
+                swipeDx = 0;
+                swipeDy = 0;
                 dragging = scale > 1.01f && event.getPointerCount() == 1;
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (dragging && scale > 1.01f && event.getPointerCount() == 1) {
+                if (scale > 1.01f && event.getPointerCount() == 1 && dragging) {
                     matrix.postTranslate(event.getX() - down.x, event.getY() - down.y);
                     clamp();
                     apply();
+                    down.set(event.getX(), event.getY());
+                } else if (scale <= 1.01f && event.getPointerCount() == 1) {
+                    // 未缩放：累计水平位移，松手时判定左右翻页
+                    swipeDx += event.getX() - down.x;
+                    swipeDy += event.getY() - down.y;
                     down.set(event.getX(), event.getY());
                 }
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (scale <= 1.01f && event.getPointerCount() == 1
+                        && Math.abs(swipeDx) > 60 && Math.abs(swipeDx) > Math.abs(swipeDy) * 2
+                        && swipeListener != null) {
+                    swipeListener.onSwipe(swipeDx < 0); // 左滑=下一张
+                }
                 dragging = false;
                 return true;
             default:

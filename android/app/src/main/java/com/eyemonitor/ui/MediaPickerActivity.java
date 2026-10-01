@@ -31,6 +31,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.eyemonitor.R;
 
+import androidx.viewpager2.widget.ViewPager2;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,7 +55,12 @@ public class MediaPickerActivity extends BaseActivity {
     private TextView tvSelected;
     private Button btnSend;
     private FrameLayout previewOverlay;
-    private ZoomImageView previewImage;
+    private ViewPager2 previewPager;
+    private TextView tvPreviewBadge;
+    /** 预览页图片列表（当前相册的图片子集） */
+    private final List<MediaItem> previewImages = new ArrayList<>();
+    private int currentPreviewIndex;
+    private PreviewAdapter previewAdapter;
 
     private final List<MediaItem> allMedia = new ArrayList<>();
     private final List<MediaItem> shownMedia = new ArrayList<>();
@@ -76,7 +83,23 @@ public class MediaPickerActivity extends BaseActivity {
         btnSend = findViewById(R.id.btn_send);
         albumPanel = findViewById(R.id.album_panel);
         previewOverlay = findViewById(R.id.preview_overlay);
-        previewImage = findViewById(R.id.preview_image);
+        previewPager = findViewById(R.id.preview_pager);
+        tvPreviewBadge = findViewById(R.id.tv_preview_badge);
+        previewAdapter = new PreviewAdapter();
+        previewPager.setAdapter(previewAdapter);
+        previewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                currentPreviewIndex = position;
+                updatePreviewBadge();
+            }
+        });
+        // 预览页右上角圆圈：选中/取消当前预览照片
+        tvPreviewBadge.setOnClickListener(v -> {
+            if (currentPreviewIndex >= 0 && currentPreviewIndex < previewImages.size()) {
+                toggleSelect(previewImages.get(currentPreviewIndex));
+            }
+        });
 
         RecyclerView rvGrid = findViewById(R.id.rv_grid);
         gridAdapter = new GridAdapter();
@@ -249,6 +272,7 @@ public class MediaPickerActivity extends BaseActivity {
             gridAdapter.notifyItemChanged(shownMedia.indexOf(item));
         }
         updateBottomBar();
+        updatePreviewBadge();
     }
 
     private void resequence() {
@@ -275,23 +299,89 @@ public class MediaPickerActivity extends BaseActivity {
         }
     }
 
-    // --- 图片预览（微信式：点图片中部放大，右上角圈是选择） ---
+    // --- 图片预览（微信式：点图片中部放大，左右滑切换照片，右上角圆圈选择） ---
 
     private void showPreview(MediaItem item) {
         if (item == null || item.video) {
             return;
         }
-        previewImage.reset();
-        Glide.with(this).load(item.uri).into(previewImage);
+        previewImages.clear();
+        for (MediaItem m : shownMedia) {
+            if (!m.video) {
+                previewImages.add(m);
+            }
+        }
+        int idx = previewImages.indexOf(item);
+        if (idx < 0) {
+            idx = 0;
+        }
+        previewAdapter.notifyDataSetChanged();
+        previewPager.setCurrentItem(idx, false);
+        currentPreviewIndex = idx;
         previewOverlay.setVisibility(View.VISIBLE);
-        // 布局完成后居中适应
-        previewImage.post(previewImage::centerFit);
+        updatePreviewBadge();
         albumPanel.setVisibility(View.GONE);
     }
 
     private void closePreview() {
         previewOverlay.setVisibility(View.GONE);
-        previewImage.reset();
+        previewPager.setCurrentItem(0, false);
+    }
+
+    private void updatePreviewBadge() {
+        if (currentPreviewIndex < 0 || currentPreviewIndex >= previewImages.size()) {
+            return;
+        }
+        MediaItem it = previewImages.get(currentPreviewIndex);
+        Integer order = selected.get(it.id);
+        if (order != null) {
+            tvPreviewBadge.setText(String.valueOf(order));
+            tvPreviewBadge.setBackgroundResource(R.drawable.bg_dot);
+        } else {
+            tvPreviewBadge.setText("");
+            tvPreviewBadge.setBackgroundResource(R.drawable.bg_select_badge_off);
+        }
+    }
+
+    /** 预览分页适配器：每页一个 ZoomImageView，1x 时左/右滑切换照片 */
+    class PreviewAdapter extends RecyclerView.Adapter<PreviewAdapter.VH> {
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(MediaPickerActivity.this)
+                    .inflate(R.layout.media_picker_preview_item, parent, false);
+            return new VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int position) {
+            MediaItem item = previewImages.get(position);
+            h.zoom.reset();
+            Glide.with(MediaPickerActivity.this).load(item.uri).into(h.zoom);
+            h.zoom.post(h.zoom::centerFit);
+            h.zoom.setSwipeListener(next -> {
+                int cur = previewPager.getCurrentItem();
+                int target = next ? cur + 1 : cur - 1;
+                if (target >= 0 && target < previewImages.size()) {
+                    previewPager.setCurrentItem(target, true);
+                }
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return previewImages.size();
+        }
+
+        class VH extends RecyclerView.ViewHolder {
+            final ZoomImageView zoom;
+
+            VH(@NonNull View itemView) {
+                super(itemView);
+                zoom = itemView.findViewById(R.id.preview_zoom);
+            }
+        }
     }
 
     private void confirmSend() {
