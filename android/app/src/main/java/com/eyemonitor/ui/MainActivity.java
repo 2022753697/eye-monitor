@@ -1386,12 +1386,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void setPendingQuote(ChatItem item) {
         pendingRefMsgId = item.ts;
-        String t = item.text == null ? "" : item.text;
-        pendingRefText = t.length() > 40 ? t.substring(0, 40) + "…" : t;
+        pendingRefText = quoteTextOf(item);
         if (tvQuoteStrip != null) {
             tvQuoteText.setText(getString(R.string.chat_quote_strip, pendingRefText));
             tvQuoteStrip.setVisibility(View.VISIBLE);
         }
+    }
+
+    /** 引用占位文本：文本=内容截断；语音→[语音]；图片→[图片]；视频→[视频] */
+    private String quoteTextOf(ChatItem item) {
+        if (item.type == TYPE_MEDIA_SELF || item.type == TYPE_MEDIA_PEER) {
+            MediaCacheEntity m = mediaByFileId.get(item.text);
+            String mime = m != null ? m.mime : null;
+            if (mime != null && mime.startsWith("audio/")) {
+                return getString(R.string.quote_media_voice);
+            }
+            if (MediaUtils.isVideo(mime)) {
+                return getString(R.string.quote_media_video);
+            }
+            return getString(R.string.quote_media_image);
+        }
+        String t = item.text == null ? "" : item.text;
+        return t.length() > 40 ? t.substring(0, 40) + "…" : t;
     }
 
     private void clearPendingQuote() {
@@ -2620,6 +2636,11 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
             }
+        });
+        // 媒体气泡长按：引用（文本消息已有；媒体补上——语音/图片/视频均可引用）
+        h.flMediaContainer.setOnLongClickListener(v -> {
+            showChatItemActions(item, h.flMediaContainer);
+            return true;
         });
         // 非计费网络（WiFi/Ethernet 等）自动下载：仅下载不打开查看器（避免弹窗打扰）
         if (!downloaded && unmetered && mediaAutoDownloading.add(fileId)) {
