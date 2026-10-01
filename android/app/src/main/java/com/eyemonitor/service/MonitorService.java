@@ -665,6 +665,11 @@ public class MonitorService extends Service {
 
         // 无已有连接，创建新连接
         String serverUrl = prefs.getServerUrl();
+        // 空 URL 兜底：避免 OkHttp 抛 IllegalArgumentException 崩溃（正常流程登录前已强制设置）
+        if (serverUrl == null || serverUrl.isEmpty()) {
+            Log.w(TAG, "服务器地址为空，跳过 WebSocket 连接");
+            return;
+        }
         Log.d(TAG, "初始化 WebSocket: " + serverUrl + ", deviceId=" + prefs.getDeviceId() + ", pairCode=" + prefs.getPairCode());
         wsClient = new WSClient(serverUrl, new WSClient.WsCallback() {
             @Override

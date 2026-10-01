@@ -25,9 +25,6 @@ public final class ServerUrlDialogHelper {
         EditText input = new EditText(activity);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         input.setHint(R.string.profile_server_url_hint);
-        String current = prefs.getServerUrl();
-        input.setText(current == null ? "" : current);
-        input.setSelection(input.getText().length());
 
         new AlertDialog.Builder(activity)
                 .setTitle(R.string.profile_server_url_label)

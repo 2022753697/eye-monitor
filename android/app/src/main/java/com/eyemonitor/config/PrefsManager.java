@@ -81,7 +81,7 @@ public class PrefsManager {
 
     /** 获取服务器地址 */
     public String getServerUrl() {
-        return prefs.getString(KEY_SERVER_URL, "ws://192.168.1.84:8080/ws/eye");
+        return prefs.getString(KEY_SERVER_URL, "");
     }
 
     /** 设置服务器地址 */

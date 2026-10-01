@@ -18,7 +18,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
-import com.eyemonitor.util.RequestLog;
 import com.eyemonitor.util.ServerUrlDialogHelper;
 
 /**
@@ -49,9 +48,6 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvServerUrlValue;
     private PrefsManager prefs;
 
-    // 请求日志面板（调试）
-    private TextView tvRequestLog;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,15 +73,6 @@ public class LoginActivity extends AppCompatActivity {
         tvServerUrlValue.setText(prefs.getServerUrl());
         findViewById(R.id.row_server_url_login)
                 .setOnClickListener(v -> ServerUrlDialogHelper.show(this, tvServerUrlValue));
-
-        // 请求日志面板：每次有新日志（主线程回调）刷新显示
-        tvRequestLog = findViewById(R.id.tv_request_log);
-        RequestLog.setListener(() -> {
-            if (tvRequestLog != null && !isFinishing()) {
-                tvRequestLog.setText(RequestLog.dump());
-            }
-        });
-        tvRequestLog.setText(RequestLog.dump());
 
         btnLogin.setOnClickListener(v -> doLogin());
         btnRegister.setOnClickListener(v -> doRegister());
@@ -126,6 +113,11 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.login_required_tip, Toast.LENGTH_SHORT).show();
             return;
         }
+        // 服务器地址必须已设置，否则弹窗引导输入
+        if (TextUtils.isEmpty(prefs.getServerUrl())) {
+            promptServerUrl();
+            return;
+        }
         setBusy(true);
         AuthManager.i(this).login(this, username, password, new AuthManager.Callback() {
             @Override
@@ -157,6 +149,11 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.login_required_tip, Toast.LENGTH_SHORT).show();
             return;
         }
+        // 服务器地址必须已设置，否则弹窗引导输入
+        if (TextUtils.isEmpty(prefs.getServerUrl())) {
+            promptServerUrl();
+            return;
+        }
         String birthday = etRegBirthday.getText().toString().trim();
         String bio = etRegBio.getText().toString().trim();
         String gender = rbRegFemale.isChecked() ? "female" : "male";
@@ -183,6 +180,12 @@ public class LoginActivity extends AppCompatActivity {
                         });
                     }
                 });
+    }
+
+    /** 服务器地址为空：提示并直接弹出设置弹窗（登录/注册前强制设置） */
+    private void promptServerUrl() {
+        Toast.makeText(this, R.string.profile_server_url_required, Toast.LENGTH_LONG).show();
+        ServerUrlDialogHelper.show(this, tvServerUrlValue);
     }
 
     private void enterMain() {

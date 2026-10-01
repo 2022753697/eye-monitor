@@ -207,6 +207,7 @@
     <string name="profile_save_failed">保存失败：%1$s</string>
     <string name="profile_loading">加载中…</string>
     <string name="profile_avatar_upload_failed">头像上传失败</string>
+    <string name="profile_server_url_required">请先设置服务器地址</string>
     <string name="profile_server_url_label">服务器地址</string>
     <string name="profile_server_url_change">修改</string>
     <string name="profile_server_url_hint">ws:// 或 wss:// 开头的完整地址，如 ws://100.101.102.103:8080/ws/eye</string>
