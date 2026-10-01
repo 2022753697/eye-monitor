@@ -1260,6 +1260,11 @@ public class MainActivity extends AppCompatActivity {
                     File dst = MediaUtils.localMediaFile(MainActivity.this, fileId);
                     boolean archived = dst.exists() && dst.length() > 0 || file.renameTo(dst);
                     if (archived) e.localPath = dst.getAbsolutePath();
+                    // 语音波形（新消息）：本地文件在则分析包络缓存，失败静默回退 wifi 图标
+                    try {
+                        String wave = com.eyemonitor.util.WaveformAnalyzer.analyze(file);
+                        if (wave != null) e.waveform = wave;
+                    } catch (Exception ignored) {}
                     file.delete();
                     db.cacheDao().upsertMedia(e);
                     db.chatDao().insert(new ChatEntity("media", fileId,

@@ -174,6 +174,14 @@ public final class MediaUtils {
                         e.ts = System.currentTimeMillis();
                     }
                     e.localPath = path;
+                    // 语音波形（新消息）：音频下载完成后分析包络缓存，失败静默回退 wifi 图标
+                    if (e.mime != null && e.mime.startsWith("audio/")
+                            && com.eyemonitor.util.WaveformMath.fromCsv(e.waveform) == null) {
+                        try {
+                            String wave = com.eyemonitor.util.WaveformAnalyzer.analyze(file);
+                            if (wave != null) e.waveform = wave;
+                        } catch (Exception ignored) {}
+                    }
                     db.cacheDao().upsertMedia(e);
                 });
                 cb.onReady(path);
