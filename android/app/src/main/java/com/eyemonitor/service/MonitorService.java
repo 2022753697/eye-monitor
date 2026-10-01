@@ -779,7 +779,7 @@ public class MonitorService extends Service {
             setupAccessibilityListener();
         } else if (AppAccessibilityService.getInstance() == null) {
             Log.e(TAG, "严重错误：无障碍服务实例为 null，服务可能未启用！");
-            Log.e(TAG, "请检查：设置 -> 辅助功能 -> 找到'眼互'并开启");
+            Log.e(TAG, "请检查：设置 -> 辅助功能 -> 找到'恋视'并开启");
         } else {
             Log.d(TAG, "listener 已设置，跳过重复初始化");
         }
@@ -1498,16 +1498,16 @@ public class MonitorService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "眼互监控",
+                    "恋视守护",
                     NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("眼互监控服务运行状态");
+            channel.setDescription("恋视守护服务运行状态");
             channel.setShowBadge(false);
             notificationManager.createNotificationChannel(channel);
 
             NotificationChannel eventChannel = new NotificationChannel(
                     CHANNEL_ID + "_event",
-                    "眼互事件",
+                    "恋视事件",
                     NotificationManager.IMPORTANCE_HIGH
             );
             eventChannel.setDescription("对方 App 切换通知");
@@ -1577,8 +1577,8 @@ public class MonitorService extends Service {
         );
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("眼互监控中")
-                .setContentText("正在监控对方设备状态")
+                .setContentTitle(getString(R.string.fg_notification_title))
+                .setContentText(getString(R.string.fg_notification_content))
                 .setSmallIcon(android.R.drawable.ic_menu_view)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
@@ -1606,7 +1606,7 @@ public class MonitorService extends Service {
         );
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID + "_event")
-                .setContentTitle("眼互提醒")
+                .setContentTitle("恋视提醒")
                 .setContentText(text)
                 .setSmallIcon(android.R.drawable.ic_menu_view)
                 .setContentIntent(pendingIntent)

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">眼互</string>
+    <string name="app_name">恋视</string>
+    <string name="fg_notification_title">恋视守护中</string>
+    <string name="fg_notification_content">Ta 的每一次行动，都有我在意</string>
 
     <!-- 通用 -->
     <string name="back">返回</string>
@@ -9,7 +11,7 @@
     <string name="go_settings">去设置</string>
 
     <!-- 主界面 -->
-    <string name="main_title">眼互</string>
+    <string name="main_title">恋视</string>
     <string name="main_subtitle">恋爱守护 · 相互看见</string>
     <string name="status_not_running">监控未启动</string>
     <string name="status_running">监控运行中</string>
@@ -26,7 +28,7 @@
     <string name="toast_notification_granted">通知权限已开启</string>
     <string name="toast_peer_opened">对方打开了 %1$s</string>
     <string name="dialog_permission_title">需要权限</string>
-    <string name="dialog_permission_message">眼互需要以下权限才能正常工作：\n\n1. 「使用情况访问权限」或「无障碍服务」- 用于检测 App 切换\n2. 「通知权限」- 用于接收对方 App 切换提醒\n\n请点击「去设置」依次开启这些权限。\n\n诊断信息：\n%1$s</string>
+    <string name="dialog_permission_message">恋视需要以下权限才能正常工作：\n\n1. 「使用情况访问权限」或「无障碍服务」- 用于检测 App 切换\n2. 「通知权限」- 用于接收对方 App 切换提醒\n\n请点击「去设置」依次开启这些权限。\n\n诊断信息：\n%1$s</string>
     <string name="dialog_diag_title">无障碍服务诊断</string>
     <string name="dialog_diag_message">诊断结果：\n\n%1$s\n\n修复建议：\n%2$s</string>
 
@@ -35,7 +37,7 @@
     <string name="switch_count_label">今日切换次数：</string>
     <string name="toast_unknown_app">未知应用</string>
     <string name="dialog_monitor_permission_title">需要权限</string>
-    <string name="dialog_monitor_permission_message">眼互需要以下权限之一才能监控 App 切换：\n\n1. 「使用情况访问权限」- 推荐\n或\n2. 「无障碍服务」- 备选方案\n\n请点击「去设置」开启对应权限。</string>
+    <string name="dialog_monitor_permission_message">恋视需要以下权限之一才能监控 App 切换：\n\n1. 「使用情况访问权限」- 推荐\n或\n2. 「无障碍服务」- 备选方案\n\n请点击「去设置」开启对应权限。</string>
 
     <!-- 配对页 -->
     <string name="pair_title">配对</string>
@@ -152,14 +154,14 @@
     <string name="dialog_gender_title">选择性别</string>
     <string name="gender_female">女（粉色标记）</string>
     <string name="gender_male">男（蓝色标记）</string>
-    <string name="dialog_permission_hint_message">App 切换监控需要开启以下权限之一：\n\n1. 「使用情况访问权限」- 推荐，在系统设置→应用→眼互→使用情况访问中开启\n2. 「无障碍服务」- 备选，在系统设置→辅助功能中开启\n\n开启后，对方切换 App 时这里会实时显示系统提示。</string>
+    <string name="dialog_permission_hint_message">App 切换监控需要开启以下权限之一：\n\n1. 「使用情况访问权限」- 推荐，在系统设置→应用→恋视→使用情况访问中开启\n2. 「无障碍服务」- 备选，在系统设置→辅助功能中开启\n\n开启后，对方切换 App 时这里会实时显示系统提示。</string>
     <string name="btn_open_accessibility">开启无障碍服务</string>
     <string name="btn_open_usage_stats">开启使用情况访问</string>
-    <string name="dialog_monitor_permission_fallback">请前往系统设置 → 应用 → 眼互 → 使用情况访问中开启</string>
+    <string name="dialog_monitor_permission_fallback">请前往系统设置 → 应用 → 恋视 → 使用情况访问中开启</string>
 
     <!-- 登录 / 注册（R29 账户体系） -->
     <string name="login_title">登录</string>
-    <string name="login_subtitle">眼互 · 恋爱守护</string>
+    <string name="login_subtitle">恋视 · 恋爱守护</string>
     <string name="login_username_hint">用户名</string>
     <string name="login_password_hint">密码</string>
     <string name="login_button">登录</string>
@@ -268,13 +270,13 @@
     <string name="battery_opt_exempt">已豁免 ✓</string>
     <string name="battery_opt_not_exempt">未豁免 · 点击去设置</string>
     <string name="battery_opt_dialog_title">开启电池优化白名单？</string>
-    <string name="battery_opt_dialog_msg">为保证息屏持续监控精度（位置与消息不被打断），建议将眼互加入系统电池优化白名单。</string>
+    <string name="battery_opt_dialog_msg">为保证息屏持续监控精度（位置与消息不被打断），建议将恋视加入系统电池优化白名单。</string>
     <string name="battery_opt_dialog_ok">去设置</string>
     <string name="battery_opt_dialog_cancel">暂不</string>
 
     <!-- 权限中心（MonitorActivity 改造） -->
     <string name="permission_title">权限设置</string>
-    <string name="permission_tip">眼互需要以下权限来提供完整监控体验；未开启的权限点击即可请求或跳转系统设置。</string>
+    <string name="permission_tip">恋视需要以下权限来提供完整监控体验；未开启的权限点击即可请求或跳转系统设置。</string>
     <string name="perm_notification">通知权限</string>
     <string name="perm_notification_desc">聊天、SOS、围栏进出与监控提醒</string>
     <string name="perm_location">位置权限（含后台）</string>
@@ -329,7 +331,7 @@
     <string name="sos_peer_alert">对方发出 SOS 求助：%1$s</string>
     <string name="sos_no_location">未获取到位置</string>
     <string name="sos_need_pair">请先配对后再使用 SOS</string>
-    <string name="sos_channel_name">眼互 SOS 求助</string>
+    <string name="sos_channel_name">恋视 SOS 求助</string>
     <string name="sos_channel_desc">对方紧急求助通知（响铃+震动）</string>
     <string name="menu_sos">SOS 紧急求助</string>
     <string name="sos_press_hint">长按 3 秒发送</string>
