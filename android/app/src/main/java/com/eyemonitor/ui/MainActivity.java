@@ -2637,22 +2637,27 @@ public class MainActivity extends AppCompatActivity {
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
     private void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
         final boolean self = item.type == TYPE_MEDIA_SELF;
-        // 已撤回：隐藏媒体内容，显示「已撤回」占位（与文本项一致）
+        // 已撤回：隐藏媒体内容，占位区显示「已撤回」（媒体 ViewHolder 无 tv_recalled，复用 tv_media_hint）
         if (item.deleted) {
             String who = item.from != null && !item.from.isEmpty()
                     ? item.from
                     : (prefs.getPeerNickname() != null ? prefs.getPeerNickname()
                     : getString(R.string.chat_title_default));
-            h.flMediaContainer.setVisibility(View.GONE);
-            h.llMediaPlaceholder.setVisibility(View.GONE);
-            h.tvRecalled.setVisibility(View.VISIBLE);
-            h.tvRecalled.setText(self
+            h.flMediaContainer.setVisibility(View.VISIBLE);
+            h.ivMediaThumb.setVisibility(View.GONE);
+            h.llVoiceBubble.setVisibility(View.GONE);
+            h.llMediaPlaceholder.setVisibility(View.VISIBLE);
+            h.ivMediaPlaceholderIcon.setVisibility(View.GONE);
+            h.tvMediaHint.setText(self
                     ? getString(R.string.chat_recalled_self)
                     : getString(R.string.chat_recalled_peer, who));
+            h.tvMediaHint.setTextColor(getColor(R.color.text_secondary));
             return;
         }
         h.flMediaContainer.setVisibility(View.VISIBLE);
-        h.tvRecalled.setVisibility(View.GONE);
+        h.ivMediaThumb.setVisibility(View.VISIBLE);
+        h.llVoiceBubble.setVisibility(View.VISIBLE);
+        h.llMediaPlaceholder.setVisibility(View.GONE);
         final int density = (int) getResources().getDisplayMetrics().density;
         final int outerPad = 60 * density;
         final int nearPad = 12 * density;
