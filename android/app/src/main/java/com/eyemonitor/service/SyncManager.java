@@ -286,14 +286,20 @@ public final class SyncManager {
                                         ? o.get("kind").getAsString() : null;
                                 String localKind = isSystem ? "system"
                                         : ("media".equals(kind) ? "media" : "chat");
-                                // 服务器 fromUser 为账号 ID，本地无用户 ID 映射：
-                                // 历史消息按 peer 渲染（isSelf=false）；单设备离线窗口内多为对方消息，语义可接受
+                                // 服务器 fromUser 为账号 ID，本地暂无用户 ID 映射：新增行按 peer 渲染。
+                                // 自自身消息本地在发送时已插入（isSelf=true），靠下方去重直接跳过，不会被错标为对方。
                                 list.add(new ChatEntity(localKind,
                                         text, null, false, ts));
                             }
                             if (list.isEmpty()) return;
                             AppDatabase.dbExecutor.execute(() -> {
                                 for (ChatEntity e : list) {
+                                    // 去重：本地已有相同 (kind, ts, text) 则跳过——
+                                    // 否则自己发的媒体/文本会在重进 app 拉历史时被回放成重复的「对方身份」气泡
+                                    if (db.chatDao().countByKindTsText(
+                                            e.kind, e.timestamp, e.text) > 0) {
+                                        continue;
+                                    }
                                     db.chatDao().insert(e);
                                 }
                                 Log.i(TAG, "聊天历史增量同步: " + list.size() + " 条 (afterTs=" + afterTs + ")");

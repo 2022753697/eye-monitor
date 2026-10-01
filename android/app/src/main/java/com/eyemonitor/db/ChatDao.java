@@ -35,6 +35,10 @@ public interface ChatDao {
     @Query("SELECT COUNT(*) FROM chat WHERE kind = 'media' AND text = :fileId")
     int countMediaChat(String fileId);
 
+    /** 增量历史去重：本地已存在相同 (kind, ts, text) 则跳过（防自述消息被服务器回放成重复行） */
+    @Query("SELECT COUNT(*) FROM chat WHERE kind = :kind AND timestamp = :ts AND text = :text")
+    int countByKindTsText(String kind, long ts, String text);
+
     /** P2：标记自己发送、ts 不晚于 upToTs 的消息为对方已读 */
     @Query("UPDATE chat SET peer_read = 1 WHERE is_self = 1 AND timestamp <= :upToTs")
     void markOwnRead(long upToTs);
