@@ -1,5 +1,6 @@
 package com.eyemonitor.ui;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -8,12 +9,14 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -49,6 +52,7 @@ public class ProfileActivity extends AppCompatActivity {
     private EditText etBio;
     private RadioButton rbFemale;
     private RadioButton rbMale;
+    private TextView tvServerUrl;
     private Button btnSave;
 
     private PrefsManager prefs;
@@ -74,6 +78,8 @@ public class ProfileActivity extends AppCompatActivity {
         rbFemale = findViewById(R.id.rb_profile_female);
         rbMale = findViewById(R.id.rb_profile_male);
         btnSave = findViewById(R.id.btn_profile_save);
+        tvServerUrl = findViewById(R.id.tv_server_url_value);
+        findViewById(R.id.row_server_url).setOnClickListener(v -> showServerUrlDialog());
         Button btnBack = findViewById(R.id.btn_profile_back);
         btnBack.setOnClickListener(v -> finish());
         ivAvatar.setOnClickListener(v -> pickImage());
@@ -127,6 +133,7 @@ public class ProfileActivity extends AppCompatActivity {
         boolean female = prefs.isFemale();
         rbFemale.setChecked(female);
         rbMale.setChecked(!female);
+        tvServerUrl.setText(prefs.getServerUrl());
         AvatarUtils.loadInto(ivAvatar, prefs.getAvatar(), female);
 
         // 刷新一次最新资料（无感刷新已内置）
@@ -156,7 +163,37 @@ public class ProfileActivity extends AppCompatActivity {
         boolean female = prefs.isFemale();
         rbFemale.setChecked(female);
         rbMale.setChecked(!female);
+        tvServerUrl.setText(prefs.getServerUrl());
         AvatarUtils.loadInto(ivAvatar, prefs.getAvatar(), female);
+    }
+
+    /** 服务器地址入口（WS3/AC4）：弹窗改存 Prefs，重启监控后生效，免重打包 */
+    private void showServerUrlDialog() {
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        input.setHint(R.string.profile_server_url_hint);
+        String current = prefs.getServerUrl();
+        input.setText(current == null ? "" : current);
+        input.setSelection(input.getText().length());
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.profile_server_url_label)
+                .setView(input)
+                .setPositiveButton(R.string.confirm, (d, w) -> {
+                    String url = input.getText().toString().trim();
+                    if (url.isEmpty()
+                            || (!url.startsWith("ws://") && !url.startsWith("wss://"))) {
+                        Toast.makeText(this, R.string.profile_server_url_invalid,
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    prefs.setServerUrl(url);
+                    tvServerUrl.setText(url);
+                    Toast.makeText(this, R.string.profile_server_url_saved,
+                            Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void pickImage() {

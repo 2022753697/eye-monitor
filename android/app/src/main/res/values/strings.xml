@@ -196,6 +196,13 @@
     <string name="profile_save_failed">保存失败：%1$s</string>
     <string name="profile_loading">加载中…</string>
     <string name="profile_avatar_upload_failed">头像上传失败</string>
+    <string name="profile_server_url_label">服务器地址</string>
+    <string name="profile_server_url_change">修改</string>
+    <string name="profile_server_url_hint">ws:// 或 wss:// 开头的完整地址，如 ws://100.101.102.103:8080/ws/eye</string>
+    <string name="profile_server_url_invalid">服务器地址须以 ws:// 或 wss:// 开头</string>
+    <string name="profile_server_url_saved">服务器地址已保存，重新开启监控后生效</string>
+    <string name="server_url_placeholder">未配置</string>
+    <string name="confirm">确定</string>
 
     <!-- AuthManager 通用错误 -->
     <string name="auth_error_network">网络错误</string>

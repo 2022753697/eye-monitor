@@ -156,6 +156,52 @@
                     android:maxLines="4"
                     android:maxLength="60" />
 
+                <!-- 服务器地址（WS3：Tailscale 部署后免重打包切换，AC4） -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginTop="@dimen/space_16" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_server_url_label"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_14"
+                    android:layout_marginTop="@dimen/space_16"
+                    android:layout_marginBottom="4dp" />
+
+                <LinearLayout
+                    android:id="@+id/row_server_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingVertical="10dp">
+
+                    <TextView
+                        android:id="@+id/tv_server_url_value"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/server_url_placeholder"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/text_14"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/profile_server_url_change"
+                        android:textColor="@color/primary"
+                        android:textSize="@dimen/text_14" />
+                </LinearLayout>
+
                 <Button
                     android:id="@+id/btn_profile_save"
                     style="@style/Widget.EyeMonitor.Button.Primary"
