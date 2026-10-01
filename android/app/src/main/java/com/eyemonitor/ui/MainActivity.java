@@ -1807,26 +1807,35 @@ public class MainActivity extends AppCompatActivity {
 
     /** 富文本系统提示分段渲染：
      *  围栏（5 段）= 时间灰/昵称粉/动作灰/围栏名橙；
-     *  SOS（4 段）= 时间灰/昵称粉/动作红 */
+     *  SOS（4 段）= 时间灰/昵称粉/动作红。
+     *  昵称段渲染时动态取当前对方显示名（备注/昵称变化后历史提示同步更新）；
+     *  「你/我」= 自身视角提示，保持原样。 */
     private CharSequence styleRichSystemText(String text) {
         String[] parts = text.split(SYS_SEG_SEP, -1);
         if (parts.length != 5 && parts.length != 4) return null;
+        // 注意：文本以 \u001F 开头 → parts[0]=空串，时段在 parts[1]，昵称段在 parts[2]，动作 parts[3]
+        String who = parts[2];
+        String cur = prefs.getPeerNickname();
+        if (cur != null && !cur.isEmpty() && who != null
+                && !who.isEmpty() && !"你".equals(who) && !"我".equals(who)) {
+            who = cur; // 昵称段动态换成当前对方显示名（备注/昵称变化后历史提示同步更新）
+        }
         SpannableStringBuilder sb = new SpannableStringBuilder();
         if (parts.length == 5) {
-            appendColored(sb, parts[1], R.color.text_secondary);
+            appendColored(sb, parts[1], R.color.text_secondary); // 时间灰
             sb.append(" ");
-            appendColored(sb, parts[2], R.color.primary);
+            appendColored(sb, who, R.color.primary);             // 昵称粉（当前显示名）
             sb.append(" ");
-            appendColored(sb, parts[3], R.color.text_secondary);
+            appendColored(sb, parts[3], R.color.text_secondary); // 动作灰
             sb.append("「");
-            appendColored(sb, parts[4], R.color.accent);
+            appendColored(sb, parts[4], R.color.accent);         // 围栏名橙
             sb.append("」范围");
         } else {
-            appendColored(sb, parts[1], R.color.text_secondary);
+            appendColored(sb, parts[1], R.color.text_secondary); // 时间灰
             sb.append(" ");
-            appendColored(sb, parts[2], R.color.primary);
+            appendColored(sb, who, R.color.primary);             // 昵称粉（当前显示名）
             sb.append(" ");
-            appendColored(sb, parts[3], R.color.status_error);
+            appendColored(sb, parts[3], R.color.status_error);   // 动作红
         }
         return sb;
     }
