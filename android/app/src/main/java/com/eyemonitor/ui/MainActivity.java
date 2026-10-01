@@ -2321,7 +2321,9 @@ public class MainActivity extends AppCompatActivity {
             TextView tvTime;
             TextView tvFrom;
             TextView tvRead;
-            TextView tvRef;
+            TextView tvRefName;
+            TextView tvRefText;
+            LinearLayout llChatRef;
             TextView tvRecalled;
             TextView tvSendStatus;
             // 媒体气泡视图
@@ -2345,7 +2347,9 @@ public class MainActivity extends AppCompatActivity {
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvRead = view.findViewById(R.id.tv_chat_read);
-                        tvRef = view.findViewById(R.id.tv_chat_ref);
+                        llChatRef = view.findViewById(R.id.ll_chat_ref);
+                        tvRefName = view.findViewById(R.id.tv_ref_name);
+                        tvRefText = view.findViewById(R.id.tv_ref_text);
                         tvRecalled = view.findViewById(R.id.tv_recalled);
                         tvSendStatus = view.findViewById(R.id.tv_send_status);
                         break;
@@ -2353,7 +2357,9 @@ public class MainActivity extends AppCompatActivity {
                         tvText = view.findViewById(R.id.tv_chat_text);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvFrom = view.findViewById(R.id.tv_chat_from);
-                        tvRef = view.findViewById(R.id.tv_chat_ref);
+                        llChatRef = view.findViewById(R.id.ll_chat_ref);
+                        tvRefName = view.findViewById(R.id.tv_ref_name);
+                        tvRefText = view.findViewById(R.id.tv_ref_text);
                         tvRecalled = view.findViewById(R.id.tv_recalled);
                         break;
                     case TYPE_MEDIA_SELF:
@@ -2385,7 +2391,7 @@ public class MainActivity extends AppCompatActivity {
             /** 撤回态：气泡/引用/已读/时间隐藏，居中系统提示“X 撤回了一条消息” */
             void boxHiddenForRecalled(boolean recalled, boolean peer) {
                 tvText.setVisibility(recalled ? View.GONE : View.VISIBLE);
-                tvRef.setVisibility(View.GONE);
+                llChatRef.setVisibility(View.GONE);
                 int density = (int) getResources().getDisplayMetrics().density;
                 if (peer) {
                     tvFrom.setVisibility(recalled ? View.GONE : View.VISIBLE);
@@ -2407,12 +2413,29 @@ public class MainActivity extends AppCompatActivity {
 
             void bindQuote(ChatItem item) {
                 if (item.refMsgId > 0 && item.refText != null) {
-                    tvRef.setVisibility(View.VISIBLE);
-                    tvRef.setText(item.refText);
-                    tvRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
+                    llChatRef.setVisibility(View.VISIBLE);
+                    tvRefName.setText(refSenderName(item));
+                    tvRefText.setText(item.refText);
+                    llChatRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
                 } else {
-                    tvRef.setVisibility(View.GONE);
+                    llChatRef.setVisibility(View.GONE);
                 }
+            }
+
+            /** 被引用消息的发送者名：自己→「我」；对方→其昵称/备注；找不到→「引用」 */
+            String refSenderName(ChatItem item) {
+                for (ChatItem it : ChatAdapter.this.items) {
+                    if (it.ts == item.refMsgId) {
+                        if (it.type == TYPE_SELF || it.type == TYPE_MEDIA_SELF) {
+                            return getString(R.string.quote_sender_me);
+                        }
+                        String from = it.from != null && !it.from.isEmpty()
+                                ? it.from : prefs.getPeerNickname();
+                        return from != null && !from.isEmpty()
+                                ? from : getString(R.string.quote_sender_unknown);
+                    }
+                }
+                return getString(R.string.quote_sender_unknown);
             }
 
             String whoSent(ChatItem item) {

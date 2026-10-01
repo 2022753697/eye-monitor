@@ -29,24 +29,55 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
-    <!-- 引用回复条（refMsgId>0 时显示，点击定位到原消息） -->
-    <TextView
-        android:id="@+id/tv_chat_ref"
+    <!-- 微信式引用条：灰底圆角 + 左侧色条 + [发送者名] + 内容（点击定位原消息） -->
+    <LinearLayout
+        android:id="@+id/ll_chat_ref"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxWidth="220dp"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:textSize="12sp"
-        android:textColor="@color/text_secondary"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:background="@drawable/bg_quote_ref"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
         android:layout_marginBottom="2dp"
         android:layout_marginStart="4dp"
-        android:visibility="gone" />
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:background="@color/accent"
+            android:layout_marginEnd="6dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_ref_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textColor="@color/primary"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tv_ref_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:maxWidth="180dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_chat_text"
