@@ -1603,7 +1603,6 @@ public class MainActivity extends AppCompatActivity {
         lp.leftMargin = rl[0] - pl[0];
         lp.topMargin = rl[1] - pl[1] - overhang;   // 向上探 overhang
         ((android.view.ViewGroup) viewChatPanel).addView(band, lp);
-                + " w=" + lp.width + " h=" + lp.height);
 
         android.animation.ObjectAnimator anim =
                 android.animation.ObjectAnimator.ofFloat(band, "alpha", 1f, 0f);
