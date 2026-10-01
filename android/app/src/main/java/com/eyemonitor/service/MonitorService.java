@@ -24,6 +24,7 @@ import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
+import com.eyemonitor.util.GeoMath;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
@@ -937,6 +938,10 @@ public class MonitorService extends Service {
         }
         double lat = locationTracker.getLastLat();
         double lng = locationTracker.getLastLng();
+        if (!GeoMath.isValidLatLng(lat, lng)) {
+            Log.w(TAG, "sendLocation: 无有效位置(" + lat + "," + lng + ")，跳过发送");
+            return;
+        }
         float accuracy = locationTracker.getLastAccuracy();
         Log.i(TAG, "sendLocation: lat=" + lat + ", lng=" + lng + ", accuracy=" + accuracy + ", hasLocation=" + locationTracker.hasLocation());
         WsMessage locMsg = locationTracker.createLocationMessage(prefs.getDeviceId(), prefs.getPairCode());

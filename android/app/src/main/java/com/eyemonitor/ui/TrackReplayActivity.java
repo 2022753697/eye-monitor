@@ -30,6 +30,7 @@ import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.util.GeoMath;
 import com.eyemonitor.db.LocationCacheEntity;
 
 import com.google.gson.JsonElement;
@@ -339,6 +340,10 @@ public class TrackReplayActivity extends AppCompatActivity {
     private List<TrackPoint> convertCache(List<LocationCacheEntity> list) {
         List<TrackPoint> out = new ArrayList<>();
         for (LocationCacheEntity e : list) {
+            // 过滤历史上污染进缓存的 (0,0) 等无效点（几内亚湾那条线就是这么来的）
+            if (!GeoMath.isValidLatLng(e.lat, e.lng)) {
+                continue;
+            }
             out.add(new TrackPoint(e.lat, e.lng, e.accuracy, e.ts));
         }
         return out;

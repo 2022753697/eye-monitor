@@ -37,6 +37,7 @@ import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.util.GeoMath;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.util.MapNav;
@@ -354,6 +355,12 @@ public class MapActivity extends AppCompatActivity {
                 }
                 lastSelfLocationTime = now;
 
+                // 无效坐标（(0,0) 等垃圾值）直接忽略——否则 selfMarker 会跑到几内亚湾
+                if (!GeoMath.isValidLatLng(location.getLatitude(), location.getLongitude())) {
+                    Log.w(TAG, "定位回调无效坐标，忽略: " + location.getLatitude() + "," + location.getLongitude());
+                    return;
+                }
+
                 LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
 
                 if (selfMarker == null) {
@@ -509,9 +516,9 @@ public class MapActivity extends AppCompatActivity {
         double lat = ((Number) latObj).doubleValue();
         double lng = ((Number) lngObj).doubleValue();
 
-        // 过滤无效位置（lat=0, lng=0 表示定位还未完成）
-        if (lat == 0 && lng == 0) {
-            Log.d(TAG, "收到无效位置(0,0)，跳过: " + deviceId);
+        // 过滤无效位置（lat=0, lng=0 表示定位还未完成；越界值同样拒绝）
+        if (!GeoMath.isValidLatLng(lat, lng)) {
+            Log.d(TAG, "收到无效位置(" + lat + "," + lng + ")，跳过: " + deviceId);
             return;
         }
 

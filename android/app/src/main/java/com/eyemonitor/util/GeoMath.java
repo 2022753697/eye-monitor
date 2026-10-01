@@ -16,6 +16,14 @@ public final class GeoMath {
     /** R4' 跳点过滤：推算速度 &gt; 2000km/h（≈555.6 m/s），远高于飞机 900km/h，视为 GPS 抽风 */
     public static final float MAX_SPEED_MPS = 555.6f;
 
+    /** 有效坐标判定：拒绝越界值和 (0,0)（几内亚湾，绝非真实定位；定位未就绪时的垃圾值） */
+    public static boolean isValidLatLng(double lat, double lng) {
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            return false;
+        }
+        return Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001;
+    }
+
     private GeoMath() {}
 
     /** 两点大圆距离（米） */

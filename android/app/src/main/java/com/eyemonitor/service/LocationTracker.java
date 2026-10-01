@@ -198,6 +198,11 @@ public class LocationTracker implements AMapLocationListener {
 
     /** 统一位置更新入口（高德 + 系统双通道），带去重过滤 */
     private synchronized void updateLocation(double lat, double lng, float accuracy) {
+        // 无效坐标（(0,0) 或越界）一律拒绝采纳——防止把定位未就绪的垃圾值存下来发给对方
+        if (!GeoMath.isValidLatLng(lat, lng)) {
+            Log.w(TAG, "无效坐标，拒绝采纳: " + lat + "," + lng);
+            return;
+        }
         long now = System.currentTimeMillis();
         if (now - lastUpdateTime < MIN_LOCATION_INTERVAL_MS) {
             return;
