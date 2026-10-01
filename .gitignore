@@ -42,3 +42,8 @@ AGENTS.md
 
 # 运行时文件存储（媒体/头像），不提交
 server/data/
+
+# ===== Docker 部署凭据（复制自 server/.env.example，勿提交） =====
+.env
+*.env
+server/.env
