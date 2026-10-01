@@ -5,6 +5,8 @@
 # ===== 构建阶段 =====
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
+# 阿里云 Maven 镜像（国内 ECS 加速，见 settings.xml）
+COPY settings.xml /root/.m2/settings.xml
 # 先复制 pom 拉依赖，利用层缓存加速迭代构建
 COPY pom.xml .
 RUN mvn -q dependency:resolve dependency:resolve-plugins -B || true
