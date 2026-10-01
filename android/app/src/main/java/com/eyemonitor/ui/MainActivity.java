@@ -175,6 +175,33 @@ public class MainActivity extends AppCompatActivity {
     private Runnable voiceTimeoutRunnable;
     private boolean voiceMode;
     private boolean voiceCancelling;
+    /** 语音波形高亮：当前播放语音的波形视图（进度推进用） */
+    private WaveformView playingVoiceWave;
+    private final Runnable voiceProgressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            MediaPlayer p = voicePlayer;
+            if (p == null || playingVoiceWave == null) {
+                resetVoiceWave(null);
+                return;
+            }
+            int dur = p.getDuration();
+            int pos = p.getCurrentPosition();
+            if (dur > 0) {
+                playingVoiceWave.setPlayedFraction((float) pos / dur);
+            }
+            chatUiHandler.postDelayed(this, 100);
+        }
+    };
+
+    /** 波形高亮管理：切歌/停止时复位上一个视图 */
+    private void resetVoiceWave(WaveformView target) {
+        if (playingVoiceWave != null && playingVoiceWave != target) {
+            playingVoiceWave.reset();
+        }
+        playingVoiceWave = target;
+        chatUiHandler.removeCallbacks(voiceProgressRunnable);
+    }
     /** 未送达消息时间戳集合（会话级：loadChatHistory 重载时恢复失败标记，防“重连后自己消失”） */
     private final java.util.Set<Long> failedMsgTs = new java.util.HashSet<>();
     private PopupWindow chatMenuPopup;
@@ -1260,9 +1287,10 @@ public class MainActivity extends AppCompatActivity {
                     File dst = MediaUtils.localMediaFile(MainActivity.this, fileId);
                     boolean archived = dst.exists() && dst.length() > 0 || file.renameTo(dst);
                     if (archived) e.localPath = dst.getAbsolutePath();
-                    // 语音波形（新消息）：本地文件在则分析包络缓存，失败静默回退 wifi 图标
+                    // 语音波形（新消息）：分析归档后的本地文件（rename 后再动，防 extractor 找不到）
                     try {
-                        String wave = com.eyemonitor.util.WaveformAnalyzer.analyze(file);
+                        String wave = com.eyemonitor.util.WaveformAnalyzer.analyze(
+                                archived ? dst : file);
                         if (wave != null) e.waveform = wave;
                     } catch (Exception ignored) {}
                     file.delete();
@@ -1324,12 +1352,19 @@ public class MainActivity extends AppCompatActivity {
             voicePlayer.prepare();
             voicePlayer.start();
             h.tvVoiceDuration.setText(R.string.voice_playing);
+            // 波形播放高亮：挂当前气泡视图 + 100ms 进度推进
+            resetVoiceWave(h.waveformView);
+            if (h.waveformView != null) h.waveformView.reset();
+            chatUiHandler.postDelayed(voiceProgressRunnable, 100);
             final MediaPlayer player = voicePlayer;
             player.setOnCompletionListener(mp -> {
                 mp.release();
                 if (voicePlayer == mp) voicePlayer = null;
-                h.itemView.post(() -> h.tvVoiceDuration.setText(
-                        formatVoiceDurationSeconds(duration)));
+                h.itemView.post(() -> {
+                    h.tvVoiceDuration.setText(
+                            formatVoiceDurationSeconds(duration));
+                    resetVoiceWave(h.waveformView);
+                });
             });
         } catch (Exception e) {
             Log.e(TAG, "语音播放失败", e);
@@ -2298,6 +2333,7 @@ public class MainActivity extends AppCompatActivity {
             TextView tvMediaHint;
             LinearLayout llVoiceBubble;
             ImageView ivVoiceWifi;
+            WaveformView waveformView;
             TextView tvVoiceDuration;
             FrameLayout flVideoBadge;
 
@@ -2329,6 +2365,7 @@ public class MainActivity extends AppCompatActivity {
                         llMediaPlaceholder = view.findViewById(R.id.ll_media_placeholder);
                         llVoiceBubble = view.findViewById(R.id.ll_voice_bubble);
                         ivVoiceWifi = view.findViewById(R.id.iv_voice_wifi);
+                        waveformView = view.findViewById(R.id.waveform_view);
                         tvVoiceDuration = view.findViewById(R.id.tv_voice_duration);
                         tvMediaHint = view.findViewById(R.id.tv_media_hint);
                         flVideoBadge = view.findViewById(R.id.fl_video_badge);
@@ -2494,6 +2531,18 @@ public class MainActivity extends AppCompatActivity {
             // 微信式：自己弧线朝左（-90°），对方朝右（+90°），互为 180° 翻转
             h.ivVoiceWifi.setRotation(self ? -90f : 90f);
             h.ivVoiceWifi.setScaleX(1f);
+            // 语音波形（新消息有缓存；老消息/未分析回退 wifi 图标）
+            float[] wave = meta != null
+                    ? com.eyemonitor.util.WaveformMath.fromCsv(meta.waveform) : null;
+            if (wave != null) {
+                h.ivVoiceWifi.setVisibility(View.GONE);
+                h.waveformView.setVisibility(View.VISIBLE);
+                h.waveformView.setData(wave);
+                h.waveformView.reset();
+            } else {
+                h.waveformView.setVisibility(View.GONE);
+                h.ivVoiceWifi.setVisibility(View.VISIBLE);
+            }
             h.tvVoiceDuration.setText(formatVoiceDurationSeconds(duration));
         } else {
             // 图片/视频：恢复 180dp 方形容器（防回收复用残留）
