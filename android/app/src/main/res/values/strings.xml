@@ -166,7 +166,7 @@
     <string name="login_go_register">没有账号？去注册</string>
     <string name="login_loading">登录中…</string>
     <string name="login_failed">登录失败：%1$s</string>
-    <string name="login_required_tip">请先登录</string>
+    <string name="login_required_tip">请填写完整信息</string>
     <string name="reg_title">注册</string>
     <string name="reg_nickname_hint">昵称（对方看到的名字）</string>
     <string name="reg_birthday_hint">生日（可选，如 2000-01-01）</string>
