@@ -902,7 +902,7 @@ public class MainActivity extends AppCompatActivity {
 
     // --- 媒体发送（照片/视频，HTTP 上传 + WS 元数据） ---
 
-    /** 打开系统照片选择器（API 24+ 通用 ACTION_OPEN_DOCUMENT，免存储权限） */
+    /** 打开微信式媒体选择器（照片/视频多选 ≤9，返回所选 Uri 列表） */
     private void pickMedia() {
         hideMorePanel();
         hideKeyboard();
@@ -910,12 +910,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.media_not_paired, Toast.LENGTH_SHORT).show();
             return;
         }
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
         try {
-            startActivityForResult(intent, REQ_PICK_MEDIA);
+            startActivityForResult(new Intent(this, MediaPickerActivity.class), REQ_PICK_MEDIA);
         } catch (Exception e) {
             Log.w(TAG, "打开媒体选择器失败", e);
             Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
@@ -926,8 +922,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_PICK_MEDIA && resultCode == RESULT_OK && data != null) {
+            // 微信式选择器：多选列表
+            java.util.ArrayList<Uri> uris = data.getParcelableArrayListExtra(
+                    MediaPickerActivity.EXTRA_SELECTED_URIS);
+            if (uris != null && !uris.isEmpty()) {
+                for (Uri uri : uris) {
+                    handleMediaPicked(uri);
+                }
+                return;
+            }
+            // 兜底：单 Uri（兼容旧系统选择器路径）
             Uri uri = data.getData();
-            if (uri != null) handleMediaPicked(uri);
+            if (uri != null) {
+                handleMediaPicked(uri);
+            }
         }
     }
 
@@ -1626,7 +1634,7 @@ public class MainActivity extends AppCompatActivity {
     private void showChatItemActions(ChatItem item, View bubble) {
         dismissChatMenu();
         if (bubble == null) return;
-        boolean canRecall = item.type == TYPE_SELF
+        boolean canRecall = (item.type == TYPE_SELF || item.type == TYPE_MEDIA_SELF)
                 && System.currentTimeMillis() - item.ts <= 2 * 60_000L;
 
         View menu = LayoutInflater.from(this).inflate(R.layout.menu_chat_item, null, false);
@@ -2629,6 +2637,22 @@ public class MainActivity extends AppCompatActivity {
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
     private void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
         final boolean self = item.type == TYPE_MEDIA_SELF;
+        // 已撤回：隐藏媒体内容，显示「已撤回」占位（与文本项一致）
+        if (item.deleted) {
+            String who = item.from != null && !item.from.isEmpty()
+                    ? item.from
+                    : (prefs.getPeerNickname() != null ? prefs.getPeerNickname()
+                    : getString(R.string.chat_title_default));
+            h.flMediaContainer.setVisibility(View.GONE);
+            h.llMediaPlaceholder.setVisibility(View.GONE);
+            h.tvRecalled.setVisibility(View.VISIBLE);
+            h.tvRecalled.setText(self
+                    ? getString(R.string.chat_recalled_self)
+                    : getString(R.string.chat_recalled_peer, who));
+            return;
+        }
+        h.flMediaContainer.setVisibility(View.VISIBLE);
+        h.tvRecalled.setVisibility(View.GONE);
         final int density = (int) getResources().getDisplayMetrics().density;
         final int outerPad = 60 * density;
         final int nearPad = 12 * density;
@@ -2741,6 +2765,7 @@ public class MainActivity extends AppCompatActivity {
         });
         // 媒体气泡长按：引用（文本消息已有；媒体补上——语音/图片/视频均可引用）
         h.flMediaContainer.setOnLongClickListener(v -> {
+            if (item.deleted) return true;
             showChatItemActions(item, h.flMediaContainer);
             return true;
         });

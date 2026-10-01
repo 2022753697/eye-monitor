@@ -23,6 +23,8 @@
     <color name="status_warn">#E0913C</color>
     <color name="status_error">#D9604F</color>
     <color name="status_success">#4CD97B</color>
+    <!-- 媒体选择器：视频时长角标底（半透明黑） -->
+    <color name="media_badge_bg">#66000000</color>
 
     <!-- 其他 -->
     <color name="divider">#F0E0DC</color>

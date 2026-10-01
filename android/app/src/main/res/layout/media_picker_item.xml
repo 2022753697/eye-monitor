@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/space_2">
+
+    <ImageView
+        android:id="@+id/iv_thumb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/picker_thumb_desc" />
+
+    <!-- 视频角标：播放图标 + 时长 -->
+    <LinearLayout
+        android:id="@+id/ll_video_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_video_badge"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/space_4"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:src="@android:drawable/ic_media_play"
+            android:contentDescription="@null"
+            android:tint="@color/text_on_primary" />
+
+        <TextView
+            android:id="@+id/tv_video_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_on_primary"
+            android:textSize="11sp"
+            android:layout_marginStart="3dp" />
+    </LinearLayout>
+
+    <!-- 选中角标：未选=空心圈；已选=镂空数字圈 -->
+    <TextView
+        android:id="@+id/tv_select_badge"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:background="@drawable/bg_select_badge_off"
+        android:textColor="@color/text_on_primary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_gravity="top|end"
+        android:layout_margin="@dimen/space_4" />
+</FrameLayout>

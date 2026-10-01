@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface">
+
+    <!-- 顶栏：返回 + 相册名（点击弹出相册列表） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface"
+        android:elevation="2dp"
+        android:paddingStart="@dimen/space_8"
+        android:paddingEnd="@dimen/space_16">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/back"
+            android:scaleType="centerInside" />
+
+        <LinearLayout
+            android:id="@+id/btn_album_dropdown"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground"
+            android:paddingStart="@dimen/space_4"
+            android:paddingEnd="@dimen/space_4">
+
+            <TextView
+                android:id="@+id/tv_album_name"
+                style="@style/TextAppearance.EyeMonitor.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="▾"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:layout_marginStart="@dimen/space_4" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 网格 + 相册浮层 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="@dimen/space_4" />
+
+        <!-- 相册下拉面板 -->
+        <LinearLayout
+            android:id="@+id/album_panel"
+            android:layout_width="match_parent"
+            android:layout_height="360dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:elevation="8dp"
+            android:visibility="gone">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_albums"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 底栏：已选计数 + 发送 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface"
+        android:elevation="4dp"
+        android:paddingStart="@dimen/space_16"
+        android:paddingEnd="@dimen/space_16">
+
+        <TextView
+            android:id="@+id/tv_selected"
+            style="@style/TextAppearance.EyeMonitor.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_send"
+            style="@style/Widget.EyeMonitor.Button.Primary"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:minWidth="96dp"
+            android:paddingStart="@dimen/space_16"
+            android:paddingEnd="@dimen/space_16" />
+    </LinearLayout>
+</LinearLayout>

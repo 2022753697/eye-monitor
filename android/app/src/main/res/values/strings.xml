@@ -4,6 +4,14 @@
     <string name="fg_notification_title">恋视守护中</string>
     <string name="fg_notification_content">Ta 的每一次行动，都有我在意</string>
 
+    <!-- 微信式媒体选择器 -->
+    <string name="picker_album_all">最近照片</string>
+    <string name="picker_selected_count">已选 %1$d/%2$d</string>
+    <string name="picker_send_count">发送(%1$d)</string>
+    <string name="picker_max_reached">最多选择 %1$d 张</string>
+    <string name="picker_need_storage">需要存储权限才能选择照片</string>
+    <string name="picker_thumb_desc">媒体缩略图</string>
+
     <!-- 通用 -->
     <string name="back">返回</string>
     <string name="settings">设置</string>
