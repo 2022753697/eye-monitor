@@ -89,10 +89,20 @@ public class PrefsManager {
         prefs.edit().putString(KEY_SERVER_URL, url).apply();
     }
 
-    /** 由 ws 地址推导 HTTP API 基址（ws://host:port/ws/eye -> http://host:port） */
+    /** 由 ws/wss 地址推导 HTTP(S) API 基址（ws://host:port/ws/eye → http://host:port；wss:// → https://） */
     public String getApiBaseUrl() {
-        String api = getServerUrl().replaceFirst("^wss?://", "http://");
-        int slash = api.indexOf('/', "http://".length());
+        String url = getServerUrl();
+        String api;
+        if (url.startsWith("wss://")) {
+            api = "https://" + url.substring("wss://".length());
+        } else if (url.startsWith("ws://")) {
+            api = "http://" + url.substring("ws://".length());
+        } else {
+            api = url;
+        }
+        // 去掉尾部路径，仅保留 scheme://host:port
+        int schemeEnd = api.indexOf("://") + 3;
+        int slash = api.indexOf('/', schemeEnd);
         if (slash > 0) {
             api = api.substring(0, slash);
         }
