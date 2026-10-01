@@ -1561,6 +1561,7 @@ public class MonitorService extends Service {
                 .setDefaults(Notification.DEFAULT_SOUND)
                 .setVibrate(new long[]{0, 1000, 500, 1000, 500, 1000}) // 强震动：1s 长脉冲 ×3
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(openPi, true) // 锁屏全屏弹出（闹钟级）
                 .addAction(R.drawable.ic_sos, getString(R.string.sos_ack_action), ackPi)
                 .build();
 

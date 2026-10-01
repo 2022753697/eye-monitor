@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- 使用情况访问：声明后才会出现在系统「使用情况访问」设置列表中 -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+    <!-- SOS 锁屏全屏弹出（闹钟级） -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- 蓝牙状态读取（Android 12+ 为运行时权限 BLUETOOTH_CONNECT） -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />

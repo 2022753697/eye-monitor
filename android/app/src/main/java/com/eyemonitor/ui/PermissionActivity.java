@@ -51,10 +51,7 @@ public class PermissionActivity extends BaseActivity {
 
         findViewById(R.id.row_perm_notification).setOnClickListener(v ->
                 requestMissing(new String[]{Manifest.permission.POST_NOTIFICATIONS}));
-        findViewById(R.id.row_perm_location).setOnClickListener(v ->
-                requestMissing(new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION}));
+        findViewById(R.id.row_perm_location).setOnClickListener(v -> requestLocation());
         findViewById(R.id.row_perm_audio).setOnClickListener(v ->
                 requestMissing(new String[]{Manifest.permission.RECORD_AUDIO}));
         findViewById(R.id.row_perm_bluetooth).setOnClickListener(v -> {
@@ -148,6 +145,23 @@ public class PermissionActivity extends BaseActivity {
                 : (colored ? R.color.status_warn : R.color.text_secondary)));
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_PERMISSION) {
+            // 前台定位已授予但后台未授予 → 单独再请求一次（Android 11+ 后台定位必须分开请求）
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED
+                    && checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        REQ_PERMISSION);
+            }
+            refresh();
+        }
+    }
+
     private void requestMissing(String[] perms) {
         java.util.List<String> pending = new java.util.ArrayList<>();
         for (String p : perms) {
@@ -158,5 +172,31 @@ public class PermissionActivity extends BaseActivity {
         if (!pending.isEmpty()) {
             requestPermissions(pending.toArray(new String[0]), REQ_PERMISSION);
         }
+    }
+
+    /** 定位：前台+后台分开请求；已全部授予时点击跳应用详情（始终有可见反馈） */
+    private void requestLocation() {
+        boolean fine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean background = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                || checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        if (fine && background) {
+            try {
+                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                Log.w(TAG, "无法跳转应用详情", e);
+            }
+            return;
+        }
+        java.util.List<String> pending = new java.util.ArrayList<>();
+        if (!fine) {
+            pending.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !background) {
+            pending.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+        }
+        requestPermissions(pending.toArray(new String[0]), REQ_PERMISSION);
     }
 }
