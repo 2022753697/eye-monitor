@@ -1546,19 +1546,22 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 引用定位闪烁：整行背景高亮（主题色 ~13% 透明），明暗两轮后消失。
-     * 行高 = 自然行高（贴合气泡+时间，文本/语音/图片/视频统一）。
+     * 行高 = 自然行高 + 上下 8dp 对称 inset（顶部不贴内容、与下方间距一致）。
      */
     private void flashRow(android.view.View row, ChatItem item) {
         if (row == null) return;
         int highlight = (0x22 << 24) | (getColor(R.color.primary) & 0xFFFFFF);
         android.graphics.drawable.ColorDrawable bg =
                 new android.graphics.drawable.ColorDrawable(highlight);
-        row.setBackground(bg);
+        int insetPx = (int) (8 * getResources().getDisplayMetrics().density);
+        android.graphics.drawable.InsetDrawable inset =
+                new android.graphics.drawable.InsetDrawable(bg, 0, insetPx, 0, insetPx);
+        row.setBackground(inset);
         android.animation.ObjectAnimator anim =
-                android.animation.ObjectAnimator.ofInt(bg, "alpha", 255, 0);
-        anim.setDuration(450);
+                android.animation.ObjectAnimator.ofInt(inset, "alpha", 255, 0);
+        anim.setDuration(650);
         anim.setRepeatCount(1);
-        anim.setRepeatMode(android.animation.ValueAnimator.REVERSE); // 亮→淡→亮→淡
+        anim.setRepeatMode(android.animation.ValueAnimator.REVERSE); // 亮→淡→亮→淡（≈2s）
         anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
