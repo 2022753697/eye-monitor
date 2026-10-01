@@ -53,6 +53,23 @@ services:
     ports:
       - "${TAILNET_IP:-127.0.0.1}:8080:8080"
 
+  # TLS 终结：wss://twoy.online（ICP 备案通过后启用；证书放 ./certs/，见 deploy/tls-switchover.md）
+  # 注意：证书就位前勿启动本服务（nginx -t 会因缺证书文件而 crash-loop）
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: eye-nginx
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks: [eye]
+
 volumes:
   mysql-data:
   media-data:
@@ -60,3 +77,8 @@ volumes:
 networks:
   eye:
     driver: bridge
+
+# 说明：
+# - mysql 不发布端口，仅 compose 内网（AC6）
+# - app 绑定 TAILNET_IP:8080（Tailscale 阶段手机直连；域名切换后 nginx 走容器内网 app:8080，无需再开公网 8080）
+# - nginx 挂载 ./certs/（gitignored），证书就位后再 docker compose up 启用

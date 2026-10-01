@@ -47,3 +47,6 @@ server/data/
 .env
 *.env
 server/.env
+
+# ===== TLS 证书私钥（阿里云免费证书/certbot 下载，勿提交） =====
+server/certs/
