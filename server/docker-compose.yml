@@ -53,7 +53,7 @@ services:
     ports:
       - "${TAILNET_IP:-127.0.0.1}:8080:8080"
 
-  # TLS 终结：wss://twoy.online（ICP 备案通过后启用；证书放 ./certs/，见 deploy/tls-switchover.md）
+  # TLS 终结：twoy.online（证书放 ./certs/，见 deploy/tls-switchover.md）
   # 注意：证书就位前勿启动本服务（nginx -t 会因缺证书文件而 crash-loop）
   nginx:
     image: nginx:1.27-alpine
@@ -63,8 +63,9 @@ services:
       app:
         condition: service_started
     ports:
-      - "80:80"
-      - "443:443"
+      - "8443:8443"            # 阶段①免备案：WSS 走 8443
+      # - "443:443"            # 阶段②备案通过后启用
+      # - "80:80"              # 阶段② 80 跳转/挑战
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
