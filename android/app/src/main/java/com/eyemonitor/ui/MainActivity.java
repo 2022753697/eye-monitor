@@ -1526,7 +1526,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** 引用跳转闪烁：等滚动停稳 → 置 flash 标记 → 0.9s 后清除（绑定行明暗脉动一次） */
+    /** 引用跳转闪烁：等滚动停稳 → 置 flash 标记通知重绑（整行背景高亮由 flashRow 驱动，动画结束自动清除标记） */
     private void flashRefItem(long refMsgId) {
         chatUiHandler.postDelayed(() -> {
             int idx = indexOfTs(refMsgId);
@@ -1534,13 +1534,6 @@ public class MainActivity extends AppCompatActivity {
             ChatItem it = chatAdapter.items.get(idx);
             it.flash = true;
             chatAdapter.notifyItemChanged(idx);
-            chatUiHandler.postDelayed(() -> {
-                int idx2 = indexOfTs(refMsgId);
-                if (idx2 >= 0 && chatAdapter.items.get(idx2) == it) {
-                    it.flash = false;
-                    chatAdapter.notifyItemChanged(idx2);
-                }
-            }, 900);
         }, 350);
     }
 
@@ -1551,14 +1544,30 @@ public class MainActivity extends AppCompatActivity {
         return -1;
     }
 
-    /** 定位闪烁动画：明暗脉冲一次 */
-    private void animateFlashRow(android.view.View row) {
+    /**
+     * 引用定位闪烁：整行背景高亮（主题色 ~13% 透明），明暗两轮后消失。
+     * 行高 = 自然行高（贴合气泡+时间，文本/语音/图片/视频统一）。
+     */
+    private void flashRow(android.view.View row, ChatItem item) {
         if (row == null) return;
-        row.animate()
-                .alpha(0.25f).setDuration(140)
-                .withEndAction(() -> row.animate()
-                        .alpha(1f).setDuration(140).start())
-                .start();
+        int highlight = (0x22 << 24) | (getColor(R.color.primary) & 0xFFFFFF);
+        android.graphics.drawable.ColorDrawable bg =
+                new android.graphics.drawable.ColorDrawable(highlight);
+        row.setBackground(bg);
+        android.animation.ObjectAnimator anim =
+                android.animation.ObjectAnimator.ofInt(bg, "alpha", 255, 0);
+        anim.setDuration(450);
+        anim.setRepeatCount(1);
+        anim.setRepeatMode(android.animation.ValueAnimator.REVERSE); // 亮→淡→亮→淡
+        anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        anim.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                row.setBackground(null);
+                item.flash = false;
+            }
+        });
+        anim.start();
     }
 
 
@@ -2510,7 +2519,7 @@ public class MainActivity extends AppCompatActivity {
 
             void bind(ChatItem item, int position) {
                 if (item.flash) {
-                    animateFlashRow(itemView);
+                    flashRow(itemView, item);
                 }
                 switch (viewType) {
                     case TYPE_SELF:
