@@ -5,6 +5,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.util.HostnamePolicy;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -89,6 +90,8 @@ public class WSClient {
         this.client = new OkHttpClient.Builder()
                 .pingInterval(OKHTTP_PING_INTERVAL_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)  // WebSocket 不设超时
+                // IP 直连时放开主机名校验（证书为域名证书）；域名连接保持严格
+                .hostnameVerifier(HostnamePolicy.verifierFor(serverUrl))
                 .build();
     }
 

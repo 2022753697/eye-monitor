@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import com.eyemonitor.R;
+import com.eyemonitor.util.HostnamePolicy;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,6 +84,8 @@ public class AuthManager {
         this.http = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(20, TimeUnit.SECONDS)
+                // IP 直连时放开主机名校验（证书为域名证书）；域名连接保持严格（见 HostnamePolicy）
+                .hostnameVerifier(HostnamePolicy.verifier(context))
                 .build();
     }
 
