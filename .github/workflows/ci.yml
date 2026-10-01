@@ -24,6 +24,9 @@ jobs:
   android:
     name: Android · build + unit test + lint
     runs-on: ubuntu-latest
+    env:
+      # 高德 Key 从 GitHub Secrets 注入（未设置则构建仍通过，地图不可用）
+      AMAP_KEY: ${{ secrets.AMAP_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

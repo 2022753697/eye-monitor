@@ -2,6 +2,30 @@ plugins {
     id 'com.android.application'
 }
 
+// --- 高德 Key 提取（2025-10）：密钥不入仓库，构建时从三处注入 ---
+def loadAmapKey() {
+    // 1) local.properties（gitignore，本机开发）：amap.key=xxx
+    try {
+        def local = rootProject.file('local.properties')
+        if (local.exists()) {
+            def props = new Properties()
+            local.withInputStream { props.load(it) }
+            def v = props.getProperty('amap.key')
+            if (v != null && !v.trim().isEmpty()) return v.trim()
+        }
+    } catch (Exception ignored) {}
+    // 2) gradle 属性（~/.gradle/gradle.properties 或 -PamapKey=xxx）
+    if (project.hasProperty('amapKey')) {
+        def v = project.property('amapKey').toString().trim()
+        if (!v.isEmpty()) return v
+    }
+    // 3) 环境变量（CI）：AMAP_KEY
+    def env = System.getenv('AMAP_KEY')
+    if (env != null && !env.trim().isEmpty()) return env.trim()
+    println '⚠️ 未配置高德 Key（local.properties amap.key / gradle 属性 amapKey / 环境变量 AMAP_KEY）——地图与定位将不可用'
+    return ''
+}
+
 android {
     namespace 'com.eyemonitor'
     compileSdk 34
@@ -16,6 +40,9 @@ android {
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
+
+        // 高德 Key 占位符：构建时注入（local.properties amap.key → gradle 属性 amapKey → 环境变量 AMAP_KEY）
+        manifestPlaceholders = [AMAP_KEY: loadAmapKey()]
     }
 
     buildTypes {
