@@ -501,12 +501,8 @@ public class MainActivity extends AppCompatActivity {
         viewAnniversaryHeart.setOnTouchListener((v, event) -> anniversaryGesture.onTouchEvent(event));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
-        // 一次性请求全部缺失运行时权限；引导弹窗等系统批次结束后（onRequestPermissionsResult）再弹
-        PermissionHelper.requestMissing(this);
-        if (!PermissionHelper.hasMissingRuntime(this)) {
-            getWindow().getDecorView().postDelayed(
-                    () -> PermissionHelper.guideMonitorSettings(this), 400);
-        }
+        // 权限流程：批次1安全集合 → 后台定位单独批次 → 监控设置引导（批次后弹，避免非法组合被系统终止）
+        PermissionHelper.startEntryPermissionFlow(this);
     }
 
     @Override
@@ -564,11 +560,8 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // 系统运行时权限批次全部结束后，再弹监控设置引导（无障碍/使用情况访问）
-        if (requestCode == PermissionHelper.REQ_RUNTIME_BASIC) {
-            getWindow().getDecorView().postDelayed(
-                    () -> PermissionHelper.guideMonitorSettings(this), 300);
-        }
+        // 权限流程后继步骤：批次1结束→后台定位批次；批次2结束→监控设置引导
+        PermissionHelper.onEntryFlowStep(this, requestCode);
         if (requestCode == REQ_VOICE_PERMISSION && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, R.string.voice_permission_granted, Toast.LENGTH_SHORT).show();

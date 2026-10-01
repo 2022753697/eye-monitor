@@ -46,6 +46,9 @@
     <string name="switch_count_label">今日切换次数：</string>
     <string name="toast_unknown_app">未知应用</string>
     <string name="dialog_monitor_permission_title">需要权限</string>
+    <string name="guide_row_usage">使用情况访问权限（推荐）</string>
+    <string name="guide_row_accessibility">无障碍服务（备选）</string>
+    <string name="guide_done_tip">点击对应项跳转系统设置，开启后返回本页自动打勾，两项都开启后自动关闭</string>
     <string name="dialog_monitor_permission_message">恋视需要以下权限之一才能监控 App 切换：\n\n1. 「使用情况访问权限」- 推荐\n或\n2. 「无障碍服务」- 备选方案\n\n请点击「去设置」开启对应权限。</string>
 
     <!-- 配对页 -->

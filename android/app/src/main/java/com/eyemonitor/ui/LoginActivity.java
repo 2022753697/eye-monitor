@@ -75,13 +75,8 @@ public class LoginActivity extends AppCompatActivity {
         findViewById(R.id.row_server_url_login)
                 .setOnClickListener(v -> ServerUrlDialogHelper.show(this, tvServerUrlValue));
 
-        // 进入 App 第一时间一次性请求全部缺失的运行时权限（系统弹窗依次排队）
-        PermissionHelper.requestMissing(this);
-        // 引导弹窗必须在运行时权限批次完成后才显示（避免 App 弹窗抢焦点关掉系统弹窗）
-        if (!PermissionHelper.hasMissingRuntime(this)) {
-            findViewById(android.R.id.content)
-                    .postDelayed(() -> PermissionHelper.guideMonitorSettings(this), 400);
-        }
+        // 进入 App：一次性请求运行时权限（批次1安全集合 → 后台定位单独批次 → 监控设置引导）
+        PermissionHelper.startEntryPermissionFlow(this);
 
         btnLogin.setOnClickListener(v -> doLogin());
         btnRegister.setOnClickListener(v -> doRegister());
@@ -114,11 +109,8 @@ public class LoginActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // 系统运行时权限批次全部结束后，再弹监控设置引导（无障碍/使用情况访问）
-        if (requestCode == PermissionHelper.REQ_RUNTIME_BASIC) {
-            findViewById(android.R.id.content)
-                    .postDelayed(() -> PermissionHelper.guideMonitorSettings(this), 300);
-        }
+        // 权限流程后继步骤：批次1结束→后台定位批次；批次2结束→监控设置引导
+        PermissionHelper.onEntryFlowStep(this, requestCode);
     }
 
     @Override
