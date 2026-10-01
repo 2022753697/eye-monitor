@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.util.PermissionHelper;
 import com.eyemonitor.util.ServerUrlDialogHelper;
 
 /**
@@ -73,6 +74,11 @@ public class LoginActivity extends AppCompatActivity {
         tvServerUrlValue.setText(prefs.getServerUrl());
         findViewById(R.id.row_server_url_login)
                 .setOnClickListener(v -> ServerUrlDialogHelper.show(this, tvServerUrlValue));
+
+        // 进入 App 第一时间弹出缺失的运行时权限（通知/定位/蓝牙/媒体/录音），幂等不重复弹
+        PermissionHelper.requestMissing(this);
+        // 监控权限（使用情况访问/无障碍，系统设置类）首次进入一并引导
+        PermissionHelper.guideMonitorSettings(this);
 
         btnLogin.setOnClickListener(v -> doLogin());
         btnRegister.setOnClickListener(v -> doRegister());

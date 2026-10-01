@@ -70,6 +70,7 @@ import com.eyemonitor.util.AccessibilityDiagnostic;
 import com.eyemonitor.util.MapNav;
 import com.eyemonitor.util.AnniversaryUtils;
 import com.eyemonitor.util.MediaUtils;
+import com.eyemonitor.util.PermissionHelper;
 import com.eyemonitor.util.Transitions;
 import com.eyemonitor.util.UiDialogs;
 
@@ -501,35 +502,7 @@ public class MainActivity extends AppCompatActivity {
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         checkMonitorPermission();
-        requestMissingRuntimePermissions();
-    }
-
-    /** 启动时自动请求缺失的运行时权限（通知/定位），已授予的不再弹 */
-    private void requestMissingRuntimePermissions() {
-        java.util.List<String> need = new java.util.ArrayList<>();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            need.add(android.Manifest.permission.POST_NOTIFICATIONS);
-        }
-        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            need.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            need.add(android.Manifest.permission.BLUETOOTH_CONNECT);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                && checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            need.add(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION);
-        }
-        if (!need.isEmpty()) {
-            Log.d(TAG, "自动请求权限: " + need);
-            requestPermissions(need.toArray(new String[0]), 100);
-        }
+        PermissionHelper.requestMissing(this);
     }
 
     @Override
@@ -687,27 +660,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** App 启动时检查监控权限：使用情况访问 或 无障碍，都没有则主动引导开启（仅提示一次） */
     private void checkMonitorPermission() {
-        if (prefs.isPermissionPrompted()) return;
-
-        boolean hasUsageStats = AppUsageTracker.hasUsageStatsPermission(this);
-        boolean hasAccessibility = AccessibilityDiagnostic.isAccessibilityEnabled(this);
-        if (hasUsageStats || hasAccessibility) return;
-
-        prefs.setPermissionPrompted(true);
-        UiDialogs.actions(this,
-                getString(R.string.dialog_monitor_permission_title),
-                getString(R.string.dialog_permission_hint_message),
-                getString(R.string.btn_open_accessibility),
-                getString(R.string.btn_open_usage_stats), false,
-                () -> AccessibilityDiagnostic.openAccessibilitySettings(this),
-                () -> {
-                    try {
-                        startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
-                    } catch (Exception e) {
-                        Toast.makeText(this, R.string.dialog_monitor_permission_fallback,
-                                Toast.LENGTH_LONG).show();
-                    }
-                });
+        PermissionHelper.guideMonitorSettings(this);
     }
 
     // --- 配对面板逻辑（内联，不再跳转 PairActivity） ---
