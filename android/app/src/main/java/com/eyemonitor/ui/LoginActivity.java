@@ -75,10 +75,13 @@ public class LoginActivity extends AppCompatActivity {
         findViewById(R.id.row_server_url_login)
                 .setOnClickListener(v -> ServerUrlDialogHelper.show(this, tvServerUrlValue));
 
-        // 进入 App 第一时间弹出缺失的运行时权限（通知/定位/蓝牙/媒体/录音），幂等不重复弹
+        // 进入 App 第一时间一次性请求全部缺失的运行时权限（系统弹窗依次排队）
         PermissionHelper.requestMissing(this);
-        // 监控权限（使用情况访问/无障碍，系统设置类）首次进入一并引导
-        PermissionHelper.guideMonitorSettings(this);
+        // 引导弹窗必须在运行时权限批次完成后才显示（避免 App 弹窗抢焦点关掉系统弹窗）
+        if (!PermissionHelper.hasMissingRuntime(this)) {
+            findViewById(android.R.id.content)
+                    .postDelayed(() -> PermissionHelper.guideMonitorSettings(this), 400);
+        }
 
         btnLogin.setOnClickListener(v -> doLogin());
         btnRegister.setOnClickListener(v -> doRegister());
@@ -105,6 +108,24 @@ public class LoginActivity extends AppCompatActivity {
             dialog.setTitle(getString(R.string.reg_birthday_hint));
             dialog.show();
         });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // 系统运行时权限批次全部结束后，再弹监控设置引导（无障碍/使用情况访问）
+        if (requestCode == PermissionHelper.REQ_RUNTIME_BASIC) {
+            findViewById(android.R.id.content)
+                    .postDelayed(() -> PermissionHelper.guideMonitorSettings(this), 300);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 从监控设置页返回：复查仍缺则再提醒一次（上限 2 次）
+        PermissionHelper.guideIfReturnedFromSettings(this);
     }
 
     private void switchMode(boolean register) {

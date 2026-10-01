@@ -14,6 +14,8 @@ public class PrefsManager {
     private static final String KEY_DEVICE_ID = "device_id";
     private static final String KEY_PAIR_CODE = "pair_code";
     private static final String KEY_SERVER_URL = "server_url";
+    private static final String KEY_MONITOR_PROMPT_COUNT = "monitor_prompt_count";
+    private static final String KEY_MONITOR_SETTINGS_PENDING = "monitor_settings_pending";
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
     private static final String KEY_PEER_REMARK = "peer_remark";
@@ -296,6 +298,24 @@ public class PrefsManager {
 
     public void setPermissionPrompted(boolean prompted) {
         prefs.edit().putBoolean(KEY_PERMISSION_PROMPTED, prompted).apply();
+    }
+
+    /** 监控权限引导：从设置页返回后仍缺时的再提醒次数（上限 1 次） */
+    public int getMonitorPromptCount() {
+        return prefs.getInt(KEY_MONITOR_PROMPT_COUNT, 0);
+    }
+
+    public void setMonitorPromptCount(int count) {
+        prefs.edit().putInt(KEY_MONITOR_PROMPT_COUNT, count).apply();
+    }
+
+    /** 刚从监控设置页返回（用于返回后复查是否仍缺） */
+    public boolean isMonitorSettingsPending() {
+        return prefs.getBoolean(KEY_MONITOR_SETTINGS_PENDING, false);
+    }
+
+    public void setMonitorSettingsPending(boolean pending) {
+        prefs.edit().putBoolean(KEY_MONITOR_SETTINGS_PENDING, pending).apply();
     }
 
     /** 省电 P3：电池优化白名单是否已提醒过（拒绝/忽略后不再重复打扰） */

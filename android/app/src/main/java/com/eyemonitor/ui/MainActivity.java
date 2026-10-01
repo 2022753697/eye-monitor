@@ -501,8 +501,12 @@ public class MainActivity extends AppCompatActivity {
         viewAnniversaryHeart.setOnTouchListener((v, event) -> anniversaryGesture.onTouchEvent(event));
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
-        checkMonitorPermission();
+        // 一次性请求全部缺失运行时权限；引导弹窗等系统批次结束后（onRequestPermissionsResult）再弹
         PermissionHelper.requestMissing(this);
+        if (!PermissionHelper.hasMissingRuntime(this)) {
+            getWindow().getDecorView().postDelayed(
+                    () -> PermissionHelper.guideMonitorSettings(this), 400);
+        }
     }
 
     @Override
@@ -529,6 +533,8 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         chatForeground = true;
         handleSosFromNotificationIntent(getIntent());
+        // 从监控设置页（使用情况/无障碍）返回：复查仍缺则再提醒一次
+        PermissionHelper.guideIfReturnedFromSettings(this);
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 配对成功后自动启动监控服务（实时检测服务运行状态）
         if (prefs.isPaired() && !isServiceRunning()) {
@@ -558,6 +564,11 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // 系统运行时权限批次全部结束后，再弹监控设置引导（无障碍/使用情况访问）
+        if (requestCode == PermissionHelper.REQ_RUNTIME_BASIC) {
+            getWindow().getDecorView().postDelayed(
+                    () -> PermissionHelper.guideMonitorSettings(this), 300);
+        }
         if (requestCode == REQ_VOICE_PERMISSION && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, R.string.voice_permission_granted, Toast.LENGTH_SHORT).show();
@@ -660,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** App 启动时检查监控权限：使用情况访问 或 无障碍，都没有则主动引导开启（仅提示一次） */
     private void checkMonitorPermission() {
-        PermissionHelper.guideMonitorSettings(this);
+        // 引导时机统一由 PermissionHelper 控制（系统权限批次结束后/设置页返回后）
     }
 
     // --- 配对面板逻辑（内联，不再跳转 PairActivity） ---

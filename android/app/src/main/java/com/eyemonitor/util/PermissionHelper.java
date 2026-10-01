@@ -86,15 +86,72 @@ public final class PermissionHelper {
         }
     }
 
-    /** 监控权限引导（使用情况访问 / 无障碍，系统设置类，无法运行时弹窗）：仅首次提示一次，
-     *  进入 App 第一时间与运行时权限一起完成。已具备其一或已提示过则不打扰 */
+    /** 是否仍有缺失的运行时权限（纯检查，不弹窗） */
+    public static boolean hasMissingRuntime(Activity activity) {
+        return !missingRuntime(activity).isEmpty();
+    }
+
+    private static java.util.List<String> missingRuntime(Activity activity) {
+        java.util.List<String> need = new java.util.ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES)
+                    != PackageManager.PERMISSION_GRANTED) {
+                need.add(Manifest.permission.READ_MEDIA_IMAGES);
+            }
+            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO)
+                    != PackageManager.PERMISSION_GRANTED) {
+                need.add(Manifest.permission.READ_MEDIA_VIDEO);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        if (activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && activity.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+        if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.RECORD_AUDIO);
+        }
+        return need;
+    }
+
+    /** 监控权限引导（使用情况访问 / 无障碍，系统设置类，无法运行时弹窗）。
+     *  必须在系统运行时权限批次完成后调用（避免 App 弹窗抢焦点把系统弹窗关掉）。
+     *  已具备其一不再打扰；返回 App 时经 guideIfReturnedFromSettings 再提醒一次（上限 2 次）。 */
     public static void guideMonitorSettings(Activity activity) {
-        PrefsManager prefs = new PrefsManager(activity);
-        if (prefs.isPermissionPrompted()) return;
         boolean hasUsageStats = AppUsageTracker.hasUsageStatsPermission(activity);
         boolean hasAccessibility = AccessibilityDiagnostic.isAccessibilityEnabled(activity);
-        if (hasUsageStats || hasAccessibility) return;
-        prefs.setPermissionPrompted(true);
+        PrefsManager prefs = new PrefsManager(activity);
+        if (hasUsageStats || hasAccessibility) {
+            prefs.setMonitorSettingsPending(false);
+            return;
+        }
+        if (prefs.isPermissionPrompted()) {
+            // 提示过一次仍未开启任何一项：只允许再提醒一次
+            if (prefs.getMonitorPromptCount() >= 1) return;
+            prefs.setMonitorPromptCount(prefs.getMonitorPromptCount() + 1);
+        } else {
+            prefs.setPermissionPrompted(true);
+        }
+        prefs.setMonitorSettingsPending(true);
         UiDialogs.actions(activity,
                 activity.getString(R.string.dialog_monitor_permission_title),
                 activity.getString(R.string.dialog_permission_hint_message),
@@ -111,5 +168,13 @@ public final class PermissionHelper {
                                 Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    /** 从监控设置页返回后复查：仍缺则再提醒（上限 2 次），已具备则不再打扰 */
+    public static void guideIfReturnedFromSettings(Activity activity) {
+        PrefsManager prefs = new PrefsManager(activity);
+        if (!prefs.isMonitorSettingsPending()) return;
+        prefs.setMonitorSettingsPending(false);
+        guideMonitorSettings(activity);
     }
 }
