@@ -74,7 +74,7 @@ public interface CacheDao {
     @Query("SELECT * FROM media_cache WHERE fileId = :fileId")
     MediaCacheEntity getMedia(String fileId);
 
-    @Query("SELECT * FROM media_cache ORDER BY ts DESC")
+    @Query("SELECT * FROM media_cache WHERE (mime IS NULL OR mime NOT LIKE 'audio/%') ORDER BY ts DESC")
     List<MediaCacheEntity> getMedia();
 
     @Query("DELETE FROM media_cache WHERE fileId = :fileId")
@@ -100,10 +100,10 @@ public interface CacheDao {
     @Query("DELETE FROM folder_cache")
     void clearFolders();
 
-    @Query("SELECT * FROM media_cache WHERE folderId = :folderId ORDER BY ts DESC")
+    @Query("SELECT * FROM media_cache WHERE folderId = :folderId AND (mime IS NULL OR mime NOT LIKE 'audio/%') ORDER BY ts DESC")
     List<MediaCacheEntity> getMediaByFolder(Long folderId);
 
-    @Query("SELECT * FROM media_cache WHERE folderId IS NULL ORDER BY ts DESC")
+    @Query("SELECT * FROM media_cache WHERE folderId IS NULL AND (mime IS NULL OR mime NOT LIKE 'audio/%') ORDER BY ts DESC")
     List<MediaCacheEntity> getMediaUnfiled();
 
     // --- 聊天（from server 拉取历史时用） ---
