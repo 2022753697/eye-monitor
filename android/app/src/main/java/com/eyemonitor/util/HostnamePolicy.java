@@ -4,7 +4,6 @@ import android.content.Context;
 
 import com.eyemonitor.config.PrefsManager;
 
-import okhttp3.HttpUrl;
 import okhttp3.internal.tls.OkHostnameVerifier;
 
 import javax.net.ssl.HostnameVerifier;
@@ -37,13 +36,17 @@ public final class HostnamePolicy {
                         || OkHostnameVerifier.INSTANCE.verify(hostname, session);
     }
 
+    /** 从 wss/ws/http/https 地址中提取主机名（纯字符串解析，不依赖 HttpUrl 对 ws 方案的兼容性） */
     private static String hostOf(String serverUrl) {
-        try {
-            HttpUrl url = HttpUrl.parse(serverUrl);
-            return url == null ? "" : url.host();
-        } catch (Exception e) {
-            return "";
-        }
+        if (serverUrl == null) return "";
+        int schemeEnd = serverUrl.indexOf("://");
+        if (schemeEnd < 0) return "";
+        int hostStart = schemeEnd + 3;
+        int hostEnd = serverUrl.indexOf('/', hostStart);
+        if (hostEnd < 0) hostEnd = serverUrl.length();
+        String hostPort = serverUrl.substring(hostStart, hostEnd);
+        int colon = hostPort.lastIndexOf(':');
+        return colon > 0 ? hostPort.substring(0, colon) : hostPort;
     }
 
     /** 纯 IP 字面量判断（IPv4 四段 / IPv6 含冒号） */
