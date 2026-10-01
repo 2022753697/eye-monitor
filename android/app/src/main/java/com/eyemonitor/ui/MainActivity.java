@@ -1564,10 +1564,11 @@ public class MainActivity extends AppCompatActivity {
         lp.leftMargin = -row.getPaddingStart();             // 左对齐行左缘（越过 start 内边距）
         band.setLayoutParams(lp);
 
-        boolean wasClipChildren = row.getClipChildren();
-        row.setClipChildren(false);
-        row.setClipToPadding(false);
-        row.addView(band, 0);
+        android.view.ViewGroup vg = (android.view.ViewGroup) row; // clip 系列是 ViewGroup 方法
+        boolean wasClipChildren = vg.getClipChildren();
+        vg.setClipChildren(false);
+        vg.setClipToPadding(false);
+        vg.addView(band, 0);
 
         android.animation.ObjectAnimator anim =
                 android.animation.ObjectAnimator.ofInt(band, "alpha", 255, 0);
@@ -1578,9 +1579,9 @@ public class MainActivity extends AppCompatActivity {
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                row.removeView(band);
-                row.setClipChildren(wasClipChildren);
-                row.setClipToPadding(true);
+                vg.removeView(band);
+                vg.setClipChildren(wasClipChildren);
+                vg.setClipToPadding(true);
                 item.flash = false;
             }
         });
