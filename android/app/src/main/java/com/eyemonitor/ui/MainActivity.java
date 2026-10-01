@@ -1515,26 +1515,57 @@ public class MainActivity extends AppCompatActivity {
                 from != null ? from : "", item.refMsgId, item.refText, item.ts);
     }
 
+    /** 当前正在闪的引用消息 ts（防连点重复闪）；-1 = 无 */
+    private long flashingRefTs = -1;
+
     private void scrollToRef(long refMsgId) {
         List<ChatItem> items = chatAdapter.items;
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).ts == refMsgId) {
                 rvChat.smoothScrollToPosition(i);
-                flashRefItem(refMsgId);
+                flashWhenIdle(refMsgId);
                 return;
             }
         }
     }
 
-    /** 引用跳转闪烁：等滚动停稳 → 置 flash 标记通知重绑（整行背景高亮由 flashRow 驱动，动画结束自动清除标记） */
+    /** 等列表滚动停稳再闪（smoothScroll 异步，行未到位时闪会落在空位/半路） */
+    private void flashWhenIdle(long refMsgId) {
+        final int[] tries = {0};
+        chatUiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (rvChat == null) return;
+                if (rvChat.getScrollState() == RecyclerView.SCROLL_STATE_IDLE || tries[0] >= 20) {
+                    flashRefItem(refMsgId);
+                } else {
+                    tries[0]++;
+                    chatUiHandler.postDelayed(this, 150);
+                }
+            }
+        }, 150);
+    }
+
+    /** 引用跳转闪烁：行已就位 → 延迟找已绑定 ViewHolder 直接闪（不依赖 bind 时机——
+     *  RecyclerView 先 bind 后 attach，bind 里闪会被 isAttachedToWindow 拦掉） */
     private void flashRefItem(long refMsgId) {
+        if (flashingRefTs == refMsgId) return;   // 防连点重复
+        flashingRefTs = refMsgId;
         chatUiHandler.postDelayed(() -> {
-            int idx = indexOfTs(refMsgId);
-            if (idx < 0) return;
-            ChatItem it = chatAdapter.items.get(idx);
-            it.flash = true;
-            chatAdapter.notifyItemChanged(idx);
-        }, 350);
+            int idx2 = indexOfTs(refMsgId);
+            RecyclerView.ViewHolder vh = idx2 >= 0
+                    ? rvChat.findViewHolderForAdapterPosition(idx2) : null;
+            if (vh != null && vh.itemView.isAttachedToWindow()) {
+                flashRow(vh.itemView, chatAdapter.items.get(idx2));
+            } else {
+                flashingRefTs = -1; // 闪不了（理论罕见），解锁以便下次点击
+                if (idx2 >= 0) {
+                    // 兜底：置标记走 bind（虽可能 pre-attach skip，聊胜于无）
+                    chatAdapter.items.get(idx2).flash = true;
+                    chatAdapter.notifyItemChanged(idx2);
+                }
+            }
+        }, 250);
     }
 
     private int indexOfTs(long ts) {
@@ -1550,7 +1581,12 @@ public class MainActivity extends AppCompatActivity {
      * 明暗两轮后移除。文本/语音/图片/视频统一。
      */
     private void flashRow(android.view.View row, ChatItem item) {
-        if (row == null || viewChatPanel == null || !row.isAttachedToWindow()) return;
+        if (row == null || viewChatPanel == null) {
+            return;
+        }
+        if (!row.isAttachedToWindow()) {
+            return;
+        }
         int density = (int) getResources().getDisplayMetrics().density;
         int overhang = 12 * density;
         int rowH = row.getHeight() > 0 ? row.getHeight() : 64 * density;
@@ -1566,10 +1602,11 @@ public class MainActivity extends AppCompatActivity {
                 new android.widget.FrameLayout.LayoutParams(row.getWidth(), rowH + overhang);
         lp.leftMargin = rl[0] - pl[0];
         lp.topMargin = rl[1] - pl[1] - overhang;   // 向上探 overhang
-        viewChatPanel.addView(band, lp);
+        ((android.view.ViewGroup) viewChatPanel).addView(band, lp);
+                + " w=" + lp.width + " h=" + lp.height);
 
         android.animation.ObjectAnimator anim =
-                android.animation.ObjectAnimator.ofInt(band, "alpha", 255, 0);
+                android.animation.ObjectAnimator.ofFloat(band, "alpha", 1f, 0f);
         anim.setDuration(650);
         anim.setRepeatCount(1);
         anim.setRepeatMode(android.animation.ValueAnimator.REVERSE); // 亮→淡→亮→淡（≈2s）
@@ -1577,8 +1614,9 @@ public class MainActivity extends AppCompatActivity {
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                viewChatPanel.removeView(band);
-                item.flash = false;
+                ((android.view.ViewGroup) viewChatPanel).removeView(band);
+                if (item != null) item.flash = false;
+                flashingRefTs = -1; // 解锁：允许下一次点击重新闪
             }
         });
         anim.start();
