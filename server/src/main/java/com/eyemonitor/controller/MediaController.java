@@ -130,6 +130,11 @@ public class MediaController {
         MediaFileEntity e = mediaFileRepo.findById(fileId)
                 .orElseThrow(() -> new BizException(404, "文件不存在"));
         if (e.isDeleted()) throw new BizException(404, "文件不存在");
+        // 归属校验（WS1/ADR-5）：仅配对双方可访问该文件的媒体，封堵 fileId 越权枚举下载
+        long userId = AuthUtil.currentUserId(request);
+        if (!pairService.belongsToPair(userId, e.getPairCode())) {
+            throw new BizException(403, "无权访问该文件");
+        }
         Path p = mediaService.resolveMedia(e.getPath());
         if (!Files.exists(p)) throw new BizException(404, "文件不存在");
 

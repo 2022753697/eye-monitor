@@ -7,7 +7,8 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/eye_monitor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USER:eye}
-    password: ${DB_PASS:EyeDev2025_local!}
+    # DB_PASS 必填：无回退默认值（历史默认值已进入仓库历史视为公开），启动时 ProdCredentialValidator 强校验
+    password: ${DB_PASS:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -18,10 +19,10 @@ spring:
       max-file-size: 110MB
       max-request-size: 120MB
 
-# JWT 配置（参考若依 TokenService 无状态 token 思路；secret 生产环境务必用环境变量覆盖）
+# JWT 配置（参考若依 TokenService 无状态 token 思路；JWT_SECRET 必由环境变量提供，无回退值，ProdCredentialValidator 强校验≥32字节且非历史默认）
 eye:
   jwt:
-    secret: ${JWT_SECRET:eye-monitor-2025-local-dev-secret-key-change-in-prod-}
+    secret: ${JWT_SECRET:}
     access-ttl-ms: 28800000        # 8 小时
     refresh-ttl-ms: 2592000000     # 30 天（滑动续期）
 
