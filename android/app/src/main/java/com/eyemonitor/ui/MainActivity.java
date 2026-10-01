@@ -514,6 +514,10 @@ public class MainActivity extends AppCompatActivity {
         if (prefs.isPaired() && !isServiceRunning()) {
             startMonitoringService();
         }
+        // 省电 P3：白名单引导（已配对才提示；独立于服务启动时机——保活先起服务也不哑火）
+        if (prefs.isPaired()) {
+            maybePromptBatteryOptimization();
+        }
         // 已配对则刷新标题与状态
         if (prefs.isPaired()) {
             updateChatHeader();
@@ -2073,10 +2077,9 @@ public class MainActivity extends AppCompatActivity {
             startService(intent);
         }
         serviceRunning = true;
-        maybePromptBatteryOptimization();
     }
 
-    /** 省电 P3：首次开启监控时引导加入电池优化白名单（仅询问一次；拒绝后状态页可再进） */
+    /** 省电 P3：白名单引导（已配对+未提示过+未豁免 → 弹一次；拒绝后状态页可再进） */
     private void maybePromptBatteryOptimization() {
         if (prefs == null) prefs = new PrefsManager(this);
         if (prefs.isBatteryWhitelistPrompted()) return;
