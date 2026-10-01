@@ -260,6 +260,22 @@
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
+
+            <!-- 请求日志（调试面板）：实时显示发送的 API 请求/结果 -->
+            <TextView
+                android:id="@+id/tv_request_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="140dp"
+                android:padding="8dp"
+                android:background="@drawable/bg_card"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:typeface="monospace"
+                android:lineSpacingExtra="2dp"
+                android:maxLines="10"
+                android:ellipsize="none"
+                android:layout_marginTop="@dimen/space_8" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

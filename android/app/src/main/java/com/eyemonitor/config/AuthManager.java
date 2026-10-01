@@ -9,6 +9,7 @@ import com.google.gson.JsonParser;
 
 import com.eyemonitor.R;
 import com.eyemonitor.util.HostnamePolicy;
+import com.eyemonitor.util.RequestLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -86,6 +87,24 @@ public class AuthManager {
                 .readTimeout(20, TimeUnit.SECONDS)
                 // IP 直连时放开主机名校验（证书为域名证书）；域名连接保持严格（见 HostnamePolicy）
                 .hostnameVerifier(HostnamePolicy.verifier(context))
+                // 请求日志（调试面板）：记录每个请求的 URL/结果/异常
+                .addInterceptor(chain -> {
+                    okhttp3.Request req = chain.request();
+                    String brief = req.method() + " " + req.url();
+                    try {
+                        okhttp3.Response resp = chain.proceed(req);
+                        RequestLog.add("← " + resp.code() + " " + brief);
+                        return resp;
+                    } catch (Exception e) {
+                        String msg = e.getMessage();
+                        if (msg != null && msg.length() > 120) {
+                            msg = msg.substring(0, 120);
+                        }
+                        RequestLog.add("✗ " + brief + " → "
+                                + e.getClass().getSimpleName() + ": " + (msg == null ? "" : msg));
+                        throw e;
+                    }
+                })
                 .build();
     }
 
