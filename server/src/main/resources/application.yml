@@ -5,7 +5,8 @@ spring:
   application:
     name: eye-monitor-server
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/eye_monitor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    # DB_URL 环境变量覆盖（容器内指向 compose 的 mysql 服务）；本地开发无 DB_URL 时回退 127.0.0.1
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/eye_monitor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${DB_USER:eye}
     # DB_PASS 必填：无回退默认值（历史默认值已进入仓库历史视为公开），启动时 ProdCredentialValidator 强校验
     password: ${DB_PASS:}
