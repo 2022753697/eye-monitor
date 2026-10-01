@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
+import com.eyemonitor.config.PrefsManager;
+import com.eyemonitor.util.ServerUrlDialogHelper;
 
 /**
  * 登录 / 注册界面（组件 7：强制登录，用户名 + 密码）。
@@ -42,10 +44,16 @@ public class LoginActivity extends AppCompatActivity {
     private Button btnRegister;
     private TextView tvGoLogin;
 
+    // 服务器地址入口（登录前可改）
+    private TextView tvServerUrlValue;
+    private PrefsManager prefs;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        prefs = new PrefsManager(this);
 
         etUsername = findViewById(R.id.et_username);
         etPassword = findViewById(R.id.et_password);
@@ -60,6 +68,11 @@ public class LoginActivity extends AppCompatActivity {
         rbRegFemale = findViewById(R.id.rb_reg_female);
         btnRegister = findViewById(R.id.btn_register);
         tvGoLogin = findViewById(R.id.tv_go_login);
+
+        tvServerUrlValue = findViewById(R.id.tv_server_url_login_value);
+        tvServerUrlValue.setText(prefs.getServerUrl());
+        findViewById(R.id.row_server_url_login)
+                .setOnClickListener(v -> ServerUrlDialogHelper.show(this, tvServerUrlValue));
 
         btnLogin.setOnClickListener(v -> doLogin());
         btnRegister.setOnClickListener(v -> doRegister());
