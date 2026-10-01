@@ -82,7 +82,7 @@ public final class SyncManager {
                                 m.duration = o.has("duration") && !o.get("duration").isJsonNull()
                                         ? o.get("duration").getAsLong() : 0L;
                                 m.serverFileName = serverFile;
-                                db.cacheDao().upsertMedia(m);
+                                upsertPreservingLocal(db, m);
                                 n++;
                             }
                             Log.i(TAG, "媒体元数据同步: " + n + " 条");
@@ -428,7 +428,23 @@ public final class SyncManager {
         }
         e.ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
         AppDatabase db = AppDatabase.getInstance(context);
-        AppDatabase.dbExecutor.execute(() -> db.cacheDao().upsertMedia(e));
+        AppDatabase.dbExecutor.execute(() -> upsertPreservingLocal(db, e));
+    }
+
+    /** upsert 但保留本地字段（waveform/localPath）：服务端同步不持有这些，统一在此合并防覆盖 */
+    private static void upsertPreservingLocal(AppDatabase db, MediaCacheEntity incoming) {
+        if (incoming != null && incoming.fileId != null) {
+            MediaCacheEntity existing = db.cacheDao().getMedia(incoming.fileId);
+            if (existing != null) {
+                if (incoming.waveform == null || incoming.waveform.isEmpty()) {
+                    incoming.waveform = existing.waveform;   // 语音波形（纯本地，防被服务端同步抹掉）
+                }
+                if (incoming.localPath == null || incoming.localPath.isEmpty()) {
+                    incoming.localPath = existing.localPath;
+                }
+            }
+        }
+        db.cacheDao().upsertMedia(incoming);
     }
 
     private static void handleMediaDelete(Context context, WsMessage message) {
