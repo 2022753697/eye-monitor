@@ -14,6 +14,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -91,6 +93,8 @@ public class MonitorService extends Service {
     public static final String EXTRA_SOS_TEXT = "sos_text";
     public static final String ACTION_SEND_SOS_ACK = "com.eyemonitor.SEND_SOS_ACK";
     public static final String EXTRA_SOS_NAV = "sos_nav";
+    public static final String EXTRA_SOS_LAT = "sos_lat";
+    public static final String EXTRA_SOS_LNG = "sos_lng";
     public static final String EXTRA_PROFILE_NICKNAME = "profile_nickname";
     public static final String EXTRA_PROFILE_AVATAR = "profile_avatar";
     public static final String EXTRA_PROFILE_GENDER = "profile_gender";
@@ -150,7 +154,7 @@ public class MonitorService extends Service {
         public void run() {
             if (lastSosText == null) return;
             Log.i(TAG, "SOS 未确认，1 分钟后重发提醒");
-            showSosNotification(lastSosText, lastSosLocation);
+            showSosNotification(lastSosText, lastSosLocation, lastSosLat, lastSosLng);
             handler.postDelayed(this, 60_000L);
         }
     };
@@ -1240,7 +1244,9 @@ public class MonitorService extends Service {
                     ((Number) latObj).doubleValue(), ((Number) lngObj).doubleValue());
         }
 
-        showSosNotification(text, locationText);
+        showSosNotification(text, locationText,
+                latObj instanceof Number ? ((Number) latObj).doubleValue() : Double.NaN,
+                lngObj instanceof Number ? ((Number) lngObj).doubleValue() : Double.NaN);
         // 未确认则每分钟重发通知，直到对方点「确认」
         lastSosText = text;
         lastSosLocation = locationText;
@@ -1532,8 +1538,9 @@ public class MonitorService extends Service {
         }
     }
 
-    /** SOS 高优先级通知：标题+求救语+位置+强震动，「确认」按钮发回执并停止重发 */
-    private void showSosNotification(String sosText, String locationText) {
+    /** SOS 高优先级通知：标题+求救语+位置+强震动（直接调 Vibrator，不依赖渠道，防旧版渠道锁死），
+     *  点通知→带 SOS 参数进 MainActivity 弹回执弹窗；通知可点消（未确认仍每分钟重发） */
+    private void showSosNotification(String sosText, String locationText, double lat, double lng) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                     != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -1544,6 +1551,11 @@ public class MonitorService extends Service {
 
         Intent open = new Intent(this, MainActivity.class);
         open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        open.putExtra(EXTRA_SOS_TEXT, sosText);
+        if (!Double.isNaN(lat) && !Double.isNaN(lng)) {
+            open.putExtra(EXTRA_SOS_LAT, lat);
+            open.putExtra(EXTRA_SOS_LNG, lng);
+        }
         PendingIntent openPi = PendingIntent.getActivity(
                 this, (int) System.currentTimeMillis(), open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -1561,7 +1573,7 @@ public class MonitorService extends Service {
                 .setContentText(getString(R.string.sos_notification_text, sosText, locationText))
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(openPi)
-                .setAutoCancel(false)
+                .setAutoCancel(true) // 点通知即消失（未确认到点仍重发，确认后取消）
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setDefaults(Notification.DEFAULT_SOUND)
                 .setVibrate(new long[]{0, 1000, 500, 1000, 500, 1000}) // 强震动：1s 长脉冲 ×3
@@ -1569,6 +1581,21 @@ public class MonitorService extends Service {
                 .setFullScreenIntent(openPi, true) // 锁屏全屏弹出（闹钟级）
                 .addAction(R.drawable.ic_sos, getString(R.string.sos_ack_action), ackPi)
                 .build();
+
+        // 直接调用系统震动：渠道震动配置创建一次便锁死（旧版可能无震动），SOS 必须保证强提醒
+        try {
+            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                long[] pattern = new long[]{0, 1000, 500, 1000, 500, 1000};
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(android.os.VibrationEffect.createWaveform(pattern, -1));
+                } else {
+                    vibrator.vibrate(pattern, -1);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "SOS 震动失败", e);
+        }
 
         notificationManager.notify(NOTIFICATION_ID_SOS, notification);
         Log.i(TAG, "SOS 通知已发送; 求救语=" + sosText + ", 位置=" + locationText);

@@ -533,9 +533,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleSosFromNotificationIntent(intent);
+    }
+
+    /** 点 SOS 通知进入：延迟到窗口聚焦后弹回执弹窗（带 SOS 参数才处理） */
+    private void handleSosFromNotificationIntent(Intent intent) {
+        if (intent == null || !intent.hasExtra(MonitorService.EXTRA_SOS_TEXT)) return;
+        final String text = intent.getStringExtra(MonitorService.EXTRA_SOS_TEXT);
+        if (text == null) return;
+        // 清掉参数，避免每次 onResume 重复弹
+        intent.removeExtra(MonitorService.EXTRA_SOS_TEXT);
+        final double lat = intent.getDoubleExtra(MonitorService.EXTRA_SOS_LAT, Double.NaN);
+        final double lng = intent.getDoubleExtra(MonitorService.EXTRA_SOS_LNG, Double.NaN);
+        sosHandler.postDelayed(() -> showSosIncomingDialog(text, lat, lng), 300L);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         chatForeground = true;
+        handleSosFromNotificationIntent(getIntent());
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 配对成功后自动启动监控服务（实时检测服务运行状态）
         if (prefs.isPaired() && !isServiceRunning()) {
@@ -2143,32 +2163,48 @@ public class MainActivity extends AppCompatActivity {
 
     /** 收到对方 SOS：前台时弹聊天内快捷回执弹窗（后台靠高优先级通知） */
     private void showSosIncomingDialog(WsMessage message) {
-        if (isFinishing() || isDestroyed() || !hasWindowFocus() || sosDialogShowing) return;
         java.util.Map<String, Object> payload = message.getPayload();
         Object t = payload != null ? payload.get("text") : null;
         String text = t instanceof String ? (String) t : getString(R.string.sos_help_me);
+        Object latObj = payload != null ? payload.get("lat") : null;
+        Object lngObj = payload != null ? payload.get("lng") : null;
+        showSosIncomingDialog(text,
+                latObj instanceof Number ? ((Number) latObj).doubleValue() : Double.NaN,
+                lngObj instanceof Number ? ((Number) lngObj).doubleValue() : Double.NaN);
+    }
+
+    /** 收到对方 SOS（前台广播 / 点 SOS 通知进入两条路径共用）：弹回执弹窗 */
+    private void showSosIncomingDialog(String text, double lat, double lng) {
+        if (isFinishing() || isDestroyed() || !hasWindowFocus() || sosDialogShowing) return;
         // 「确认」= 停止每分钟重发 + 跳转高德导航到发送方位置
         android.app.Dialog dialog = UiDialogs.confirm(this,
                 getString(R.string.sos_notification_title),
                 getString(R.string.sos_peer_alert, text),
                 getString(R.string.sos_ack_action), false,
-                () -> confirmSosNavigate(message));
+                () -> confirmSosNavigate(text, lat, lng));
         dialog.setOnDismissListener(d -> sosDialogShowing = false);
         sosDialogShowing = true;
     }
 
     /** 点「确认」：停止重发提醒（服务侧）并跳转高德导航到发送方位置 */
     private void confirmSosNavigate(WsMessage message) {
-        // 服务侧停止每分钟重发 + 移除通知（不发送任何回执）
-        MonitorService.sendSosAck(this);
         java.util.Map<String, Object> payload = message.getPayload();
         Object latObj = payload != null ? payload.get("lat") : null;
         Object lngObj = payload != null ? payload.get("lng") : null;
-        if (latObj instanceof Number && lngObj instanceof Number) {
+        confirmSosNavigate(
+                payload != null && payload.get("text") instanceof String
+                        ? (String) payload.get("text") : getString(R.string.sos_help_me),
+                latObj instanceof Number ? ((Number) latObj).doubleValue() : Double.NaN,
+                lngObj instanceof Number ? ((Number) lngObj).doubleValue() : Double.NaN);
+    }
+
+    private void confirmSosNavigate(String text, double lat, double lng) {
+        // 服务侧停止每分钟重发 + 移除通知（不发送任何回执）
+        MonitorService.sendSosAck(this);
+        if (!Double.isNaN(lat) && !Double.isNaN(lng)) {
             String who = prefs.getPeerNickname();
             if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
-            MapNav.navigate(this, ((Number) latObj).doubleValue(),
-                    ((Number) lngObj).doubleValue(), who);
+            MapNav.navigate(this, lat, lng, who);
         } else {
             Toast.makeText(this, R.string.sos_no_location, Toast.LENGTH_SHORT).show();
         }
