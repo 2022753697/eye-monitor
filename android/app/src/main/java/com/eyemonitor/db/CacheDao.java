@@ -74,7 +74,8 @@ public interface CacheDao {
     @Query("SELECT * FROM media_cache WHERE fileId = :fileId")
     MediaCacheEntity getMedia(String fileId);
 
-    @Query("SELECT * FROM media_cache WHERE (mime IS NULL OR mime NOT LIKE 'audio/%') ORDER BY ts DESC")
+    // 聊天元数据查询：必须返回全部媒体（含语音），Chat 气泡渲染依赖完整 mime/waveform
+    @Query("SELECT * FROM media_cache ORDER BY ts DESC")
     List<MediaCacheEntity> getMedia();
 
     @Query("DELETE FROM media_cache WHERE fileId = :fileId")
