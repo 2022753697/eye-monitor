@@ -46,8 +46,8 @@
     <string name="switch_count_label">今日切换次数：</string>
     <string name="toast_unknown_app">未知应用</string>
     <string name="dialog_monitor_permission_title">需要权限</string>
-    <string name="guide_row_usage">使用情况访问权限（推荐）</string>
-    <string name="guide_row_accessibility">无障碍服务（备选）</string>
+    <string name="guide_row_usage">使用情况访问权限</string>
+    <string name="guide_row_accessibility">无障碍服务</string>
     <string name="guide_done_tip">点击对应项跳转系统设置，开启后返回本页自动打勾，两项都开启后自动关闭</string>
     <string name="dialog_monitor_permission_message">恋视需要以下权限之一才能监控 App 切换：\n\n1. 「使用情况访问权限」- 推荐\n或\n2. 「无障碍服务」- 备选方案\n\n请点击「去设置」开启对应权限。</string>
 
@@ -166,7 +166,7 @@
     <string name="dialog_gender_title">选择性别</string>
     <string name="gender_female">女（粉色标记）</string>
     <string name="gender_male">男（蓝色标记）</string>
-    <string name="dialog_permission_hint_message">App 切换监控需要开启以下权限之一：\n\n1. 「使用情况访问权限」- 推荐，在系统设置→应用→恋视→使用情况访问中开启\n2. 「无障碍服务」- 备选，在系统设置→辅助功能中开启\n\n开启后，对方切换 App 时这里会实时显示系统提示。</string>
+    <string name="dialog_permission_hint_message">App 切换监控需要开启以下两项权限：\n\n1. 「使用情况访问权限」- 用于统计前台应用，在系统设置→应用→恋视→使用情况访问中开启\n2. 「无障碍服务」- 用于实时获取应用切换事件，在系统设置→辅助功能中开启\n\n两项都开启后，对方切换 App 时这里会实时显示系统提示。</string>
     <string name="btn_open_accessibility">开启无障碍服务</string>
     <string name="btn_open_usage_stats">开启使用情况访问</string>
     <string name="dialog_monitor_permission_fallback">请前往系统设置 → 应用 → 恋视 → 使用情况访问中开启</string>
