@@ -581,6 +581,7 @@ public class MainActivity extends AppCompatActivity {
         UiDialogs.showRemarkDialog(this, prefs, () -> {
             updateChatHeader();
             loadChatHistory();
+            AuthManager.syncRemark(this); // 本地已写入，异步上传服务器（失败置重传标志）
         });
     }
 

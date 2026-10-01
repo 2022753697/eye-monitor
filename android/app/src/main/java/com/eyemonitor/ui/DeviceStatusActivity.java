@@ -16,6 +16,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.eyemonitor.R;
+import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.DeviceStatusTracker;
@@ -85,7 +86,10 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         // 备注：点击弹编辑框（微信式，备注优先显示；留空清除）
         findViewById(R.id.row_peer_remark).setOnClickListener(v ->
-                UiDialogs.showRemarkDialog(this, prefs, this::refresh));
+                UiDialogs.showRemarkDialog(this, prefs, () -> {
+                    refresh();
+                    AuthManager.syncRemark(this); // 本地已写入，异步上传服务器（失败置重传标志）
+                }));
 
         IntentFilter filter = new IntentFilter(MonitorService.ACTION_EVENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

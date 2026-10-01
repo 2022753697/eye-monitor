@@ -184,6 +184,43 @@ public class AuthManager {
         execAuthed(ctx, "PUT", apiPath, RequestBody.create(jsonBody, JSON), cb);
     }
 
+    /** 备注保存（PUT /api/remark，空串=清除）。onSuccess 收到 {saved:true,...} */
+    public void saveRemark(Context ctx, String remark, Callback cb) {
+        try {
+            String json = new org.json.JSONObject()
+                    .put("remark", remark == null ? "" : remark).toString();
+            putJson(ctx, "/api/remark", json, cb);
+        } catch (Exception e) {
+            if (cb != null) cb.onError(-1, "备注序列化失败");
+        }
+    }
+
+    /** 备注拉取（GET /api/remark，返回 {remark: ...|null}）——仅在本机无备注时调（换机/重装恢复） */
+    public void fetchRemark(Context ctx, Callback cb) {
+        execAuthed(ctx, "GET", "/api/remark", null, cb);
+    }
+
+    /**
+     * 保存备注到服务器（调用方需已写入本地 prefs）；
+     * 失败 → 置 pendingRemarkSync 重传标志（下次启动/重连重传），最终一致。
+     */
+    public static void syncRemark(Context ctx) {
+        final PrefsManager prefs = new PrefsManager(ctx);
+        final String remark = prefs.getPeerRemark();
+        AuthManager.i(ctx).saveRemark(ctx, remark, new Callback() {
+            @Override
+            public void onSuccess(JsonObject data) {
+                prefs.setRemarkPendingSync(false);
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                Log.w(TAG, "备注上传失败(code=" + code + "): " + msg + "，置待重传");
+                prefs.setRemarkPendingSync(true);
+            }
+        });
+    }
+
     public void delete(Context ctx, String apiPath, Callback cb) {
         execAuthed(ctx, "DELETE", apiPath, null, cb);
     }

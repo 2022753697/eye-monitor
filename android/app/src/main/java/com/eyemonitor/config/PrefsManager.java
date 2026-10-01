@@ -17,6 +17,7 @@ public class PrefsManager {
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_PEER_NICKNAME = "peer_nickname";
     private static final String KEY_PEER_REMARK = "peer_remark";
+    private static final String KEY_REMARK_PENDING_SYNC = "remark_pending_sync";
     private static final String KEY_PERMISSION_PROMPTED = "permission_prompted";
     private static final String KEY_BATTERY_WHITELIST_PROMPTED = "battery_whitelist_prompted";
     private static final String KEY_GENDER = "gender";
@@ -260,6 +261,15 @@ public class PrefsManager {
     /** 获取对方备注（未设置返回 null） */
     public String getPeerRemark() {
         return prefs.getString(KEY_PEER_REMARK, null);
+    }
+
+    /** 备注待重传标志（本地改了但服务器上传失败，下次启动/重连重传） */
+    public boolean isRemarkPendingSync() {
+        return prefs.getBoolean(KEY_REMARK_PENDING_SYNC, false);
+    }
+
+    public void setRemarkPendingSync(boolean pending) {
+        prefs.edit().putBoolean(KEY_REMARK_PENDING_SYNC, pending).apply();
     }
 
     /** 记录对方昵称（从收到的聊天消息中学习） */

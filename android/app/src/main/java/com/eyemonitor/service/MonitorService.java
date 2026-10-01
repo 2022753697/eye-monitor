@@ -525,6 +525,7 @@ public class MonitorService extends Service {
         initAccessibilityTracker();
         initUsageStatsTracker();
         refreshTrackerMode();
+        syncRemarkIfNeeded();
         initLocationTracker();
         initDeviceStatusTracker();
 
@@ -616,6 +617,7 @@ public class MonitorService extends Service {
                     sendDeviceStatus();
                     broadcastPeerOnline();
                     autoResendPending();
+                    syncRemarkIfNeeded();
                 }
 
                 @Override
@@ -682,6 +684,7 @@ public class MonitorService extends Service {
                 sendDeviceStatus();
                 broadcastPeerOnline();
                 autoResendPending();
+                syncRemarkIfNeeded();
             }
 
             @Override
@@ -837,6 +840,44 @@ public class MonitorService extends Service {
         // 上报节奏随屏态：亮屏 5s 内首次即报（追发快照语义）；息屏直接 90s
         handler.removeCallbacks(locationReportRunnable);
         handler.postDelayed(locationReportRunnable, on ? 5_000L : 90_000L);
+    }
+
+    /** 备注同步（P1）：启动/重连时 —— 本地无备注且已登录 → 拉取一次（换机/重装恢复）；
+     *  有重传标志 → 重传当前本地值（最终一致）。未登录静默本地模式。 */
+    private void syncRemarkIfNeeded() {
+        try {
+            if (prefs.getAccessToken() == null || prefs.getAccessToken().isEmpty()) {
+                return; // 未登录：本地模式，不请求
+            }
+            String local = prefs.getPeerRemark();
+            if (local == null || local.isEmpty()) {
+                // 本地无备注：尝试从服务器恢复（仅已登录）；失败静默
+                AuthManager.i(this).fetchRemark(this, new AuthManager.Callback() {
+                    @Override
+                    public void onSuccess(com.google.gson.JsonObject data) {
+                        String remark = null;
+                        if (data != null && data.has("remark") && !data.get("remark").isJsonNull()) {
+                            remark = data.get("remark").getAsString();
+                        }
+                        if (remark != null && !remark.isEmpty()) {
+                            prefs.setPeerRemark(remark);
+                            Log.i(TAG, "备注已从服务器恢复: " + remark);
+                        }
+                    }
+
+                    @Override
+                    public void onError(int code, String msg) {
+                        Log.d(TAG, "备注拉取跳过(code=" + code + "): " + msg);
+                    }
+                });
+            } else if (prefs.isRemarkPendingSync()) {
+                // 有重传标志：重传当前本地值（成功由 syncRemark 回调清标志）
+                Log.i(TAG, "重传本地备注到服务器");
+                AuthManager.syncRemark(this);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "备注同步异常", e);
+        }
     }
 
     /** 无障碍开关状态 → 轮询档位（已启用→60s 兜底；未启用→5s）。读取失败按未启用。 */
