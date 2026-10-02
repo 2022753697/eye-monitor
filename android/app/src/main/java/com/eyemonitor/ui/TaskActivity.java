@@ -447,53 +447,43 @@ public class TaskActivity extends BaseActivity {
 
         // 配图条（已有图=点行清空；空=去选图；条内每格 ✕ 可单独删）
         renderPhotoStrip();
-        body.findViewById(R.id.ll_task_photo).setOnClickListener(v -> {
-            if (!pendingPhotoFileIds.isEmpty()) {
-                pendingPhotoFileIds.clear();
-                renderPhotoStrip();
-                com.eyemonitor.util.Toasts.showRes(this, R.string.task_remove_photo);
-            } else {
-                startPhotoPick();
-            }
-        });
+        body.findViewById(R.id.ll_task_photo).setOnClickListener(v -> startPhotoPick());
 
-        // 自定义按钮点击：校验失败不关弹窗（Material 默认点完即 dismiss）
+        // 体内全宽发布按钮：校验失败不关闭弹窗（替代 Material 内置按钮）
         publishDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.task_publish_title)
                 .setView(body)
-                .setPositiveButton(R.string.task_publish_send, null)
                 .setNegativeButton(R.string.cancel, null)
                 .create();
-        publishDialog.setOnShowListener(d -> publishDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    String content = etContent.getText().toString().trim();
-                    if (content.isEmpty()) {
-                        com.eyemonitor.util.Toasts.showRes(this, R.string.task_publish_empty);
-                        return; // 不关闭
-                    }
-                    // 奖励：预置选中（ChipGroup）或 自定义非空，二选一
-                    String preset = null;
-                    if (cgReward.getCheckedChipId() != View.NO_ID) {
-                        com.google.android.material.chip.Chip chip =
-                                cgReward.findViewById(cgReward.getCheckedChipId());
-                        if (chip != null && chip.getText() != null) {
-                            preset = chip.getText().toString();
-                        }
-                    }
-                    String custom = etRewardCustom.getText().toString().trim();
-                    if (preset == null && custom.isEmpty()) {
-                        com.eyemonitor.util.Toasts.showRes(this, R.string.task_reward_empty);
-                        return; // 不关闭
-                    }
-                    String taskId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-                    String ids = TextUtils.join(",", pendingPhotoFileIds);
-                    MonitorService.sendTaskPublish(this, taskId, content,
-                            ids.isEmpty() ? null : ids, preset, custom.isEmpty() ? preset : custom);
-                    pendingPhotoFileIds.clear();
-                    com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_sent);
-                    reloadSoon();
-                    publishDialog.dismiss();
-                }));
+        body.findViewById(R.id.btn_task_publish_ok).setOnClickListener(v -> {
+            String content = etContent.getText().toString().trim();
+            if (content.isEmpty()) {
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_publish_empty);
+                return; // 不关闭
+            }
+            // 奖励：预置选中（ChipGroup）或 自定义非空，二选一
+            String preset = null;
+            if (cgReward.getCheckedChipId() != View.NO_ID) {
+                com.google.android.material.chip.Chip chip =
+                        cgReward.findViewById(cgReward.getCheckedChipId());
+                if (chip != null && chip.getText() != null) {
+                    preset = chip.getText().toString();
+                }
+            }
+            String custom = etRewardCustom.getText().toString().trim();
+            if (preset == null && custom.isEmpty()) {
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_reward_empty);
+                return; // 不关闭
+            }
+            String taskId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+            String ids = TextUtils.join(",", pendingPhotoFileIds);
+            MonitorService.sendTaskPublish(this, taskId, content,
+                    ids.isEmpty() ? null : ids, preset, custom.isEmpty() ? preset : custom);
+            pendingPhotoFileIds.clear();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_sent);
+            reloadSoon();
+            publishDialog.dismiss();
+        });
         publishDialog.show();
     }
 

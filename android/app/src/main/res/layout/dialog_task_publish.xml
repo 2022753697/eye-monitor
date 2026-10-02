@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 发布任务弹窗 v2（2026-10 重设计）
+     区块化表单：任务内容 / 奖励 / 配图，全宽深玫瑰发布按钮（校验失败不关闭） -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -9,18 +11,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingStart="@dimen/space_20"
+        android:paddingEnd="@dimen/space_20"
+        android:paddingTop="@dimen/space_12"
+        android:paddingBottom="@dimen/space_8">
 
-        <!-- 任务内容 -->
+        <!-- ============ 任务内容 ============ -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/task_publish_hint_label"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_13"
             android:textStyle="bold" />
 
         <EditText
@@ -28,19 +30,22 @@
             style="@style/Widget.EyeMonitor.EditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/space_8"
+            android:minLines="2"
+            android:gravity="top"
             android:hint="@string/task_publish_hint"
             android:maxLength="200"
-            android:minHeight="46dp" />
+            android:minHeight="56dp"
+            android:textSize="@dimen/text_15" />
 
-        <!-- 奖励 -->
+        <!-- ============ 奖励 ============ -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/space_16"
             android:text="@string/task_reward_label"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_13"
             android:textStyle="bold" />
 
         <!-- 奖励：一行可横向滑动（singleLine + HorizontalScrollView） -->
@@ -48,7 +53,7 @@
             android:id="@+id/scroll_reward"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:scrollbars="none">
 
             <com.google.android.material.chip.ChipGroup
@@ -107,17 +112,28 @@
             style="@style/Widget.EyeMonitor.EditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:hint="@string/task_reward_custom_hint"
             android:maxLength="60"
-            android:minHeight="40dp" />
+            android:minHeight="40dp"
+            android:textSize="@dimen/text_14" />
+
+        <!-- ============ 配图 ============ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_16"
+            android:text="@string/task_photo_label"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_13"
+            android:textStyle="bold" />
 
         <!-- 配图条（多图横向滑动；每格：缩略图 + ✕移除，末尾 + 添加） -->
         <HorizontalScrollView
             android:id="@+id/scroll_photo_strip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/space_8"
             android:scrollbars="none">
 
             <LinearLayout
@@ -127,34 +143,44 @@
                 android:orientation="horizontal" />
         </HorizontalScrollView>
 
-        <!-- 配图 -->
+        <!-- 配图状态标签 + 添加入口（条内已有 ＋ 格；此行为状态行） -->
         <LinearLayout
             android:id="@+id/ll_task_photo"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginTop="6dp"
+            android:layout_height="@dimen/bar_height_compact"
+            android:layout_marginTop="@dimen/space_4"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="@dimen/space_8"
+            android:paddingEnd="@dimen/space_8">
 
             <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="@dimen/icon_18"
+                android:layout_height="@dimen/icon_18"
                 android:src="@drawable/ic_image"
-                android:tint="@color/primary" />
+                android:tint="@color/primary_text" />
 
             <TextView
                 android:id="@+id/tv_task_photo_state"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_8"
                 android:text="@string/task_add_photo"
-                android:textColor="@color/primary"
-                android:textSize="13sp" />
+                android:textColor="@color/primary_text"
+                android:textSize="@dimen/text_13" />
         </LinearLayout>
+
+        <!-- ============ 发布（全宽深玫瑰；校验失败不关闭） ============ -->
+        <Button
+            android:id="@+id/btn_task_publish_ok"
+            style="@style/Widget.EyeMonitor.Button.Dialog"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/bar_height"
+            android:layout_marginTop="@dimen/space_16"
+            android:text="@string/task_publish_send"
+            android:textStyle="bold" />
     </LinearLayout>
 </ScrollView>

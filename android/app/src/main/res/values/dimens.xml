@@ -13,6 +13,7 @@
     <dimen name="space_12">12dp</dimen>
     <dimen name="space_14">14dp</dimen>
     <dimen name="space_16">16dp</dimen>
+    <dimen name="space_20">20dp</dimen>
     <dimen name="space_24">24dp</dimen>
     <dimen name="space_28">28dp</dimen>
     <dimen name="space_32">32dp</dimen>
@@ -66,6 +67,7 @@
 
     <!-- 图标尺寸 -->
     <dimen name="icon_16">16dp</dimen>
+    <dimen name="icon_18">18dp</dimen>
     <dimen name="icon_20">20dp</dimen>
     <dimen name="icon_24">24dp</dimen>
     <dimen name="icon_36">36dp</dimen>
