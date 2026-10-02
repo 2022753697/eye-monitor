@@ -452,6 +452,9 @@
     <string name="task_publish">发布任务</string>
     <string name="task_publish_title">发布任务</string>
     <string name="task_publish_hint">写下想让他/她做的事…</string>
+    <string name="task_publish_hint_label">任务内容</string>
+    <string name="task_reject_reason_hint">拒绝理由（必填）</string>
+    <string name="task_reject_quick_pick">快速选择</string>
     <string name="task_reward_label">奖励</string>
     <string name="task_reward_hint">选个奖励或自己写</string>
     <string name="task_reward_custom_hint">自定义奖励（如「周末陪我看电影」）</string>

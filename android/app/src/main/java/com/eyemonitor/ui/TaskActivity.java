@@ -64,12 +64,12 @@ public class TaskActivity extends BaseActivity {
         findViewById(R.id.btn_task_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_task_publish).setOnClickListener(v -> showPublishDialog());
 
-        llFilters = findViewById(R.id.ll_task_filters);
-        buildFilterChips();
         rvTasks = findViewById(R.id.rv_tasks);
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
         rvTasks.setAdapter(new TaskAdapter());
+        llFilters = findViewById(R.id.ll_task_filters);
         tvEmpty = findViewById(R.id.tv_task_empty);
+        buildFilterChips();
 
         reload();
     }
@@ -137,7 +137,7 @@ public class TaskActivity extends BaseActivity {
             shown.add(e);
         }
         if (rvTasks.getAdapter() != null) ((TaskAdapter) rvTasks.getAdapter()).setData(shown);
-        tvEmpty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
+        if (tvEmpty != null) tvEmpty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void reload() {
@@ -290,30 +290,22 @@ public class TaskActivity extends BaseActivity {
         dlg.show();
     }
 
-    /** 拒绝：预置理由 chips + 自定义输入（必填） */
+    /** 拒绝：预置理由 chips + 自定义输入（必填；XML 布局 dialog_task_reject） */
     private void showRejectDialog(final TaskEntity e) {
-        LinearLayout body = new LinearLayout(this);
-        body.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        body.setPadding(pad, pad, pad, pad);
-
-        final EditText etReason = new EditText(this);
-        etReason.setHint(R.string.task_reject_reason_title);
-        etReason.setTextSize(14);
-        body.addView(etReason);
+        View body = getLayoutInflater().inflate(R.layout.dialog_task_reject, null);
+        final EditText etReason = body.findViewById(R.id.et_task_reject_reason);
+        LinearLayout chips = body.findViewById(R.id.ll_reject_chips);
 
         // 预置理由 chips
-        LinearLayout chips = new LinearLayout(this);
-        chips.setOrientation(LinearLayout.HORIZONTAL);
         for (final String r : PRESET_REASONS) {
             TextView c = new TextView(this);
             c.setText(r);
             c.setTextSize(12);
-            c.setPadding(dp(12), dp(5), dp(12), dp(5));
+            c.setPadding(dp(12), dp(6), dp(12), dp(6));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.rightMargin = dp(6);
-            lp.topMargin = dp(8);
+            lp.topMargin = dp(6);
             c.setLayoutParams(lp);
             c.setBackgroundResource(R.drawable.bg_btn_round_white);
             c.setTextColor(getResources().getColor(R.color.text_primary));
@@ -323,7 +315,6 @@ public class TaskActivity extends BaseActivity {
             });
             chips.addView(c);
         }
-        body.addView(chips);
 
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle(R.string.task_reject_reason_title)
@@ -343,27 +334,16 @@ public class TaskActivity extends BaseActivity {
         dlg.show();
     }
 
-    // --- 发布弹窗（文字 + 奖励预置/自定义 + 可选配图） ---
+    // --- 发布弹窗（文字 + 奖励预置/自定义 + 可选配图；XML 布局 dialog_task_publish） ---
 
     private void showPublishDialog() {
-        LinearLayout body = new LinearLayout(this);
-        body.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        body.setPadding(pad, pad, pad, pad);
-
-        final EditText etContent = new EditText(this);
-        etContent.setHint(R.string.task_publish_hint);
-        etContent.setTextSize(15);
-        body.addView(etContent);
-
-        final EditText etRewardCustom = new EditText(this);
-        etRewardCustom.setHint(R.string.task_reward_custom_hint);
-        etRewardCustom.setTextSize(14);
+        View body = getLayoutInflater().inflate(R.layout.dialog_task_publish, null);
+        final EditText etContent = body.findViewById(R.id.et_task_content);
+        final EditText etRewardCustom = body.findViewById(R.id.et_task_reward_custom);
+        final TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
+        LinearLayout chips = body.findViewById(R.id.ll_reward_chips);
 
         // 奖励预置 chips（单选高亮）
-        body.addView(text(getString(R.string.task_reward_label), 12, true, R.color.text_primary));
-        LinearLayout chips = new LinearLayout(this);
-        chips.setOrientation(LinearLayout.HORIZONTAL);
         final boolean[] presetSelected = new boolean[PRESET_REWARDS.length];
         final TextView[] chipViews = new TextView[PRESET_REWARDS.length];
         for (int i = 0; i < PRESET_REWARDS.length; i++) {
@@ -371,7 +351,7 @@ public class TaskActivity extends BaseActivity {
             TextView c = new TextView(this);
             c.setText(PRESET_REWARDS[i]);
             c.setTextSize(12);
-            c.setPadding(dp(12), dp(5), dp(12), dp(5));
+            c.setPadding(dp(12), dp(6), dp(12), dp(6));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.rightMargin = dp(6);
@@ -397,18 +377,12 @@ public class TaskActivity extends BaseActivity {
             chipViews[idx] = c;
             chips.addView(c);
         }
-        body.addView(chips);
-        body.addView(etRewardCustom);
 
-        // 配图行
-        LinearLayout photoRow = row();
-        final TextView tvPhoto = text(pendingPhotoFileId != null
-                ? getString(R.string.task_remove_photo) : getString(R.string.task_add_photo),
-                13, false, R.color.primary);
-        photoRow.addView(tvPhoto);
-        photoRow.setClickable(true);
-        photoRow.setFocusable(true);
-        photoRow.setOnClickListener(v -> {
+        // 配图行（pendingPhotoFileId 非空 = 已选，点击移除）
+        if (pendingPhotoFileId != null) {
+            tvPhoto.setText(R.string.task_remove_photo);
+        }
+        body.findViewById(R.id.ll_task_photo).setOnClickListener(v -> {
             if (pendingPhotoFileId != null) {
                 pendingPhotoFileId = null;
                 tvPhoto.setText(R.string.task_add_photo);
@@ -418,7 +392,6 @@ public class TaskActivity extends BaseActivity {
                 startActivityForResult(pick, REQ_PICK_PHOTO);
             }
         });
-        body.addView(photoRow);
 
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle(R.string.task_publish_title)
