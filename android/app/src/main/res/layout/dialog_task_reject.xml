@@ -31,43 +31,48 @@
             android:textColor="@color/text_secondary"
             android:textSize="12sp" />
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/cg_reject"
+        <HorizontalScrollView
+            android:id="@+id/scroll_reject"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:singleSelection="true"
-            app:selectionRequired="false"
-            app:chipSpacingHorizontal="6dp"
-            app:chipSpacingVertical="6dp">
+            android:scrollbars="none">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_reject_0"
-                style="@style/Widget.EyeMonitor.Chip.Selectable"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/cg_reject"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/task_reason_0" />
+                app:singleLine="true"
+                app:chipSpacingHorizontal="6dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_reject_1"
-                style="@style/Widget.EyeMonitor.Chip.Selectable"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/task_reason_1" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_reject_0"
+                    style="@style/Widget.EyeMonitor.Chip.Selectable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/task_reason_0" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_reject_2"
-                style="@style/Widget.EyeMonitor.Chip.Selectable"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/task_reason_2" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_reject_1"
+                    style="@style/Widget.EyeMonitor.Chip.Selectable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/task_reason_1" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_reject_3"
-                style="@style/Widget.EyeMonitor.Chip.Selectable"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/task_reason_3" />
-        </com.google.android.material.chip.ChipGroup>
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_reject_2"
+                    style="@style/Widget.EyeMonitor.Chip.Selectable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/task_reason_2" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_reject_3"
+                    style="@style/Widget.EyeMonitor.Chip.Selectable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/task_reason_3" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
     </LinearLayout>
 </ScrollView>

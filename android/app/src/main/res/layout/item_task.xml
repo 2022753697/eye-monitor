@@ -6,17 +6,19 @@
     android:paddingTop="4dp"
     android:paddingBottom="4dp">
 
+    <!-- 票券式任务卡片：标题行 / 分隔 / 内容+奖励 / 分隔 / 状态底行 -->
     <LinearLayout
         android:id="@+id/ll_task_card"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:minWidth="230dp"
         android:orientation="vertical"
         android:padding="12dp"
         android:background="@drawable/bg_task_bubble_peer">
 
-        <!-- 标题行：💌 任务 -->
+        <!-- 标题行：💌 任务（左）+ 时间（右灰小字） -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
@@ -37,17 +39,37 @@
                 android:textColor="@color/primary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_task_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:gravity="end" />
         </LinearLayout>
 
+        <!-- 分隔线 1 -->
+        <View
+            android:id="@+id/v_task_divider1"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="@color/divider" />
+
+        <!-- 内容 -->
         <TextView
             android:id="@+id/tv_task_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:textSize="15sp"
             android:textColor="@color/text_primary"
             android:maxWidth="240dp" />
 
+        <!-- 奖励 -->
         <TextView
             android:id="@+id/tv_task_reward"
             android:layout_width="wrap_content"
@@ -56,16 +78,27 @@
             android:textSize="12sp"
             android:textColor="@color/accent" />
 
+        <!-- 分隔线 2 -->
+        <View
+            android:id="@+id/v_task_divider2"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="@color/divider" />
+
+        <!-- 状态底行：状态（左）+ 点我看看（右） -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:layout_marginTop="6dp">
 
             <TextView
                 android:id="@+id/tv_task_status"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:textSize="11sp"
                 android:textColor="@color/text_secondary" />
 
@@ -75,8 +108,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/task_tap_detail"
                 android:textSize="11sp"
-                android:textColor="@color/primary"
-                android:layout_marginStart="8dp" />
+                android:textColor="@color/primary" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

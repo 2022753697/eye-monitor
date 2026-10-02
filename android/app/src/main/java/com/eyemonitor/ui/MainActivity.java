@@ -2596,6 +2596,9 @@ public class MainActivity extends AppCompatActivity {
             LinearLayout llTaskCard;
             ImageView ivTaskBubbleIcon;
             TextView tvTaskTitle;
+            TextView tvTaskTime;
+            View vTaskDivider1;
+            View vTaskDivider2;
             TextView tvTaskContent;
             TextView tvTaskReward;
             TextView tvTaskStatus;
@@ -2645,6 +2648,9 @@ public class MainActivity extends AppCompatActivity {
                         llTaskCard = view.findViewById(R.id.ll_task_card);
                         ivTaskBubbleIcon = view.findViewById(R.id.iv_task_bubble_icon);
                         tvTaskTitle = view.findViewById(R.id.tv_task_title);
+                        tvTaskTime = view.findViewById(R.id.tv_task_time);
+                        vTaskDivider1 = view.findViewById(R.id.v_task_divider1);
+                        vTaskDivider2 = view.findViewById(R.id.v_task_divider2);
                         tvTaskContent = view.findViewById(R.id.tv_task_content);
                         tvTaskReward = view.findViewById(R.id.tv_task_reward);
                         tvTaskStatus = view.findViewById(R.id.tv_task_status);
@@ -2788,28 +2794,35 @@ public class MainActivity extends AppCompatActivity {
     // --- 媒体气泡渲染 ---
 
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
-    /** 任务气泡绑定：自己=右侧珊瑚渐变卡（白字），对方=左侧白卡粉色描边（深字）；点击进任务详情 */
+    /** 任务气泡绑定（票券式卡片）：自己=右侧珊瑚渐变卡白字，对方=左侧白卡粉描边；点击进任务详情 */
     private void bindTask(ChatAdapter.ViewHolder h, ChatItem item) {
         final boolean self = item.type == TYPE_TASK_SELF;
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) h.llTaskCard.getLayoutParams();
         lp.gravity = self ? Gravity.END : Gravity.START;
         h.llTaskCard.setLayoutParams(lp);
         h.llTaskCard.setBackgroundResource(self ? R.drawable.bg_task_bubble_self : R.drawable.bg_task_bubble_peer);
-        // 标题行图标/文字：自己=白字，对方=珊瑚
+        // 分隔线：自己=白色半透明（珊瑚卡上），对方=标准 divider
+        int dividerColor = self ? R.color.header_btn_bg : R.color.divider;
+        h.vTaskDivider1.setBackgroundColor(getResources().getColor(dividerColor));
+        h.vTaskDivider2.setBackgroundColor(getResources().getColor(dividerColor));
         int titleColor = self ? R.color.white : R.color.primary;
         h.ivTaskBubbleIcon.setImageTintList(android.content.res.ColorStateList.valueOf(
                 getResources().getColor(titleColor)));
         h.tvTaskTitle.setTextColor(getResources().getColor(titleColor));
+        h.tvTaskTime.setText(item.time);
+        h.tvTaskTime.setTextColor(getResources().getColor(
+                self ? R.color.text_on_primary_muted : R.color.text_secondary));
         h.tvTaskContent.setTextColor(getResources().getColor(
                 self ? R.color.white : R.color.text_primary));
         h.tvTaskContent.setText(item.taskContent);
         h.tvTaskReward.setText(item.taskReward);
-        h.tvTaskReward.setTextColor(self ? R.color.white : R.color.accent);
+        h.tvTaskReward.setTextColor(getResources().getColor(
+                self ? R.color.text_on_primary_muted : R.color.accent));
         h.tvTaskStatus.setText(item.taskStatusText);
         h.tvTaskStatus.setTextColor(self ? R.color.white
                 : getResources().getColor(item.taskStatusColor));
         h.tvTaskHint.setTextColor(getResources().getColor(
-                self ? R.color.white : R.color.primary));
+                self ? R.color.text_on_primary_muted : R.color.primary));
         h.llTaskCard.setOnClickListener(v -> openTaskDetail(item.text));
     }
 

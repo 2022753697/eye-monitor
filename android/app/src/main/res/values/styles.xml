@@ -28,13 +28,14 @@
         <item name="iconTint">@color/text_on_primary</item>
     </style>
 
-    <!-- 可选 Chip（奖励/拒绝理由单选）：未选中浅粉底深字，选中珊瑚底白字，无勾号 -->
+    <!-- 可选 Chip（奖励/拒绝理由单选）：未选中浅粉底深字，选中珊瑚底白字，无勾号无关闭x -->
     <style name="Widget.EyeMonitor.Chip.Selectable" parent="Widget.MaterialComponents.Chip.Entry">
         <item name="chipBackgroundColor">@color/chip_bg_selector</item>
         <item name="android:textColor">@color/chip_text_selector</item>
         <item name="chipCornerRadius">@dimen/radius_lg</item>
         <item name="chipStrokeWidth">0dp</item>
         <item name="checkedIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
         <item name="android:textSize">@dimen/text_13</item>
         <item name="chipMinHeight">34dp</item>
     </style>
