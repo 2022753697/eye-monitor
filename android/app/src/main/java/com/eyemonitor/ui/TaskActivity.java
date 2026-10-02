@@ -56,6 +56,8 @@ public class TaskActivity extends BaseActivity {
 
     /** 发布弹窗状态：已选配图 fileId 列表（上传成功后就地更新弹窗图片条，不重开弹窗） */
     private final List<String> pendingPhotoFileIds = new ArrayList<>();
+    /** 从聊天气泡/通知点进来的任务：列表加载后直接弹详情 */
+    private String pendingDetailTaskId;
     /** 待上传队列（选图器可一次多选，逐张上传） */
     private final java.util.ArrayDeque<Uri> photoUploadQueue = new java.util.ArrayDeque<>();
     /** 一批多张只弹一次「上传中」（避免 9 张弹 9 次） */
@@ -70,6 +72,7 @@ public class TaskActivity extends BaseActivity {
 
         findViewById(R.id.btn_task_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_task_publish).setOnClickListener(v -> showPublishDialog());
+        pendingDetailTaskId = getIntent().getStringExtra(MonitorService.EXTRA_TASK_ID);
 
         rvTasks = findViewById(R.id.rv_tasks);
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
@@ -163,8 +166,22 @@ public class TaskActivity extends BaseActivity {
                 all.clear();
                 all.addAll(list);
                 render();
+                maybeOpenPendingDetail();
             });
         });
+    }
+
+    /** 从聊天气泡/通知点进任务页时（EXTRA_TASK_ID），列表加载完成后直接弹该任务详情 */
+    private void maybeOpenPendingDetail() {
+        if (pendingDetailTaskId == null) return;
+        final String want = pendingDetailTaskId;
+        pendingDetailTaskId = null;
+        for (TaskEntity t : all) {
+            if (t.taskId.equals(want)) {
+                showDetailDialog(t);
+                break;
+            }
+        }
     }
 
     // --- 列表适配器（面板卡片：日期+状态pill / 内容大字 / 奖励） ---
@@ -281,27 +298,40 @@ public class TaskActivity extends BaseActivity {
                 rewarded && e.rewardedTs > 0 ? fmtTime(e.rewardedTs) : (completed ? getString(R.string.tl_await) : ""),
                 rewarded, rewarded ? R.color.status_ok : R.color.text_secondary);
 
-        // 操作按钮（按 角色×状态）
+        // 操作按钮（按 角色×状态）；动作成功后关闭详情弹窗
         TextView btnPrimary = body.findViewById(R.id.btn_detail_primary);
         TextView btnSecondary = body.findViewById(R.id.btn_detail_secondary);
         final boolean isReceiver = !e.isMine;
+        Log.i(TAG, "详情弹窗: status=" + e.status + " isMine=" + e.isMine
+                + " isReceiver=" + isReceiver + " btnPrimary=" + (btnPrimary != null)
+                + " btnSecondary=" + (btnSecondary != null));
+        final androidx.appcompat.app.AlertDialog dlg = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("💌 " + getString(R.string.task_detail_title))
+                .setView(body)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
         if (isReceiver && TaskEntity.STATUS_PENDING.equals(e.status)) {
             btnPrimary.setText(R.string.task_accept);
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskRespond(this, e.taskId, "accept", null);
                 Toast.makeText(this, R.string.task_toast_accept, Toast.LENGTH_SHORT).show();
+                dlg.dismiss();
                 reloadSoon();
             });
             btnSecondary.setText(R.string.task_reject);
             btnSecondary.setVisibility(View.VISIBLE);
-            btnSecondary.setOnClickListener(v -> showRejectDialog(e));
+            btnSecondary.setOnClickListener(v -> {
+                dlg.dismiss();
+                showRejectDialog(e);
+            });
         } else if (e.isMine && TaskEntity.STATUS_ACCEPTED.equals(e.status)) {
             btnPrimary.setText(R.string.task_confirm_complete);
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskComplete(this, e.taskId);
                 Toast.makeText(this, R.string.task_toast_complete, Toast.LENGTH_SHORT).show();
+                dlg.dismiss();
                 reloadSoon();
             });
         } else if (isReceiver && TaskEntity.STATUS_COMPLETED.equals(e.status)) {
@@ -310,15 +340,11 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskReward(this, e.taskId);
                 Toast.makeText(this, R.string.task_toast_reward, Toast.LENGTH_SHORT).show();
+                dlg.dismiss();
                 reloadSoon();
             });
         }
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("💌 " + getString(R.string.task_detail_title))
-                .setView(body)
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        dlg.show();
     }
 
     /** 时间线行：●/○ + 文字 + 时间 */
