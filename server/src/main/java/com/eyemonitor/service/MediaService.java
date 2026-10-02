@@ -37,6 +37,10 @@ public class MediaService {
         if (bytes == null || bytes.length == 0) {
             throw new BizException(400, "文件为空");
         }
+        // P1-1（安全加固）：magic-byte 嗅探与扩展名白名单交叉校验（防类型欺骗上传）
+        if (!magicMatches(bytes, ext)) {
+            throw new BizException(400, "文件内容与类型不符，仅支持图片/视频/音频");
+        }
         String fileId = UUID.randomUUID().toString().replace("-", "");
         LocalDate today = LocalDate.now();
         String rel = today.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"))
@@ -51,6 +55,35 @@ public class MediaService {
         }
         return rel;
     }
+
+    /** P1-1：magic-byte 嗅探（前 12 字节，宽松校验不误伤手机相册文件） */
+    static boolean magicMatches(byte[] b, String ext) {
+        if (b == null || b.length < 8) return true; // 小文件不误伤（放行，大小本身受配额限制）
+        int v0 = b[0] & 0xFF, v1 = b[1] & 0xFF, v2 = b[2] & 0xFF, v3 = b[3] & 0xFF;
+        switch (ext == null ? "" : ext.toLowerCase()) {
+            case "jpg":
+            case "jpeg":
+                return v0 == 0xFF && v1 == 0xD8 && v2 == 0xFF;
+            case "png":
+                return v0 == 0x89 && v1 == 0x50 && v2 == 0x4E && v3 == 0x47;
+            case "webp":
+                return v0 == 0x52 && v1 == 0x49 && v2 == 0x46 && v3 == 0x46; // RIFF
+            case "mp4":
+            case "mov":
+            case "3gp":
+            case "m4a":
+                return b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p'; // ....ftyp
+            case "mp3":
+                return (v0 == 0x49 && v1 == 0x44 && v2 == 0x33) // ID3
+                        || (v0 == 0xFF && (v1 & 0xE0) == 0xE0); // MPEG frame sync
+            case "aac":
+                return (v0 == 0xFF && (v1 & 0xF6) == 0xF0) || (v0 == 0xFF && (v1 & 0xF6) == 0xF8);
+            default:
+                return true; // 未知扩展名放行（白名单在 controller 层已拦）
+        }
+    }
+
+
 
     /** 保存头像，返回文件名 {userId}.{ext}；avatar 字段存 avatar/{fileName} */
     public String storeAvatar(byte[] bytes, String ext, long userId) {
@@ -146,6 +179,7 @@ public class MediaService {
             case "m4a": return "audio/mp4";
             case "mp3": return "audio/mpeg";
             case "aac": return "audio/aac";
+            case "heic": case "heif": return "image/heic";
             default: return "application/octet-stream";
         }
     }

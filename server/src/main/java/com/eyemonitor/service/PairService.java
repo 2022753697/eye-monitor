@@ -58,7 +58,7 @@ public class PairService {
             if (info.userA != null) userToPair.put(info.userA, e.getPairCode());
             if (info.userB != null) userToPair.put(info.userB, e.getPairCode());
             log.info("启动恢复配对: code={}, userA={}, userB={}, complete={}",
-                    e.getPairCode(), info.userA, info.userB, info.complete);
+                    maskCode(e.getPairCode()), info.userA, info.userB, info.complete);
         }
     }
 
@@ -77,7 +77,7 @@ public class PairService {
             if (info == null) {
                 PairEntity e = pairRepo.findByPairCode(pairCode);
                 if (e == null) {
-                    log.warn("无效配对码: code={}, user={}", pairCode, userId);
+                    log.warn("无效配对码: code={}, user={}", maskCode(pairCode), userId);
                     pairAttemptLimiter.recordFail(key);
                     return WsMessage.createError(deviceId, null, "配对码无效");
                 }
@@ -100,13 +100,13 @@ public class PairService {
         if (info == null) {
             PairEntity e = pairRepo.findByPairCode(pairCode);
             if (e == null) {
-                log.warn("配对已失效（服务器可能重启且库中无记录）: user={}, code={}", userId, pairCode);
+                log.warn("配对已失效（服务器可能重启且库中无记录）: user={}, code={}", userId, maskCode(pairCode));
                 return WsMessage.createError(deviceId, null, "配对已失效，请重新配对");
             }
             info = restoreFromEntity(e);
         }
         if (!info.isMember(userId)) {
-            log.warn("恢复配对但用户非该配对成员: user={}, code={}", userId, pairCode);
+            log.warn("恢复配对但用户非该配对成员: user={}, code={}", userId, maskCode(pairCode));
             return WsMessage.createError(deviceId, null, "配对已失效，请重新配对");
         }
         return joinOrRecover(info, userId, deviceId, session);
@@ -122,7 +122,7 @@ public class PairService {
         pairRegistry.put(code, info);
         bind(userId, deviceId, code);
         persistPair(info);
-        log.info("新配对创建: code={}, userA={}", code, userId);
+        log.info("新配对创建: code={}, userA={}", maskCode(code), userId);
         return WsMessage.createPairConfirm(deviceId, code, false);
     }
 
@@ -137,13 +137,13 @@ public class PairService {
             if (info.complete) {
                 notifyPeerOnline(info, userId);
             }
-            log.info("成员恢复会话: code={}, user={}, complete={}", pairCode, userId, info.complete);
+            log.info("成员恢复会话: code={}, user={}, complete={}", maskCode(pairCode), userId, info.complete);
             return WsMessage.createPairConfirm(deviceId, pairCode, info.complete);
         }
         if (info.userA == null) {
             // F-01：PENDING 超时后禁止再被认领（需要重新创建）
             if (info.isExpiredPending()) {
-                log.warn("配对码已过期: code={}", pairCode);
+                log.warn("配对码已过期: code={}", maskCode(pairCode));
                 return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
             }
             info.userA = userId;
@@ -152,7 +152,7 @@ public class PairService {
         } else if (info.userB == null) {
             // F-01：PENDING 超时后禁止被第二人认领
             if (info.isExpiredPending()) {
-                log.warn("配对码已过期: code={}", pairCode);
+                log.warn("配对码已过期: code={}", maskCode(pairCode));
                 return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
             }
             info.userB = userId;
@@ -170,6 +170,12 @@ public class PairService {
         }
         log.info("配对完成: code={}, userA={}, userB={}, complete={}", pairCode, info.userA, info.userB, info.complete);
         return WsMessage.createPairConfirm(deviceId, pairCode, info.complete);
+    }
+
+    /** P1-5：配对码日志脱敏（保留前 3 位 + ***） */
+    private static String maskCode(String code) {
+        if (code == null || code.length() <= 3) return "***";
+        return code.substring(0, 3) + "***";
     }
 
     /** 用户重新配对前，摘除其在旧配对中的身份（保持原“重新配对”语义） */

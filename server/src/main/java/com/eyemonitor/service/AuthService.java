@@ -25,6 +25,8 @@ import java.util.Map;
 @Service
 public class AuthService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepo userRepo;
     private final JwtUtil jwtUtil;
     private final WsSessionManager wsSessionManager;
@@ -152,6 +154,17 @@ public class AuthService {
         if (ver == null || !ver.equals(u.getVer() == null ? 0 : u.getVer())) {
             throw new BizException(401, "登录已过期，请重新登录");
         }
+        // P1-3（安全加固）：refresh 轮换 + 重用检测——提交的 refresh 必须等于当前哈希
+        // 旧 refresh 被轮换后再提交 = 泄露信号 → ver+1 吊销全族并踢 WS
+        String presentedHash = sha256(refreshToken.trim());
+        if (u.getRefreshTokenHash() == null || !u.getRefreshTokenHash().equals(presentedHash)) {
+            log.warn("refresh token 重用/过期检测: userId={}（吊销全族）", userId);
+            u.setVer((u.getVer() == null ? 0 : u.getVer()) + 1);
+            u.setRefreshTokenHash(null);
+            userRepo.save(u);
+            wsSessionManager.kick(userId);
+            throw new BizException(401, "登录已过期，请重新登录");
+        }
         return tokenBundle(u);
     }
 
@@ -166,10 +179,28 @@ public class AuthService {
 
     private Map<String, Object> tokenBundle(UserEntity u) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("accessToken", jwtUtil.createAccessToken(u.getId(), u.getVer()));
-        m.put("refreshToken", jwtUtil.createRefreshToken(u.getId(), u.getVer()));
+        String access = jwtUtil.createAccessToken(u.getId(), u.getVer());
+        String refresh = jwtUtil.createRefreshToken(u.getId(), u.getVer());
+        // P1-3：持久化当前 refresh token 哈希（轮换后旧 token 立即失效）
+        u.setRefreshTokenHash(sha256(refresh));
+        userRepo.save(u);
+        m.put("accessToken", access);
+        m.put("refreshToken", refresh);
         m.put("profile", ProfileView.of(u));
         return m;
+    }
+
+    /** P1-3：SHA-256 摘要（refresh token 哈希） */
+    private static String sha256(String token) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] d = md.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : d) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return token; // 不可达（SHA-256 必然存在）
+        }
     }
 
     public static String normalizeGender(String gender) {

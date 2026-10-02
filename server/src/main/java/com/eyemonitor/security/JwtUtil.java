@@ -50,6 +50,8 @@ public class JwtUtil {
                 .setSubject(String.valueOf(userId))
                 .claim("ver", ver)
                 .claim("typ", type)
+                // P1-3：jti 唯一 ID（秒级 iat 下也能保证每次签发 token 唯一，支撑 refresh 轮换哈希）
+                .claim("jti", java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16))
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(now + ttlMs))
                 .signWith(key(), SignatureAlgorithm.HS256)

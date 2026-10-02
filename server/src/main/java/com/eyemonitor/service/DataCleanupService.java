@@ -2,6 +2,7 @@ package com.eyemonitor.service;
 
 import com.eyemonitor.repository.ChatMessageRepo;
 import com.eyemonitor.repository.LocationPointRepo;
+import com.eyemonitor.repository.SosLogRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,13 +26,16 @@ public class DataCleanupService {
 
     private final ChatMessageRepo chatMessageRepo;
     private final LocationPointRepo locationPointRepo;
+    private final SosLogRepo sosLogRepo;
 
-    public DataCleanupService(ChatMessageRepo chatMessageRepo, LocationPointRepo locationPointRepo) {
+    public DataCleanupService(ChatMessageRepo chatMessageRepo, LocationPointRepo locationPointRepo,
+                              SosLogRepo sosLogRepo) {
         this.chatMessageRepo = chatMessageRepo;
         this.locationPointRepo = locationPointRepo;
+        this.sosLogRepo = sosLogRepo;
     }
 
-    /** 每天 03:00 清理过期聊天记录与轨迹点（媒体永久保留，不清理） */
+    /** 每天 03:00 清理过期聊天记录/轨迹点/SOS 记录（媒体永久保留，不清理） */
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void cleanExpiredData() {
@@ -39,8 +43,9 @@ public class DataCleanupService {
         try {
             long chats = chatMessageRepo.deleteByTsBefore(cutoff);
             long points = locationPointRepo.deleteByTsBefore(cutoff);
-            log.info("数据保留清理完成: 删除聊天 {} 条, 轨迹点 {} 条 (cutoff={})",
-                    chats, points, Instant.ofEpochMilli(cutoff));
+            long sos = sosLogRepo.deleteByTsBefore(cutoff);
+            log.info("数据保留清理完成: 删除聊天 {} 条, 轨迹点 {} 条, SOS {} 条 (cutoff={})",
+                    chats, points, sos, Instant.ofEpochMilli(cutoff));
         } catch (Exception e) {
             log.error("数据保留清理失败", e);
         }

@@ -60,14 +60,23 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         String raw = message.getPayload();
         if (raw == null || raw.isBlank()) return;
 
+        // P1-2（安全加固）：单连接频率限流（令牌桶式滑动窗口：60 条 / 10 秒，超限断开）
+        if (!allowMessage(session.getId())) {
+            log.warn("WS 消息过频，断开连接: session={}", session.getId());
+            try {
+                session.close(CloseStatus.POLICY_VIOLATION);
+            } catch (Exception ignored) {}
+            return;
+        }
+
         WsMessage msg = WsMessage.fromJson(raw);
         if (msg == null) {
-            log.warn("消息解析失败: session={}, raw={}", session.getId(), raw);
+            log.warn("消息解析失败: session={}, rawHead={}", session.getId(), truncate(raw, 200));
             pairService.sendMessage(session, WsMessage.createError(null, null, "消息格式错误"));
             return;
         }
         if (msg.getType() == null || msg.getDeviceId() == null) {
-            log.warn("消息缺少必填字段: session={}, raw={}", session.getId(), raw);
+            log.warn("消息缺少必填字段: session={}, rawHead={}", session.getId(), truncate(raw, 200));
             pairService.sendMessage(session, WsMessage.createError(null, null, "缺少 type 或 deviceId"));
             return;
         }
@@ -114,6 +123,12 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Map<String, Object> payload = msg.getPayload();
         String text = payload != null && payload.get("text") instanceof String
                 ? (String) payload.get("text") : null;
+        // P1-2：文本长度限制（≤2000 字符，防 DB 无界增长/洪泛）
+        if (text != null && text.length() > 2000) {
+            pairService.sendMessage(session, WsMessage.createError(msg.getDeviceId(), pairCode,
+                    "消息过长（最多 2000 字）"));
+            return;
+        }
         Object refId = payload != null ? payload.get("refMsgId") : null;
         Object refText = payload != null ? payload.get("refText") : null;
         Long refMsgId = refId instanceof Number ? ((Number) refId).longValue() : null;
@@ -219,6 +234,29 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             return msg.getPairCode();
         }
         return null;
+    }
+
+    /** P1-5：日志截断（防聊天全文/敏感内容入日志） */
+    private static String truncate(String s, int max) {
+        if (s == null) return "null";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
+    }
+
+    // P1-2：单连接消息频率限流（60 条 / 10 秒滑动窗口）
+    private static final int MSG_MAX_PER_WINDOW = 60;
+    private static final long MSG_WINDOW_MS = 10_000L;
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.ArrayDeque<Long>> msgRates =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private boolean allowMessage(String sessionId) {
+        long now = System.currentTimeMillis();
+        java.util.ArrayDeque<Long> q = msgRates.computeIfAbsent(sessionId, k -> new java.util.ArrayDeque<>());
+        synchronized (q) {
+            while (!q.isEmpty() && now - q.peekFirst() > MSG_WINDOW_MS) q.pollFirst();
+            if (q.size() >= MSG_MAX_PER_WINDOW) return false;
+            q.addLast(now);
+            return true;
+        }
     }
 
     @Override

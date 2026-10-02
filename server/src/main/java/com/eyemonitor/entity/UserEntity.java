@@ -47,6 +47,10 @@ public class UserEntity {
     @Column(name = "device_id", length = 64)
     private String deviceId;
 
+    /** P1-3（安全加固）：当前有效 refresh token 的 SHA-256 哈希（轮换 + 重用检测） */
+    @Column(name = "refresh_token_hash", length = 64)
+    private String refreshTokenHash;
+
     @Column(nullable = false)
     private Integer ver = 0;
 
@@ -79,6 +83,9 @@ public class UserEntity {
 
     public String getDeviceId() { return deviceId; }
     public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
+
+    public String getRefreshTokenHash() { return refreshTokenHash; }
+    public void setRefreshTokenHash(String refreshTokenHash) { this.refreshTokenHash = refreshTokenHash; }
 
     public Integer getVer() { return ver; }
     public void setVer(Integer ver) { this.ver = ver; }
