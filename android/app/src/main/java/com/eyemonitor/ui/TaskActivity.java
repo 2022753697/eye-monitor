@@ -57,6 +57,8 @@ public class TaskActivity extends BaseActivity {
     private final List<String> pendingPhotoFileIds = new ArrayList<>();
     /** 待上传队列（选图器可一次多选，逐张上传） */
     private final java.util.ArrayDeque<Uri> photoUploadQueue = new java.util.ArrayDeque<>();
+    /** 一批多张只弹一次「上传中」（避免 9 张弹 9 次） */
+    private boolean uploadToastShown = false;
     private androidx.appcompat.app.AlertDialog publishDialog;
     private View publishBody;
 
@@ -358,18 +360,21 @@ public class TaskActivity extends BaseActivity {
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle(R.string.task_reject_reason_title)
                 .setView(body)
-                .setPositiveButton(R.string.task_reject, (d, w) -> {
+                .setPositiveButton(R.string.task_reject, null)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+        dlg.setOnShowListener(d -> dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
                     String reason = etReason.getText().toString().trim();
                     if (reason.isEmpty()) {
                         Toast.makeText(this, R.string.task_reject_need_reason, Toast.LENGTH_SHORT).show();
-                        return;
+                        return; // 不关闭
                     }
                     MonitorService.sendTaskRespond(this, e.taskId, "reject", reason);
                     Toast.makeText(this, R.string.task_toast_reject, Toast.LENGTH_SHORT).show();
                     reloadSoon();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .create();
+                    dlg.dismiss();
+                }));
         dlg.show();
     }
 
@@ -406,14 +411,19 @@ public class TaskActivity extends BaseActivity {
             }
         });
 
+        // 自定义按钮点击：校验失败不关弹窗（Material 默认点完即 dismiss）
         publishDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.task_publish_title)
                 .setView(body)
-                .setPositiveButton(R.string.task_publish_send, (d, w) -> {
+                .setPositiveButton(R.string.task_publish_send, null)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+        publishDialog.setOnShowListener(d -> publishDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
                     String content = etContent.getText().toString().trim();
                     if (content.isEmpty()) {
                         Toast.makeText(this, R.string.task_publish_empty, Toast.LENGTH_SHORT).show();
-                        return;
+                        return; // 不关闭
                     }
                     // 奖励：预置选中（ChipGroup）或 自定义非空，二选一
                     String preset = null;
@@ -427,7 +437,7 @@ public class TaskActivity extends BaseActivity {
                     String custom = etRewardCustom.getText().toString().trim();
                     if (preset == null && custom.isEmpty()) {
                         Toast.makeText(this, R.string.task_reward_empty, Toast.LENGTH_SHORT).show();
-                        return;
+                        return; // 不关闭
                     }
                     String taskId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
                     String ids = TextUtils.join(",", pendingPhotoFileIds);
@@ -436,9 +446,9 @@ public class TaskActivity extends BaseActivity {
                     pendingPhotoFileIds.clear();
                     Toast.makeText(this, R.string.task_toast_sent, Toast.LENGTH_SHORT).show();
                     reloadSoon();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+                    publishDialog.dismiss();
+                }));
+        publishDialog.show();
     }
 
     /** 打开选图器（最多 9 张，追加到上传队列） */
@@ -558,6 +568,7 @@ public class TaskActivity extends BaseActivity {
         if (requestCode == REQ_PICK_PHOTO && resultCode == RESULT_OK && data != null) {
             ArrayList<Uri> uris = data.getParcelableArrayListExtra(MediaPickerActivity.EXTRA_SELECTED_URIS);
             if (uris != null && !uris.isEmpty()) {
+                uploadToastShown = false;
                 for (Uri u : uris) {
                     if (pendingPhotoFileIds.size() + photoUploadQueue.size() >= 9) break;
                     photoUploadQueue.offer(u);
@@ -589,7 +600,10 @@ public class TaskActivity extends BaseActivity {
                 uploadNextPhoto();
                 return;
             }
-            Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+            if (!uploadToastShown) {
+                uploadToastShown = true;
+                Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+            }
             String pairCode = new PrefsManager(this).getPairCode();
             // 任务专用通道：taskOnly → 服务器标记，不进共享图库/不广播媒体气泡
             AuthManager.i(this).uploadTaskMedia(this, tmp, pairCode, new AuthManager.Callback() {

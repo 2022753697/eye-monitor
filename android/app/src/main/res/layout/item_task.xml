@@ -69,9 +69,9 @@
             android:textColor="@color/text_primary"
             android:maxWidth="240dp" />
 
-        <!-- 配图条（多图全部显示，横滑；点击放大） -->
+        <!-- 配图条（多图全部显示，固定 180dp 宽度 + 横滑，气泡宽度一致不随图片数量变） -->
         <HorizontalScrollView
-            android:layout_width="wrap_content"
+            android:layout_width="180dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:scrollbars="none">
