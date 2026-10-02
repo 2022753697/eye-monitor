@@ -30,6 +30,10 @@ public class AuthService {
     private final UserRepo userRepo;
     private final JwtUtil jwtUtil;
     private final WsSessionManager wsSessionManager;
+    private final com.eyemonitor.repository.PairRepo pairRepo;
+    private final PairDataService pairDataService;
+    private final com.eyemonitor.repository.RemarkRepo remarkRepo;
+    private final MediaService mediaService;
 
     /** 线程安全的 BCrypt 编码器（仅 spring-security-crypto，无全家桶） */
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -43,10 +47,16 @@ public class AuthService {
     /** 不存在用户时也执行一次假 BCrypt 匹配，抹平账号枚举时间差 */
     private static final String DUMMY_HASH = "$2a$10$cVE1lWv7M2v9xkKj8vzLxO9uKq3mQh3wXx3a0cB0n5U7kYz1m2o3K";
 
-    public AuthService(UserRepo userRepo, JwtUtil jwtUtil, WsSessionManager wsSessionManager) {
+    public AuthService(UserRepo userRepo, JwtUtil jwtUtil, WsSessionManager wsSessionManager,
+                       com.eyemonitor.repository.PairRepo pairRepo, PairDataService pairDataService,
+                       com.eyemonitor.repository.RemarkRepo remarkRepo, MediaService mediaService) {
         this.userRepo = userRepo;
         this.jwtUtil = jwtUtil;
         this.wsSessionManager = wsSessionManager;
+        this.pairRepo = pairRepo;
+        this.pairDataService = pairDataService;
+        this.remarkRepo = remarkRepo;
+        this.mediaService = mediaService;
     }
 
     @Transactional
@@ -175,6 +185,36 @@ public class AuthService {
         u.setVer((u.getVer() == null ? 0 : u.getVer()) + 1);
         userRepo.save(u);
         wsSessionManager.kick(userId);
+    }
+
+    /**
+     * P2-4（安全加固/合规）：账号注销——删除用户的配对数据（含磁盘媒体）、备注、头像与账号本体。
+     * 注销前吊销全部 token 并踢下线；幂等（用户不存在直接返回）。
+     */
+    @Transactional
+    public void deleteAccount(long userId) {
+        UserEntity u = userRepo.findById(userId).orElse(null);
+        if (u == null) return;
+        // 1) 吊销 token 族 + 踢 WS
+        u.setVer((u.getVer() == null ? 0 : u.getVer()) + 1);
+        userRepo.save(u);
+        wsSessionManager.kick(userId);
+        // 2) 用户所属配对（可能是 A 或 B 侧）→ 全量清理配对数据与身份
+        com.eyemonitor.entity.PairEntity pa = pairRepo.findByUserA(userId);
+        if (pa != null) pairDataService.deletePairData(pa.getPairCode());
+        com.eyemonitor.entity.PairEntity pb = pairRepo.findByUserB(userId);
+        if (pb != null) pairDataService.deletePairData(pb.getPairCode());
+        // 3) 备注（我发出的 + 对方对我留的）
+        remarkRepo.deleteByUserId(userId);
+        remarkRepo.deleteByPeerUserId(userId);
+        // 4) 头像文件
+        if (u.getAvatar() != null) {
+            try {
+                java.nio.file.Files.deleteIfExists(mediaService.resolveAvatar(u.getAvatar()));
+            } catch (Exception ignored) {}
+        }
+        // 5) 账号本体
+        userRepo.delete(u);
     }
 
     private Map<String, Object> tokenBundle(UserEntity u) {

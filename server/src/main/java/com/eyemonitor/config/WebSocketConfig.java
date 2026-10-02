@@ -29,6 +29,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(eyeWebSocketHandler, "/ws/eye")
                 .addInterceptors(wsAuthInterceptor)
+                // 客户端为原生 Android（OkHttp 不发送 Origin）。保留 * 但依赖握手 token 鉴权；
+                // 如未来接入浏览器端，需收紧为域名白名单（P2-1 备注）
                 .setAllowedOrigins("*");
     }
 }

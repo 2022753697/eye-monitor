@@ -50,6 +50,16 @@ public class AuthController {
         return ApiResponse.ok(null);
     }
 
+    /** P2-4：账号注销（删除配对数据/备注/头像/账号本体，注销后需重新注册） */
+    @org.springframework.web.bind.annotation.DeleteMapping("/account")
+    public ApiResponse<Void> deleteAccount(HttpServletRequest request) {
+        long userId = AuthUtil.currentUserId(request);
+        if (userId > 0) {
+            authService.deleteAccount(userId);
+        }
+        return ApiResponse.ok(null);
+    }
+
     private static String str(Map<String, Object> body, String key) {
         Object v = body == null ? null : body.get(key);
         return v == null ? null : String.valueOf(v);

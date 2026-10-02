@@ -104,6 +104,13 @@ public class MediaController {
             throw new BizException(429, "今日上传已达上限，请明天再传");
         }
 
+        // P2-3（安全加固）：folderId 归属校验（复用 moveFolder 同款，防媒体挂到他人文件夹）
+        if (folderId != null && folderId > 0
+                && (folderRepo.findById(folderId).isEmpty()
+                    || !pairService.belongsToPair(userId, pairCodeOf(folderId)))) {
+            throw new BizException(404, "文件夹不存在");
+        }
+
         String relPath = mediaService.storeMedia(file.getBytes(), ext);
         MediaFileEntity e = new MediaFileEntity();
         e.setFileId(extractFileId(relPath));
