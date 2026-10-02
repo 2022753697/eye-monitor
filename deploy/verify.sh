@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # 眼互后端部署验收脚本（WS4 / AC1-AC8 服务端可验部分）
-# 用法: bash verify.sh <ECS-tailnet-IP>
+# 用法: bash verify.sh <ECS公网IP>
 # 在 ~/eye-deploy 目录下执行（与 docker-compose.yml 同级）
+# 拓扑：nginx 发布 18443（WSS 终结）→ app:8080 仅本机；手机直连 wss://<公网IP>:18443/ws/eye
 set -u
 
-TAILNET_IP="${1:?用法: bash verify.sh <ECS-tailnet-IP>}"
+PUBLIC_IP="${1:?用法: bash verify.sh <ECS公网IP>}"
 PASS=0
 FAIL=0
 ok()  { echo "✅ $1"; PASS=$((PASS+1)); }
@@ -13,11 +14,21 @@ info(){ echo "ℹ️  $1"; }
 
 echo "========== AC2 容器与端口可达 =========="
 docker compose ps 2>/dev/null | grep -q "Up" && ok "compose 服务存在且已启动" || bad "compose 服务未启动(先 docker compose up -d)"
-CODE=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://${TAILNET_IP}:8080/api/auth/login" 2>/dev/null)
-if [ "$CODE" != "000" ] && [ -n "$CODE" ]; then
-  ok "tailnet IP:8080 有应答(HTTP $CODE)"
+
+# nginx WSS 端点（手机实际入口）：405/200 即 nginx 已代理可达
+CODE=$(curl -sk -o /dev/null -m 5 -w '%{http_code}' "https://${PUBLIC_IP}:18443/api/auth/login" 2>/dev/null)
+if [ "$CODE" = "405" ] || [ "$CODE" = "200" ]; then
+  ok "nginx WSS 端点可达(https://${PUBLIC_IP}:18443 应答 HTTP $CODE)"
 else
-  bad "tailnet IP:8080 不可达"
+  bad "nginx 18443 不可达(HTTP ${CODE:-无响应})，检查 nginx 容器与证书"
+fi
+
+# app 本机运维端口（仅 127.0.0.1）
+CODE2=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://127.0.0.1:8080/api/auth/login" 2>/dev/null)
+if [ -n "$CODE2" ] && [ "$CODE2" != "000" ]; then
+  ok "app 本机 8080 有应答(HTTP $CODE2)"
+else
+  bad "app 127.0.0.1:8080 不可达"
 fi
 
 echo "========== AC6 MySQL 不发布宿主端口 =========="
@@ -50,7 +61,7 @@ else
 fi
 
 echo "========== 未覆盖项(手动) =========="
-info "AC1 公网端口扫描=0: 在非 ECS 设备上扫描 ECS 公网 IP 全端口(应全 closed/filtered)"
+info "AC1 公网端口扫描=0: 在非 ECS 设备上扫描 ECS 公网 IP 全端口(除 18443 外应全 closed/filtered)"
 info "AC3 重启自愈: sudo reboot 后 docker compose ps 应全部自动 Up"
 info "AC7 数据清理: 观察 docker logs eye-app 的『数据保留清理』日志 / 解除配对后 media 卷清空"
 

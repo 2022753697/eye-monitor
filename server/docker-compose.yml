@@ -1,12 +1,11 @@
 # 眼互后端部署编排（WS2 / ADR-2）
 # 用法：
 #   1) cp .env.example .env 并填入强随机值（openssl rand -base64 48）
-#   2) .env 中 TAILNET_IP 填 ECS 的 tailnet IP（tailscale ip -4 查看）
-#   3) docker compose up -d --build
+#   2) docker compose up -d --build
 #
 # 安全要点（见 .omc/specs/deep-interview-deploy-security.md）：
 #   - mysql 不发布 3306：仅 compose 内网可达，公网/宿主机都扫不到（AC6）
-#   - app 仅绑定 TAILNET_IP:8080，默认回退 127.0.0.1（AC1/AC2：公网端口扫描 0 开放）
+#   - app 的 8080 仅绑定 127.0.0.1（运维本机用）；外部一律走 nginx WSS（AC1/AC2：公网端口扫描 0 开放）
 #   - 凭据全部来自 .env（gitignored），ProdCredentialValidator 启动强校验（AC5）
 #   - 媒体持久化到 media-data 卷（AC7：解除配对会清空 data/media）
 services:
@@ -49,9 +48,9 @@ services:
     volumes:
       - media-data:/data/media
     networks: [eye]
-    # 仅绑定 tailnet IP；未配置 TAILNET_IP 时回退 127.0.0.1 作为安全默认
+    # 仅绑定本机（运维/本地验收用）；手机端走 nginx WSS（wss://<ECS公网IP>:18443/ws/eye）
     ports:
-      - "${TAILNET_IP:-127.0.0.1}:8080:8080"
+      - "127.0.0.1:8080:8080"
 
   # TLS 终结：twoy.online（证书放 ./certs/，见 deploy/tls-switchover.md）
   # 注意：证书就位前勿启动本服务（nginx -t 会因缺证书文件而 crash-loop）
@@ -81,5 +80,5 @@ networks:
 
 # 说明：
 # - mysql 不发布端口，仅 compose 内网（AC6）
-# - app 绑定 TAILNET_IP:8080（Tailscale 阶段手机直连；域名切换后 nginx 走容器内网 app:8080，无需再开公网 8080）
+# - app 的 8080 仅绑定 127.0.0.1（运维本机验收用）；手机直连 wss://<ECS公网IP>:18443/ws/eye（nginx 代理到容器内网 app:8080）
 # - nginx 挂载 ./certs/（gitignored），证书就位后再 docker compose up 启用

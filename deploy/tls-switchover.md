@@ -33,8 +33,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://twoy.online:8443/api/auth/login
 
 ### E. 手机接入（两台，零 VPN）
 1. 安装眼互新 APK（无需 Tailscale）
-2. Profile → 服务器地址 → `wss://twoy.online:8443/ws/eye` → 确定 → 重启监控
-3. ECS 的 Tailscale 可保留作运维 SSH 通道（`sudo tailscale up` 不影响的）
+2. Profile → 服务器地址 → `wss://<ECS公网IP>:18443/ws/eye` → 确定 → 重启监控
+3. （当前实际拓扑：公网 IP 直连 18443，未启用域名）
 
 ---
 
