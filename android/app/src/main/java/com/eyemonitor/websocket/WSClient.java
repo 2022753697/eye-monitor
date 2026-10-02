@@ -150,15 +150,15 @@ public class WSClient {
         cancelReconnect();
         closeWebSocket();
 
+        // F-03 阶段 2（安全加固 2026-10）：token 改走握手请求头 X-Auth-Token，不再拼 query（防日志泄露）
         String url = serverUrl;
+        Request.Builder rb = new Request.Builder().url(url);
         if (authToken != null && !authToken.isEmpty()) {
-            url = url + (url.contains("?") ? "&token=" : "?token=") + authToken;
-            Log.d(TAG, "连接携带 token: " + url.replace(authToken, "***"));
+            rb.header("X-Auth-Token", authToken);
+            Log.d(TAG, "连接携带 token（Header）: " + url.replace(authToken, "***"));
         }
         Log.d(TAG, "正在连接: " + url);
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
+        Request request = rb.build();
         webSocket = client.newWebSocket(request, new WsListener());
     }
 
