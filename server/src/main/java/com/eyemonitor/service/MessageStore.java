@@ -79,15 +79,22 @@ public class MessageStore {
 
     /**
      * 撤回（chat_recall）：按 时间戳 定位该配对消息，2 分钟窗口内置 deleted。
+     * <p>F-07（安全加固）：只能撤回自己发送的消息（fromUser == operatorUserId），防越权删除对方消息。
      *
-     * @return true=撤回成功（窗口内且找到消息）；false=超时/未找到（不入库不转发）
+     * @return true=撤回成功（窗口内、归属本人且找到消息）；false=超时/未找到/非本人（不入库不转发）
      */
-    public boolean recallChat(String pairCode, long msgTs) {
+    public boolean recallChat(String pairCode, long msgTs, long operatorUserId) {
         try {
             if (pairCode == null) return false;
             ChatMessageEntity e = chatRepo.findByPairCodeAndTs(pairCode, msgTs);
             if (e == null) {
                 log.warn("撤回失败：消息不存在 pair={} ts={}", pairCode, msgTs);
+                return false;
+            }
+            // F-07：只能撤回自己的消息
+            if (e.getFromUser() == null || e.getFromUser() != operatorUserId) {
+                log.warn("撤回失败：只能撤回自己的消息 pair={} ts={} op={}",
+                        pairCode, msgTs, operatorUserId);
                 return false;
             }
             long now = System.currentTimeMillis();

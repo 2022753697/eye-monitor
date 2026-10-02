@@ -146,7 +146,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Map<String, Object> payload = msg.getPayload();
         Object ts = payload != null ? payload.get("msgTs") : null;
         long msgTs = ts instanceof Number ? ((Number) ts).longValue() : 0L;
-        if (messageStore.recallChat(pairCode, msgTs)) {
+        if (messageStore.recallChat(pairCode, msgTs, userId)) {
             pairService.forwardToPeer(msg.getDeviceId(), msg);
         } else {
             // 业务级失败走 system_tip：type=error 会被客户端误判为配对失效（清配对+跳配对页）
