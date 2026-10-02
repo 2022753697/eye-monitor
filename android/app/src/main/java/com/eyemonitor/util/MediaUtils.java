@@ -322,6 +322,23 @@ public final class MediaUtils {
         dlg.show();
     }
 
+    /** 备忘录本地图片全屏预览（纯本地路径，不入媒体缓存） */
+    public static void openLocalPhotoPreview(final Context context, final String path) {
+        final ImageView big = new ImageView(context);
+        big.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        big.setBackgroundColor(0xFF000000);
+        big.setClickable(true);
+        final android.app.Dialog dlg = new android.app.Dialog(context,
+                android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dlg.setContentView(big);
+        big.setOnClickListener(v -> dlg.dismiss());
+        File f = new File(path);
+        if (f.exists()) {
+            Glide.with(big).load(f).into(big);
+        }
+        dlg.show();
+    }
+
 
     /** 确保已下载后打开全屏查看（图片 / 视频播放页） */
     public static void openMedia(Context context, String fileId, String mime, long duration,

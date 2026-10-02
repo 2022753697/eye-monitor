@@ -524,4 +524,32 @@
     <string name="task_toast_reject">已拒绝任务</string>
     <string name="task_toast_complete">已确认完成 ❤</string>
     <string name="task_toast_reward">已确认兑现 ❤</string>
+
+    <!-- 备忘录（个人私密，纯本地） -->
+    <string name="menu_memo">备忘录</string>
+    <string name="memo_title">备忘录</string>
+    <string name="memo_new">＋ 新建</string>
+    <string name="memo_empty">还没有备忘录，点右上角新建一条～</string>
+    <string name="memo_detail_title">备忘录详情</string>
+    <string name="memo_edit">编辑</string>
+    <string name="memo_edit_new">新建备忘录</string>
+    <string name="memo_edit_edit">编辑备忘录</string>
+    <string name="memo_save">保存</string>
+    <string name="memo_hint">写点什么…</string>
+    <string name="memo_item_hint">添加子项（可勾选的清单）</string>
+    <string name="memo_item_add">＋</string>
+    <string name="memo_reminder">定时提醒</string>
+    <string name="memo_pin">置顶这条</string>
+    <string name="memo_delete">删除</string>
+    <string name="memo_delete_confirm">确定删除这条备忘录？</string>
+    <string name="memo_delete_ok">删除</string>
+    <string name="memo_err_empty">写点内容吧</string>
+    <string name="memo_err_image">图片保存失败，请重试</string>
+    <string name="memo_notify_title">备忘录提醒</string>
+    <string name="memo_notify_text">「%1$s」到点啦</string>
+    <string name="memo_no_image">无图片</string>
+    <string name="memo_updated_at">更新于 %1$s</string>
+    <string name="memo_reminder_at">提醒 %1$s</string>
+    <string name="memo_items_count">☑ %1$d</string>
+    <string name="memo_processed_at">提醒已触发 %1$s</string>
 </resources>

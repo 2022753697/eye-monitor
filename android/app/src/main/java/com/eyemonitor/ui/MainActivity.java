@@ -2109,6 +2109,11 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(MainActivity.this, TaskActivity.class));
                         Transitions.push(MainActivity.this);
                     });
+                    v.findViewById(R.id.grid_memo).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, MemoListActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
                 }
             }
         }

@@ -25,8 +25,29 @@ import java.util.concurrent.Executors;
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
         FolderCacheEntity.class,
-        TaskEntity.class}, version = 9, exportSchema = false)
+        TaskEntity.class,
+        MemoEntity.class,
+        MemoItemEntity.class}, version = 10, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v9 -> v10：备忘录（个人私密，纯本地）——只建新表，不动既有数据 */
+    public static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `memo` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`content` TEXT, `images` TEXT, `reminderAt` INTEGER, " +
+                    "`isPinned` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS `memo_item` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`memoId` INTEGER NOT NULL, `text` TEXT, " +
+                    "`checked` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`memoId`) REFERENCES `memo`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_memo_item_memoId` ON `memo_item` (`memoId`)");
+        }
+    };
 
     /** v8 -> v9：任务多图（逗号分隔 fileId 列表；mediaFileId 保留为第一张） */
     public static final Migration MIGRATION_8_9 = new Migration(8, 9) {
@@ -129,6 +150,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract TaskDao taskDao();
 
+    public abstract MemoDao memoDao();
+
     public static AppDatabase getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
@@ -137,7 +160,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                                    MIGRATION_8_9)
+                                    MIGRATION_8_9, MIGRATION_9_10)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

@@ -99,6 +99,18 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".ui.MemoListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.MemoDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.MemoEditActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.PermissionActivity"
             android:exported="false"
             android:launchMode="singleTop" />
@@ -140,6 +152,11 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- 备忘录提醒触发 -->
+        <receiver
+            android:name=".service.MemoReminderReceiver"
+            android:exported="false" />
 
     </application>
 </manifest>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_card"
+        android:padding="12dp">
+
+        <!-- 缩略图 / 无图占位 -->
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_card_alt">
+
+            <ImageView
+                android:id="@+id/iv_memo_thumb"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="缩略图" />
+
+            <ImageView
+                android:id="@+id/iv_memo_thumb_placeholder"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_memo"
+                android:tint="@color/text_secondary"
+                android:contentDescription="无图" />
+        </FrameLayout>
+
+        <!-- 正文 + 时间 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp">
+
+            <TextView
+                android:id="@+id/tv_memo_snippet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tv_memo_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- 角标列：置顶 / 提醒 / 子项数 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <ImageView
+                android:id="@+id/iv_memo_pin"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_pin"
+                android:tint="@color/accent"
+                android:visibility="gone"
+                android:contentDescription="置顶" />
+
+            <ImageView
+                android:id="@+id/iv_memo_alarm"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginTop="6dp"
+                android:src="@drawable/ic_alarm"
+                android:tint="@color/status_warn"
+                android:visibility="gone"
+                android:contentDescription="提醒" />
+
+            <TextView
+                android:id="@+id/tv_memo_items"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

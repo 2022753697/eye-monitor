@@ -38,5 +38,9 @@ public class BootReceiver extends BroadcastReceiver {
             context.startService(serviceIntent);
         }
         Log.i(TAG, "监控服务已自动启动");
+
+        // 备忘录提醒重排：未触发的提醒重新排期
+        com.eyemonitor.util.ReminderScheduler.rescheduleAll(context);
+        Log.i(TAG, "备忘录提醒已重排");
     }
 }
