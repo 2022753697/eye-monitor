@@ -7,12 +7,19 @@
     android:gravity="center"
     android:padding="@dimen/space_24">
 
-    <ImageView
-        android:id="@+id/es_icon"
+    <FrameLayout
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:src="@drawable/ic_image"
-        android:alpha="0.5" />
+        android:background="@drawable/bg_icon_circle">
+
+        <ImageView
+            android:id="@+id/es_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_image"
+            android:tint="@color/primary" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/es_title"

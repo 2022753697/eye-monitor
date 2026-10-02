@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ============================================================
+     统一头栏组件（UI 改造 v2）
+     - 渐变：bg_header_gradient_std（header_grad_start→header_grad_end，白字大字号 3.25:1 AA）
+     - 返回：44dp 热区 + 24dp icon + bg_header_icon 圆底（触控标准）
+     - 标题：居中 20sp 粗 = TextAppearance.EyeMonitor.HeaderTitle（AA 大字号）
+     - 动作槽：右侧 44dp 空槽，可放 HeaderAction 胶囊/文字钮/Icon（用代码 addView 或页面自行布局）
+     用法：
+     <include layout="@layout/component_header_bar" />
+     findViewById(R.id.header_back).setOnClickListener(...);
+     findViewById(R.id.header_title).setText(...);
+     ============================================================ -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="@dimen/bar_height_hero"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_header_gradient_std"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
+
+    <ImageButton
+        android:id="@+id/header_back"
+        android:layout_width="@dimen/icon_44"
+        android:layout_height="@dimen/icon_44"
+        android:padding="10dp"
+        android:src="@drawable/ic_back"
+        android:tint="@color/white"
+        android:background="@drawable/bg_header_icon"
+        android:contentDescription="@string/back"
+        style="?attr/borderlessButtonStyle" />
+
+    <TextView
+        android:id="@+id/header_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        style="@style/TextAppearance.EyeMonitor.HeaderTitle"
+        android:textColor="@color/white"
+        android:gravity="center" />
+
+    <!-- 动作槽：右操作（HeaderAction 胶囊 / Icon / 空） -->
+    <FrameLayout
+        android:id="@+id/header_action"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/icon_44"
+        android:minWidth="@dimen/icon_44"
+        android:minHeight="@dimen/icon_44" />
+</LinearLayout>

@@ -5,47 +5,42 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 头栏：标题 + 发布按钮 -->
+    <!-- 头栏：标题 + 发布按钮（统一 HeaderBar 视觉） -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/bar_height_hero"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@drawable/bg_header_gradient"
+        android:background="@drawable/bg_header_gradient_std"
         android:paddingStart="12dp"
         android:paddingEnd="12dp">
 
-        <ImageView
+        <ImageButton
             android:id="@+id/btn_task_back"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
+            android:layout_width="@dimen/icon_44"
+            android:layout_height="@dimen/icon_44"
+            android:padding="10dp"
             android:src="@drawable/ic_back"
             android:tint="@color/white"
-            android:contentDescription="返回" />
+            android:background="@drawable/bg_header_icon"
+            android:contentDescription="返回"
+            style="?attr/borderlessButtonStyle" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/task_my_tasks"
+            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
             android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold"
             android:gravity="center" />
 
         <TextView
             android:id="@+id/btn_task_publish"
-            style="@style/Widget.EyeMonitor.Button.Primary"
+            style="@style/Widget.EyeMonitor.Button.HeaderAction"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minHeight="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
             android:gravity="center"
             android:text="@string/task_publish" />
     </LinearLayout>

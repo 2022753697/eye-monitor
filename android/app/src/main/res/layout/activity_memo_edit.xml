@@ -5,34 +5,35 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 头栏：返回 + 标题 + 保存 -->
+    <!-- 头栏：返回 + 标题 + 保存（统一 HeaderBar 视觉） -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/bar_height_hero"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@drawable/bg_header_gradient"
+        android:background="@drawable/bg_header_gradient_std"
         android:paddingStart="12dp"
         android:paddingEnd="12dp">
 
-        <ImageView
+        <ImageButton
             android:id="@+id/btn_memo_edit_back"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
+            android:layout_width="@dimen/icon_44"
+            android:layout_height="@dimen/icon_44"
+            android:padding="10dp"
             android:src="@drawable/ic_back"
             android:tint="@color/white"
-            android:contentDescription="返回" />
+            android:background="@drawable/bg_header_icon"
+            android:contentDescription="返回"
+            style="?attr/borderlessButtonStyle" />
 
         <TextView
             android:id="@+id/tv_memo_edit_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/memo_edit_new"
+            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
             android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold"
             android:gravity="center" />
 
         <TextView
@@ -40,13 +41,6 @@
             style="@style/Widget.EyeMonitor.Button.HeaderText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minHeight="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
             android:gravity="center"
             android:text="@string/memo_save" />
     </LinearLayout>

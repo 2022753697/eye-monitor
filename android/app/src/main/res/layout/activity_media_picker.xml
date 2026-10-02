@@ -12,7 +12,7 @@
         <!-- 顶栏：返回 + 相册名（点击弹出相册列表） -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="@dimen/bar_height_hero"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@color/surface"

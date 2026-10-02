@@ -5,6 +5,17 @@
     <color name="primary_dark">#E05555</color>
     <color name="accent">#FFA26B</color>
 
+    <!-- AA 功能色（2026-10 改造）：品牌珊瑚退居渐变/装饰/图标，承载文字的交互面用深变体 -->
+    <color name="primary_fill">#D13F47</color>
+    <!-- 实心按钮底：白字 4.67:1 ✅AA -->
+    <color name="primary_text">#C03D3D</color>
+    <!-- 浅底珊瑚文字（描边/链接）：on-white 5.28:1 ✅AA -->
+    <color name="accent_text">#C97A3D</color>
+    <!-- 暖橙文字（奖励等）：on-white ≥4.5:1 ✅ -->
+    <color name="header_grad_start">#EE5F68</color>
+    <color name="header_grad_end">#D96F52</color>
+    <!-- 标准页头栏渐变（白字大字号 3.25:1 ✅AA） -->
+
     <!-- 背景与表面 -->
     <color name="background">#FFF9F7</color>
     <color name="surface">#FFFFFF</color>
@@ -13,16 +24,38 @@
 
     <!-- 文本 -->
     <color name="text_primary">#4A3B3D</color>
-    <color name="text_secondary">#9A8B8D</color>
+    <color name="text_secondary">#7A696C</color>
+    <!-- 调整（原 #9A8B8D 仅 3.10:1 ❌）：on-white 5.16:1、on-bg 4.92:1 ✅AA -->
+    <color name="text_tertiary">#A99A9C</color>
+    <!-- 仅用于图标/时间戳等非关键信息（不承诺 AA） -->
     <color name="text_on_primary">#FFFFFF</color>
     <!-- 渐变头栏上的弱化文本（如离线状态） -->
-    <color name="text_on_primary_muted">#B3FFFFFF</color>
+    <color name="text_on_primary_muted">#E6FFFFFF</color>
+    <!-- 调整（原 #B3FFFFFF ❌）：90% 白，用于头栏次要文字 ≥12sp -->
 
     <!-- 状态 -->
     <color name="status_ok">#4CAF8A</color>
     <color name="status_warn">#E0913C</color>
     <color name="status_error">#D9604F</color>
     <color name="status_success">#4CD97B</color>
+    <!-- 状态文字变体（填充色保留用于装饰/图标；文字一律用变体保证 AA） -->
+    <color name="status_ok_text">#2E7D63</color>
+    <!-- 4.97:1 ✅ -->
+    <color name="status_warn_text">#9A6217</color>
+    <!-- 5.08:1 ✅（替换 #E0913C 的文字用法） -->
+    <color name="status_error_text">#B33A2C</color>
+    <!-- 5.90:1 ✅（替换 #D9604F 的文字用法） -->
+    <color name="status_success_text">#167A4C</color>
+    <!-- 5.35:1 ✅ -->
+    <color name="status_error_fill">#C94A3B</color>
+    <!-- 危险按钮底（白字 4.0:1 大字号边缘，比 #D9604F 暗一档） -->
+    <!-- 状态浅底（pill 面）令牌化（替换 drawable 内硬编码） -->
+    <color name="surface_ok">#E3F3EB</color>
+    <!-- 原 bg_pill_green 硬编码 -->
+    <color name="surface_error">#FBEAE6</color>
+    <!-- 原 bg_pill_red 硬编码 -->
+    <color name="surface_press">#14FF6B6B</color>
+    <!-- 原 bg_row_ripple 硬编码（主色 8% 压暗） -->
     <!-- 媒体选择器：视频时长角标底（半透明黑） -->
     <color name="media_badge_bg">#66000000</color>
 
@@ -34,6 +67,8 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="black_60">#99000000</color>
+    <!-- 聊天头渐变上的微压暗带（改善微文本对比） -->
+    <color name="scrim_header">#1A000000</color>
 
     <!-- 媒体：时间角标覆盖层（10% 透明度珊瑚，承接原 #59FF6B6B） -->
     <color name="media_overlay_tint">#59FF6B6B</color>

@@ -75,8 +75,9 @@ public class AnniversaryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_anniversary);
 
-        Button btnBack = findViewById(R.id.btn_anniversary_back);
+        android.widget.ImageButton btnBack = findViewById(R.id.header_back);
         btnBack.setOnClickListener(v -> finish());
+        ((TextView) findViewById(R.id.header_title)).setText(R.string.anniversary_title);
         Button btnAdd = findViewById(R.id.btn_anniversary_add);
         btnAdd.setOnClickListener(v -> showEditDialog(null));
 

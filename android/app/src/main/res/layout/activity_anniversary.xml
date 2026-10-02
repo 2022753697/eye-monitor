@@ -5,37 +5,10 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 渐变头栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient"
-        android:padding="10dp"
-        android:gravity="center_vertical">
-
-        <Button
-            android:id="@+id/btn_anniversary_back"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/back" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/anniversary_title"
-            android:textColor="@color/text_on_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:gravity="center" />
-
-        <!-- 与返回按钮等宽的占位，保证标题视觉居中 -->
-        <View
-            android:layout_width="56dp"
-            android:layout_height="1dp" />
-    </LinearLayout>
+    <!-- 渐变头栏（统一 HeaderBar：渐变 std + 44dp 返回 + 20sp 居中标题 + 等宽动作槽） -->
+    <include
+        layout="@layout/component_header_bar"
+        android:id="@+id/header_anniversary_bar" />
 
     <!-- 列表区（空的时显示 EmptyView） -->
     <FrameLayout

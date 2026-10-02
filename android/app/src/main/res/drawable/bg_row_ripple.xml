@@ -3,7 +3,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape>
-            <solid android:color="#14FF6B6B" />
+            <solid android:color="@color/surface_press" />
         </shape>
     </item>
     <item>

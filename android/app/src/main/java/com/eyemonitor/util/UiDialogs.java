@@ -193,7 +193,8 @@ public final class UiDialogs {
             Window window = dialog.getWindow();
             if (window != null) {
                 window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-                int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels * 0.82f);
+                int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels
+                        * ctx.getResources().getFraction(R.fraction.dialog_width_factor_list, 1, 1));
                 window.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT);
             }
             title = dialog.findViewById(R.id.tv_list_title);
@@ -219,7 +220,8 @@ public final class UiDialogs {
         Window window = cfg.dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-            int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels * 0.85f);
+            int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels
+                    * ctx.getResources().getFraction(R.fraction.dialog_width_factor_confirm, 1, 1));
             window.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT);
         }
         TextView tvTitle = cfg.dialog.findViewById(R.id.tv_dialog_title);

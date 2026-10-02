@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- ============================================================
-     新页面布局模板（UI 护栏 v1）
+     新页面布局模板（UI 护栏 v2，2026-10 改造）
      复制本文件改：头栏标题字符串、内容区（ScrollView 内）即可。
      约定：
-     - 头栏 = 渐变 + HeaderTitle + Header 按钮（本模板已就位）
+     - 头栏 = include component_header_bar（渐变 std + 44dp 返回 + 20sp 居中标题）
+       + 右侧动作：style="Widget.EyeMonitor.Button.HeaderAction"（44dp 热区，勿再手工 minHeight/inset/padding 覆盖）
      - 内容区统一 @dimen/space_16 外边距；控件间距用 8dp 步进令牌
-     - 颜色一律 ?attr/ 语义令牌，禁止写死 #RRGGBB
-     - 字符串进 strings.xml，禁止硬编码中文
+     - 禁止：52dp 固定高（用 bar_height 48dp）、14dp 圆角（用 radius_md 12dp）、正文 10/11sp、硬编码色
+     - 颜色一律 ?attr/ 语义令牌，字符串进 strings.xml
      ============================================================ -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -15,27 +16,7 @@
     android:background="@color/background">
 
     <!-- 渐变头栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient"
-        android:padding="@dimen/space_16"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
-            android:text="@string/app_name" />
-
-        <Button
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/back" />
-    </LinearLayout>
+    <include layout="@layout/component_header_bar" />
 
     <!-- 内容区 -->
     <ScrollView

@@ -15,18 +15,66 @@
     <dimen name="space_16">16dp</dimen>
     <dimen name="space_24">24dp</dimen>
     <dimen name="space_32">32dp</dimen>
+    <dimen name="space_40">40dp</dimen>
+    <dimen name="space_48">48dp</dimen>
+    <dimen name="space_56">56dp</dimen>
+    <dimen name="space_60">60dp</dimen>
+    <dimen name="space_64">64dp</dimen>
 
     <!-- 圆角 -->
     <dimen name="radius_sm">8dp</dimen>
     <dimen name="radius_md">12dp</dimen>
     <dimen name="radius_lg">16dp</dimen>
     <dimen name="radius_xl">24dp</dimen>
+    <dimen name="radius_full">999dp</dimen>
+    <!-- 胶囊（替换魔法 999dp） -->
 
-    <!-- 字号（4 级：12/14/16/20 + 补充 13/15） -->
+    <!-- 字号（8 级节奏：12/14/16/20 + 补充 10-18/24-30） -->
+    <dimen name="text_10">10sp</dimen>
+    <!-- 仅限角标数字/非关键标注（不承诺 AA） -->
+    <dimen name="text_11">11sp</dimen>
+    <!-- 仅限图注/状态 pill/时间戳 -->
     <dimen name="text_12">12sp</dimen>
     <dimen name="text_13">13sp</dimen>
     <dimen name="text_14">14sp</dimen>
     <dimen name="text_15">15sp</dimen>
     <dimen name="text_16">16sp</dimen>
+    <dimen name="text_17">17sp</dimen>
+    <!-- 正文大号（memo 正文、任务详情内容） -->
+    <dimen name="text_18">18sp</dimen>
+    <!-- 头栏次级标题 -->
     <dimen name="text_20">20sp</dimen>
+    <dimen name="text_24">24sp</dimen>
+    <dimen name="text_28">28sp</dimen>
+    <dimen name="text_30">30sp</dimen>
+
+    <!-- 触控与结构高度 -->
+    <dimen name="touch_target">44dp</dimen>
+    <!-- 最低触控目标 -->
+    <dimen name="bar_height_compact">44dp</dimen>
+    <dimen name="bar_height">48dp</dimen>
+    <!-- 标准按钮/行高 -->
+    <dimen name="bar_height_hero">56dp</dimen>
+    <!-- 头栏/主操作 -->
+
+    <!-- 阴影层级 -->
+    <dimen name="shadow_1">2dp</dimen>
+    <dimen name="shadow_2">4dp</dimen>
+    <dimen name="shadow_3">8dp</dimen>
+    <dimen name="shadow_4">12dp</dimen>
+
+    <!-- 图标尺寸 -->
+    <dimen name="icon_16">16dp</dimen>
+    <dimen name="icon_20">20dp</dimen>
+    <dimen name="icon_24">24dp</dimen>
+    <dimen name="icon_36">36dp</dimen>
+    <dimen name="icon_44">44dp</dimen>
+
+    <!-- 面板高度 -->
+    <dimen name="panel_height_more">200dp</dimen>
+    <dimen name="panel_height_emoji">220dp</dimen>
+
+    <!-- 弹窗宽度系数（替代 UiDialogs 魔法数字 0.85/0.82） -->
+    <item name="dialog_width_factor_confirm" type="fraction" format="fraction">85%</item>
+    <item name="dialog_width_factor_list" type="fraction" format="fraction">82%</item>
 </resources>
