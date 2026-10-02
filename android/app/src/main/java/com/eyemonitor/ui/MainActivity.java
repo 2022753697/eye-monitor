@@ -2128,7 +2128,7 @@ public class MainActivity extends AppCompatActivity {
 
     // --- 更多面板（QQ 风格网格，弹出时顶起输入栏，与输入法互斥） ---
 
-    /** 更多面板分页适配器：第 1 页 = 图片/SOS/权限/诊断/解除/清空/轨迹/我的；第 2 页 = 任务 + 预留位 */
+    /** 更多面板分页适配器：第 1 页 = 图片/SOS/权限/任务/备忘录/解除/轨迹/我的；第 2 页 = 清空聊天 + 预留位 */
     private class MorePageAdapter extends RecyclerView.Adapter<MorePageAdapter.Holder> {
         @Override
         public int getItemViewType(int position) {
@@ -2164,13 +2164,19 @@ public class MainActivity extends AppCompatActivity {
                         hideMorePanel();
                         openPermissionSettings();
                     });
+                    v.findViewById(R.id.grid_task).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, TaskActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
+                    v.findViewById(R.id.grid_memo).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, MemoListActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
                     v.findViewById(R.id.grid_unpair).setOnClickListener(x -> {
                         hideMorePanel();
                         showUnpairDialog();
-                    });
-                    v.findViewById(R.id.grid_clear).setOnClickListener(x -> {
-                        hideMorePanel();
-                        clearChatHistory();
                     });
                     v.findViewById(R.id.grid_profile).setOnClickListener(x -> {
                         hideMorePanel();
@@ -2183,15 +2189,9 @@ public class MainActivity extends AppCompatActivity {
                         Transitions.push(MainActivity.this);
                     });
                 } else {
-                    v.findViewById(R.id.grid_task).setOnClickListener(x -> {
+                    v.findViewById(R.id.grid_clear).setOnClickListener(x -> {
                         hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, TaskActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                    v.findViewById(R.id.grid_memo).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, MemoListActivity.class));
-                        Transitions.push(MainActivity.this);
+                        clearChatHistory();
                     });
                 }
             }
