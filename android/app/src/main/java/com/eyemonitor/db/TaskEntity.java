@@ -30,6 +30,9 @@ public class TaskEntity {
     /** 可选照片 fileId（空=纯文字任务） */
     public String mediaFileId;
 
+    /** 多图：逗号分隔的 fileId 列表（mediaFileId=第一张；发布方本地/对方下载显示） */
+    public String mediaFileIds;
+
     /** 奖励预置类型（空=纯自定义文字） */
     public String rewardType;
 

@@ -10,6 +10,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -52,8 +53,10 @@ public class TaskActivity extends BaseActivity {
     private int filterIndex = 0; // 0 全部 / 1 进行中 / 2 已完成 / 3 已拒绝
     private final List<TextView> filterChips = new ArrayList<>();
 
-    /** 发布弹窗状态：选中的配图 fileId（上传成功后就地更新弹窗缩略图，不重开弹窗） */
-    private String pendingPhotoFileId;
+    /** 发布弹窗状态：已选配图 fileId 列表（上传成功后就地更新弹窗图片条，不重开弹窗） */
+    private final List<String> pendingPhotoFileIds = new ArrayList<>();
+    /** 待上传队列（选图器可一次多选，逐张上传） */
+    private final java.util.ArrayDeque<Uri> photoUploadQueue = new java.util.ArrayDeque<>();
     private androidx.appcompat.app.AlertDialog publishDialog;
     private View publishBody;
 
@@ -188,6 +191,7 @@ public class TaskActivity extends BaseActivity {
 
         class Holder extends RecyclerView.ViewHolder {
             final TextView tvDate, tvStatus, tvContent, tvReward;
+            final ImageView ivPhoto;
 
             Holder(View itemView) {
                 super(itemView);
@@ -195,6 +199,7 @@ public class TaskActivity extends BaseActivity {
                 tvStatus = itemView.findViewById(R.id.tv_task_card_status);
                 tvContent = itemView.findViewById(R.id.tv_task_card_content);
                 tvReward = itemView.findViewById(R.id.tv_task_card_reward);
+                ivPhoto = itemView.findViewById(R.id.iv_task_card_photo);
                 itemView.setOnClickListener(v -> showDetailDialog(data.get(getBindingAdapterPosition())));
             }
 
@@ -204,6 +209,8 @@ public class TaskActivity extends BaseActivity {
                 String reward = rewardDisplay(e);
                 tvReward.setText(reward != null && !reward.isEmpty()
                         ? "🎁 " + getString(R.string.task_reward_of, reward) : "");
+                MediaUtils.loadTaskPhoto(TaskActivity.this, ivPhoto, e.mediaFileIds, true);
+                ivPhoto.setOnClickListener(v -> showPhotoPreview(firstId(e.mediaFileIds)));
                 tvStatus.setText(statusDisplay(e));
                 int pillBg = R.drawable.bg_pill_gray;
                 int pillColor = R.color.text_secondary;
@@ -238,6 +245,13 @@ public class TaskActivity extends BaseActivity {
                 .setText(getString(R.string.task_publisher_of, who) + " · " + fmtTime(e.ts));
         ((TextView) body.findViewById(R.id.tv_detail_content))
                 .setText(e.content != null ? e.content : "");
+        // 配图（点击放大预览）
+        final ImageView ivDetailPhoto = body.findViewById(R.id.iv_detail_photo);
+        MediaUtils.loadTaskPhoto(this, ivDetailPhoto, e.mediaFileIds, false);
+        ivDetailPhoto.setOnClickListener(v -> {
+            String fid = firstId(e.mediaFileIds);
+            if (fid != null) showPhotoPreview(fid);
+        });
         String reward = rewardDisplay(e);
         ((TextView) body.findViewById(R.id.tv_detail_reward))
                 .setText(reward != null && !reward.isEmpty()
@@ -384,16 +398,15 @@ public class TaskActivity extends BaseActivity {
             }
         });
 
-        // 配图行（pendingPhotoFileId 非空 = 已选，点击移除；空 = 去选图）
-        refreshPublishPhotoView();
+        // 配图条（已有图=点行清空；空=去选图；条内每格 ✕ 可单独删）
+        renderPhotoStrip();
         body.findViewById(R.id.ll_task_photo).setOnClickListener(v -> {
-            if (pendingPhotoFileId != null) {
-                pendingPhotoFileId = null;
-                refreshPublishPhotoView();
+            if (!pendingPhotoFileIds.isEmpty()) {
+                pendingPhotoFileIds.clear();
+                renderPhotoStrip();
                 Toast.makeText(this, R.string.task_remove_photo, Toast.LENGTH_SHORT).show();
             } else {
-                Intent pick = new Intent(this, MediaPickerActivity.class);
-                startActivityForResult(pick, REQ_PICK_PHOTO);
+                startPhotoPick();
             }
         });
 
@@ -421,9 +434,10 @@ public class TaskActivity extends BaseActivity {
                         return;
                     }
                     String taskId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+                    String ids = TextUtils.join(",", pendingPhotoFileIds);
                     MonitorService.sendTaskPublish(this, taskId, content,
-                            pendingPhotoFileId, preset, custom.isEmpty() ? preset : custom);
-                    pendingPhotoFileId = null;
+                            ids.isEmpty() ? null : ids, preset, custom.isEmpty() ? preset : custom);
+                    pendingPhotoFileIds.clear();
                     Toast.makeText(this, R.string.task_toast_sent, Toast.LENGTH_SHORT).show();
                     reloadSoon();
                 })
@@ -431,45 +445,109 @@ public class TaskActivity extends BaseActivity {
                 .show();
     }
 
-    /** 发布弹窗配图视图刷新：有图=显示缩略图+「更换配图」，无图=隐藏缩略图+「添加配图」 */
-    private void refreshPublishPhotoView() {
-        if (publishDialog == null || !publishDialog.isShowing()) {
-            Log.w(TAG, "发布弹窗未在显示，跳过配图刷新");
-            return;
-        }
-        View body = publishBody;
-        if (body == null) {
-            body = publishDialog.findViewById(android.R.id.custom);
-            publishBody = body;
-        }
-        if (body == null) {
-            Log.w(TAG, "发布弹窗 body 为空，无法刷新配图");
-            return;
-        }
-        ImageView ivThumb = body.findViewById(R.id.iv_task_photo_thumb);
-        TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
-        if (pendingPhotoFileId != null) {
-            File f = MediaUtils.localMediaFile(this, pendingPhotoFileId);
+    /** 打开选图器（最多 9 张，追加到上传队列） */
+    private void startPhotoPick() {
+        Intent pick = new Intent(this, MediaPickerActivity.class);
+        startActivityForResult(pick, REQ_PICK_PHOTO);
+    }
+
+    /** 渲染配图条：每格 72dp 缩略图 + ✕移除（点图放大预览），末尾 + 添加格 */
+    private void renderPhotoStrip() {
+        if (publishBody == null) return;
+        LinearLayout strip = publishBody.findViewById(R.id.ll_photo_strip);
+        if (strip == null) return;
+        strip.removeAllViews();
+        for (int i = 0; i < pendingPhotoFileIds.size(); i++) {
+            final String fid = pendingPhotoFileIds.get(i);
+            FrameLayout cell = new FrameLayout(this);
+            LinearLayout.LayoutParams cellLp = new LinearLayout.LayoutParams(dp(72), dp(72));
+            cellLp.rightMargin = dp(6);
+            cell.setLayoutParams(cellLp);
+
+            ImageView iv = new ImageView(this);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setBackgroundResource(R.drawable.bg_media_placeholder);
+            FrameLayout.LayoutParams ivLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            iv.setLayoutParams(ivLp);
+            File f = MediaUtils.localMediaFile(this, fid);
             if (f != null && f.exists()) {
-                com.bumptech.glide.Glide.with(this)
-                        .load(f)
-                        .centerCrop()
-                        .into(ivThumb);
-                ivThumb.setVisibility(View.VISIBLE);
-                tvPhoto.setText(R.string.task_change_photo);
-                Log.i(TAG, "任务配图缩略图已显示: " + pendingPhotoFileId);
-            } else {
-                ivThumb.setVisibility(View.GONE);
-                tvPhoto.setText(R.string.task_remove_photo);
-                Log.w(TAG, "任务配图本地文件缺失: " + pendingPhotoFileId);
+                com.bumptech.glide.Glide.with(this).load(f).centerCrop().into(iv);
             }
-        } else {
-            ivThumb.setVisibility(View.GONE);
-            tvPhoto.setText(R.string.task_add_photo);
+            iv.setOnClickListener(v -> showPhotoPreview(fid));
+            cell.addView(iv);
+
+            TextView x = new TextView(this);
+            x.setText("✕");
+            x.setTextSize(11);
+            x.setTextColor(getResources().getColor(R.color.white));
+            x.setBackgroundResource(R.drawable.bg_btn_white_rect);
+            x.setPadding(dp(4), dp(1), dp(4), dp(1));
+            FrameLayout.LayoutParams xLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.END | Gravity.TOP);
+            x.setLayoutParams(xLp);
+            x.setOnClickListener(v -> {
+                pendingPhotoFileIds.remove(fid);
+                renderPhotoStrip();
+            });
+            cell.addView(x);
+            strip.addView(cell);
+        }
+        // + 添加格（上限 9 张）
+        if (pendingPhotoFileIds.size() < 9) {
+            TextView add = new TextView(this);
+            add.setText("＋");
+            add.setTextSize(22);
+            add.setTextColor(getResources().getColor(R.color.text_secondary));
+            add.setGravity(Gravity.CENTER);
+            add.setBackgroundResource(R.drawable.bg_btn_round_white);
+            LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(dp(72), dp(72));
+            add.setLayoutParams(addLp);
+            add.setOnClickListener(v -> startPhotoPick());
+            strip.addView(add);
+        }
+        // 标签：添加配图 / 已选 N 张
+        TextView tvPhoto = publishBody.findViewById(R.id.tv_task_photo_state);
+        if (tvPhoto != null) {
+            tvPhoto.setText(pendingPhotoFileIds.isEmpty()
+                    ? getString(R.string.task_add_photo)
+                    : getString(R.string.task_photo_count, pendingPhotoFileIds.size()));
         }
     }
 
-    /** 选图器回程：取第 1 张 → 拷贝 → 上传 → 拿 fileId 重新打开发布弹窗 */
+    /** 全屏放大预览（本地文件缺失时先下载） */
+    private void showPhotoPreview(final String fileId) {
+        final ImageView big = new ImageView(this);
+        big.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        big.setBackgroundColor(0xFF000000);
+        big.setClickable(true);
+        final android.app.Dialog dlg = new android.app.Dialog(this,
+                android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dlg.setContentView(big);
+        big.setOnClickListener(v -> dlg.dismiss());
+        File f = MediaUtils.localMediaFile(this, fileId);
+        if (f != null && f.exists()) {
+            com.bumptech.glide.Glide.with(this).load(f).into(big);
+        } else {
+            MediaUtils.ensureTaskMedia(this, fileId, null, new MediaUtils.MediaCb() {
+                @Override
+                public void onReady(String localPath) {
+                    runOnUiThread(() -> com.bumptech.glide.Glide.with(TaskActivity.this)
+                            .load(new File(localPath)).into(big));
+                }
+
+                @Override
+                public void onError(int code, String msg) {
+                    runOnUiThread(() -> Toast.makeText(TaskActivity.this,
+                            R.string.media_download_failed, Toast.LENGTH_SHORT).show());
+                }
+            });
+        }
+        dlg.show();
+    }
+
+    /** 选图器回程：全部入队 → 逐张上传 */
     @Override
     protected void onDestroy() {
         if (publishDialog != null && publishDialog.isShowing()) {
@@ -484,27 +562,35 @@ public class TaskActivity extends BaseActivity {
         if (requestCode == REQ_PICK_PHOTO && resultCode == RESULT_OK && data != null) {
             ArrayList<Uri> uris = data.getParcelableArrayListExtra(MediaPickerActivity.EXTRA_SELECTED_URIS);
             if (uris != null && !uris.isEmpty()) {
-                uploadTaskPhoto(uris.get(0));
+                for (Uri u : uris) {
+                    if (pendingPhotoFileIds.size() + photoUploadQueue.size() >= 9) break;
+                    photoUploadQueue.offer(u);
+                }
+                uploadNextPhoto();
             }
         }
     }
 
-    private void uploadTaskPhoto(Uri uri) {
+    /** 逐张上传队列中的下一张 */
+    private void uploadNextPhoto() {
+        final Uri uri = photoUploadQueue.poll();
+        if (uri == null) return;
         try {
             String mime = getContentResolver().getType(uri);
             if (mime == null) mime = "image/jpeg";
             if (mime.startsWith("video")) {
                 Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+                uploadNextPhoto();
                 return;
             }
-            final String mimeFinal = mime;
-            // 临时文件必须带扩展名：AuthManager.uploadMedia 按文件名推 mime，无扩展名会被服务器拒（400）
+            // 临时文件必须带扩展名：AuthManager 按文件名推 mime，无扩展名会被服务器拒（400）
             String ext = "jpg";
             if (mime.contains("png")) ext = "png";
             else if (mime.contains("webp")) ext = "webp";
             File tmp = new File(getCacheDir(), "task_photo_" + System.currentTimeMillis() + "." + ext);
             if (!MediaUtils.copyUriToFile(this, uri, tmp)) {
                 Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+                uploadNextPhoto();
                 return;
             }
             Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
@@ -518,6 +604,7 @@ public class TaskActivity extends BaseActivity {
                         tmp.delete();
                         runOnUiThread(() -> Toast.makeText(TaskActivity.this,
                                 R.string.media_upload_failed, Toast.LENGTH_SHORT).show());
+                        uploadNextPhoto();
                         return;
                     }
                     // 本地归档（任务气泡/弹窗缩略图渲染数据源；不进 media_cache，避免出现在共享图库）
@@ -526,23 +613,35 @@ public class TaskActivity extends BaseActivity {
                             || MediaUtils.copyUriToFile(TaskActivity.this, uri, dst);
                     if (!archived) archived = tmp.renameTo(dst);
                     tmp.delete();
-                    // 就地更新发布弹窗缩略图（不重开弹窗，避免对话框叠加）
+                    // 就地更新发布弹窗图片条（不重开弹窗，避免对话框叠加）
                     runOnUiThread(() -> {
-                        pendingPhotoFileId = fileId;
-                        refreshPublishPhotoView();
+                        pendingPhotoFileIds.add(fileId);
+                        renderPhotoStrip();
+                        uploadNextPhoto();
                     });
                 }
 
                 @Override
                 public void onError(int code, String msg) {
                     tmp.delete();
-                    runOnUiThread(() -> Toast.makeText(TaskActivity.this,
-                            getString(R.string.media_upload_failed, msg), Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        Toast.makeText(TaskActivity.this,
+                                getString(R.string.media_upload_failed, msg), Toast.LENGTH_SHORT).show();
+                        uploadNextPhoto();
+                    });
                 }
             });
         } catch (Exception ex) {
             Toast.makeText(this, R.string.media_upload_failed, Toast.LENGTH_SHORT).show();
+            uploadNextPhoto();
         }
+    }
+
+    /** 逗号串第一项 */
+    private static String firstId(String ids) {
+        if (ids == null) return null;
+        String t = ids.split(",")[0].trim();
+        return t.isEmpty() ? null : t;
     }
 
     // --- 小工具 ---

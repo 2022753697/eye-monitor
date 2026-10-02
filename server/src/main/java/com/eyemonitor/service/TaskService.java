@@ -94,7 +94,9 @@ public class TaskService {
         e.setPublisherUser(userId);
         e.setReceiverUser(pair.peerOf(userId));
         e.setContentText(str(payload, "content"));
-        e.setMediaFileId(str(payload, "mediaFileId"));
+        String ids = str(payload, "mediaFileIds");
+        e.setMediaFileIds(ids);
+        e.setMediaFileId(firstOf(ids));
         e.setRewardType(str(payload, "rewardType"));
         e.setRewardText(str(payload, "rewardText"));
         e.setPeerName(str(payload, "from"));
@@ -193,6 +195,13 @@ public class TaskService {
         if (payload == null) return null;
         Object v = payload.get(key);
         return v == null ? null : String.valueOf(v);
+    }
+
+    /** 逗号串第一项（空/null 返回 null） */
+    private static String firstOf(String ids) {
+        if (ids == null) return null;
+        String t = ids.split(",")[0].trim();
+        return t.isEmpty() ? null : t;
     }
 
     /** 安全比较：Long 字段可能为 null */

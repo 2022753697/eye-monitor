@@ -48,9 +48,13 @@ public class TaskEntity {
     @Column(name = "content_text", nullable = false, length = 500)
     private String contentText;
 
-    /** 可选照片 fileId（复用媒体通道；空=纯文字任务） */
+    /** 可选照片 fileId（第一张；复用媒体通道；空=纯文字任务） */
     @Column(name = "media_file_id", length = 64)
     private String mediaFileId;
+
+    /** 多图：逗号分隔的 fileId 列表（media_file_id=第一张） */
+    @Column(name = "media_file_ids", length = 1000)
+    private String mediaFileIds;
 
     /** 奖励预置类型（拥抱/亲亲/奶茶券/愿望券…）；空=纯自定义文字 */
     @Column(name = "reward_type", length = 32)
@@ -100,6 +104,9 @@ public class TaskEntity {
 
     public String getMediaFileId() { return mediaFileId; }
     public void setMediaFileId(String mediaFileId) { this.mediaFileId = mediaFileId; }
+
+    public String getMediaFileIds() { return mediaFileIds; }
+    public void setMediaFileIds(String mediaFileIds) { this.mediaFileIds = mediaFileIds; }
 
     public String getRewardType() { return rewardType; }
     public void setRewardType(String rewardType) { this.rewardType = rewardType; }

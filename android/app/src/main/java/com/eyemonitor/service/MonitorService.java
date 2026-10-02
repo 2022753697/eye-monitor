@@ -373,15 +373,15 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
-    /** 发布任务：本地立即可见 + WS 发送（对方收到后各自落库） */
+    /** 发布任务：本地立即可见 + WS 发送（对方收到后各自落库）；mediaFileIds=逗号分隔配图列表 */
     public static void sendTaskPublish(Context context, String taskId, String content,
-                                       String mediaFileId, String rewardType, String rewardText) {
+                                       String mediaFileIds, String rewardType, String rewardText) {
         if (context == null || taskId == null || content == null) return;
         Intent intent = new Intent(context, MonitorService.class);
         intent.setAction(ACTION_SEND_TASK_PUBLISH);
         intent.putExtra(EXTRA_TASK_ID, taskId);
         intent.putExtra(EXTRA_TASK_CONTENT, content);
-        if (mediaFileId != null) intent.putExtra(EXTRA_TASK_MEDIA, mediaFileId);
+        if (mediaFileIds != null && !mediaFileIds.isEmpty()) intent.putExtra(EXTRA_TASK_MEDIA, mediaFileIds);
         if (rewardType != null) intent.putExtra(EXTRA_TASK_REWARD_TYPE, rewardType);
         if (rewardText != null) intent.putExtra(EXTRA_TASK_REWARD_TEXT, rewardText);
         context.startService(intent);
@@ -1606,10 +1606,12 @@ public class MonitorService extends Service {
                     case "task_publish": {
                         if (db.taskDao().count(taskId) > 0) return; // 幂等去重
                         String peerName = selfPublish ? prefs.getNickname() : str(payload, "from");
+                        String ids = str(payload, "mediaFileIds");
                         TaskEntity e = new TaskEntity(taskId, str(payload, "content"),
-                                str(payload, "mediaFileId"), str(payload, "rewardType"),
+                                firstOf(ids), str(payload, "rewardType"),
                                 str(payload, "rewardText"), peerName, selfPublish,
                                 TaskEntity.STATUS_PENDING, null, ts);
+                        e.mediaFileIds = ids;
                         db.taskDao().upsert(e);
                         // 聊天气泡（kind=task, text=taskId）按 (kind, ts, text) 去重
                         if (db.chatDao().countByKindTsText("task", ts, taskId) == 0) {
@@ -1649,6 +1651,13 @@ public class MonitorService extends Service {
         if (payload == null) return null;
         Object v = payload.get(key);
         return v == null ? null : String.valueOf(v);
+    }
+
+    /** 逗号串第一项（空串返回 null） */
+    private static String firstOf(String ids) {
+        if (ids == null) return null;
+        String t = ids.split(",")[0].trim();
+        return t.isEmpty() ? null : t;
     }
 
     /** 任务状态变更系统通知（全状态推送；点击进任务详情） */

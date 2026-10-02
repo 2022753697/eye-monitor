@@ -25,8 +25,16 @@ import java.util.concurrent.Executors;
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
         FolderCacheEntity.class,
-        TaskEntity.class}, version = 8, exportSchema = false)
+        TaskEntity.class}, version = 9, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v8 -> v9：任务多图（逗号分隔 fileId 列表；mediaFileId 保留为第一张） */
+    public static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `task_cache` ADD COLUMN `mediaFileIds` TEXT");
+        }
+    };
 
     /** v7 -> v8：情侣任务本地缓存表（任务气泡/任务页数据源） */
     public static final Migration MIGRATION_7_8 = new Migration(7, 8) {
@@ -128,7 +136,8 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                                    MIGRATION_8_9)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

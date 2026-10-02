@@ -201,14 +201,17 @@ public class WsMessage {
 
     // --- 情侣任务消息类型（契约 v1，与 server 侧同步） ---
 
-    /** 发布任务：taskId=客户端生成的幂等键；mediaFileId 可选（纯文字任务不带）；from=发布方昵称 */
+    /** 发布任务：taskId=客户端生成的幂等键；mediaFileIds=逗号分隔的配图 fileId 列表（可空=纯文字任务）；from=发布方昵称 */
     public static WsMessage createTaskPublish(String deviceId, String pairCode, String taskId,
-                                              String content, String mediaFileId,
+                                              String content, String mediaFileIds,
                                               String rewardType, String rewardText, String from) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("taskId", taskId);
         payload.put("content", content);
-        if (mediaFileId != null && !mediaFileId.isEmpty()) payload.put("mediaFileId", mediaFileId);
+        if (mediaFileIds != null && !mediaFileIds.isEmpty()) {
+            payload.put("mediaFileIds", mediaFileIds);
+            payload.put("mediaFileId", mediaFileIds.split(",")[0]);
+        }
         if (rewardType != null && !rewardType.isEmpty()) payload.put("rewardType", rewardType);
         if (rewardText != null && !rewardText.isEmpty()) payload.put("rewardText", rewardText);
         if (from != null && !from.isEmpty()) payload.put("from", from);

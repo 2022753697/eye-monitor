@@ -1085,6 +1085,7 @@ public class MainActivity extends AppCompatActivity {
     /** 任务气泡 ChatItem 填充（从 TaskEntity 拷贝展示字段；null=任务数据缺失仍可显示） */
     private void fillTaskItem(ChatItem ci, TaskEntity t, boolean self) {
         ci.taskMine = self;
+        ci.taskMediaIds = t != null ? t.mediaFileIds : null;
         if (t == null) {
             ci.taskContent = ci.text != null ? ci.text : "";
             ci.taskReward = "";
@@ -2493,6 +2494,8 @@ public class MainActivity extends AppCompatActivity {
         public String taskStatusText;
         public int taskStatusColor;
         public boolean taskMine;
+        /** 任务配图（逗号串，取第一张渲染） */
+        public String taskMediaIds;
 
         public ChatItem(int type, String text, String from, String time, long ts) {
             this(type, text, from, time, ts, 0, null);
@@ -2600,6 +2603,7 @@ public class MainActivity extends AppCompatActivity {
             View vTaskDivider1;
             View vTaskDivider2;
             TextView tvTaskContent;
+            ImageView ivTaskPhoto;
             TextView tvTaskReward;
             TextView tvTaskStatus;
             TextView tvTaskHint;
@@ -2652,6 +2656,7 @@ public class MainActivity extends AppCompatActivity {
                         vTaskDivider1 = view.findViewById(R.id.v_task_divider1);
                         vTaskDivider2 = view.findViewById(R.id.v_task_divider2);
                         tvTaskContent = view.findViewById(R.id.tv_task_content);
+                        ivTaskPhoto = view.findViewById(R.id.iv_task_photo);
                         tvTaskReward = view.findViewById(R.id.tv_task_reward);
                         tvTaskStatus = view.findViewById(R.id.tv_task_status);
                         tvTaskHint = view.findViewById(R.id.tv_task_hint);
@@ -2815,6 +2820,7 @@ public class MainActivity extends AppCompatActivity {
         h.tvTaskContent.setTextColor(getResources().getColor(
                 self ? R.color.white : R.color.text_primary));
         h.tvTaskContent.setText(item.taskContent);
+        MediaUtils.loadTaskPhoto(MainActivity.this, h.ivTaskPhoto, item.taskMediaIds, true);
         h.tvTaskReward.setText(item.taskReward);
         h.tvTaskReward.setTextColor(getResources().getColor(
                 self ? R.color.text_on_primary_muted : R.color.accent));

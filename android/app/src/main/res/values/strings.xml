@@ -477,6 +477,7 @@
     <string name="task_add_photo">+ 配图</string>
     <string name="task_change_photo">更换配图</string>
     <string name="task_remove_photo">移除配图</string>
+    <string name="task_photo_count">已选 %1$d 张</string>
     <string name="task_publish_send">发送任务</string>
     <string name="task_publish_empty">任务内容不能为空</string>
     <string name="task_reward_empty">请选择或填写奖励</string>

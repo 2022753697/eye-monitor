@@ -112,15 +112,20 @@
             android:maxLength="60"
             android:minHeight="40dp" />
 
-        <!-- 配图预览（已选时显示缩略图） -->
-        <ImageView
-            android:id="@+id/iv_task_photo_thumb"
-            android:layout_width="96dp"
-            android:layout_height="96dp"
+        <!-- 配图条（多图横向滑动；每格：缩略图 + ✕移除，末尾 + 添加） -->
+        <HorizontalScrollView
+            android:id="@+id/scroll_photo_strip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:scaleType="centerCrop"
-            android:background="@drawable/bg_media_placeholder"
-            android:visibility="gone" />
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/ll_photo_strip"
+                android:layout_width="wrap_content"
+                android:layout_height="72dp"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
         <!-- 配图 -->
         <LinearLayout

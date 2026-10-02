@@ -1,6 +1,10 @@
 package com.eyemonitor.util;
 
 import android.content.Context;
+import android.view.View;
+import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
 import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
@@ -153,8 +157,7 @@ public final class MediaUtils {
     /**
      * 确保媒体已缓存到本地：已下载直接回调；否则 GET /api/media/{fileId} 下载并更新 Room localPath。
      */
-    public static void ensureDownloaded(Context context, String fileId, Runnable onStart, MediaCb cb) {
-        final File target = localMediaFile(context, fileId);
+    public static void ensureDownloaded(Context context, String fileId, Runnable onStart, MediaCb cb) {        final File target = localMediaFile(context, fileId);
         if (target.exists() && target.length() > 0) {
             cb.onReady(target.getAbsolutePath());
             return;
@@ -190,6 +193,61 @@ public final class MediaUtils {
             @Override
             public void onError(int code, String msg) {
                 cb.onError(code, msg);
+            }
+        });
+    }
+
+    /** 任务媒体下载：只落文件不写 media_cache（任务配图不进共享图库） */
+    public static void ensureTaskMedia(Context context, String fileId, Runnable onStart, MediaCb cb) {
+        final File target = localMediaFile(context, fileId);        if (target.exists() && target.length() > 0) {
+            cb.onReady(target.getAbsolutePath());
+            return;
+        }
+        if (onStart != null) onStart.run();
+        AuthManager.i(context).downloadMedia(context, fileId, target, new AuthManager.DownloadCallback() {
+            @Override
+            public void onSuccess(File file) {
+                cb.onReady(file.getAbsolutePath());
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                cb.onError(code, msg);
+            }
+        });
+    }
+
+    /** 任务配图加载：mediaFileIds 逗号串取第一张；本地缺失时下载（不写缓存）；centerCrop 用于缩略图 */
+    public static void loadTaskPhoto(Context context, final ImageView iv,
+                                     final String mediaFileIds, final boolean centerCrop) {
+        if (mediaFileIds == null || mediaFileIds.isEmpty()) {
+            iv.setVisibility(View.GONE);
+            return;
+        }
+        final String fileId = mediaFileIds.split(",")[0].trim();
+        if (fileId.isEmpty()) {
+            iv.setVisibility(View.GONE);
+            return;
+        }
+        iv.setVisibility(View.VISIBLE);
+        final File f = localMediaFile(context, fileId);
+        if (f != null && f.exists()) {
+            if (centerCrop) Glide.with(iv).load(f).centerCrop().into(iv);
+            else Glide.with(iv).load(f).fitCenter().into(iv);
+            return;
+        }
+        ensureTaskMedia(context, fileId, null, new MediaCb() {
+            @Override
+            public void onReady(String localPath) {
+                iv.post(() -> {
+                    if (centerCrop) Glide.with(iv).load(new File(localPath)).centerCrop().into(iv);
+                    else Glide.with(iv).load(new File(localPath)).fitCenter().into(iv);
+                });
+            }
+
+            @Override
+            public void onError(int code, String msg) {
+                iv.setVisibility(View.GONE);
             }
         });
     }

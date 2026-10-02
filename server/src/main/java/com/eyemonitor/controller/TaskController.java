@@ -49,6 +49,7 @@ public class TaskController {
             m.put("publisherUser", e.getPublisherUser());
             m.put("content", e.getContentText());
             m.put("mediaFileId", e.getMediaFileId());
+            m.put("mediaFileIds", e.getMediaFileIds());
             m.put("rewardType", e.getRewardType());
             m.put("rewardText", e.getRewardText());
             m.put("peerName", e.getPeerName());
