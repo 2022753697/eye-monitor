@@ -129,6 +129,12 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
                     "消息过长（最多 2000 字）"));
             return;
         }
+        // L-1（修复）：拒绝空 chat（无文本且非媒体类型），防对端渲染空气泡
+        if (text == null || text.isEmpty()) {
+            pairService.sendMessage(session, WsMessage.createError(msg.getDeviceId(), pairCode,
+                    "消息内容为空"));
+            return;
+        }
         Object refId = payload != null ? payload.get("refMsgId") : null;
         Object refText = payload != null ? payload.get("refText") : null;
         Long refMsgId = refId instanceof Number ? ((Number) refId).longValue() : null;
@@ -266,12 +272,14 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         if (userId > 0) {
             wsSessionManager.remove(userId, session);
         }
+        // H-2（修复）：会话关闭即清理限流队列，防无界内存增长
+        msgRates.remove(session.getId());
         pairService.onDisconnect(session);
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         log.error("传输错误: sessionId={}, error={}", session.getId(), exception.getMessage());
-        pairService.onDisconnect(session);
+        // L-2（修复）：传输错误不在此处通知离线（afterConnectionClosed 统一处理，防重复离线通知）
     }
 }

@@ -44,6 +44,8 @@ public class AuthService {
     private static final long LOGIN_LOCK_MS = 15 * 60_000L;
     private final SlidingWindowLimiter loginIpLimiter = new SlidingWindowLimiter(LOGIN_MAX_FAIL, LOGIN_WINDOW_MS, LOGIN_LOCK_MS);
     private final SlidingWindowLimiter loginUserLimiter = new SlidingWindowLimiter(LOGIN_MAX_FAIL, LOGIN_WINDOW_MS, LOGIN_LOCK_MS);
+    /** L-9（修复）：注册限流（按 IP，20 次/10 分钟，防批量注册放大） */
+    private final SlidingWindowLimiter registerLimiter = new SlidingWindowLimiter(20, 10 * 60_000L, 10 * 60_000L);
     /** 不存在用户时也执行一次假 BCrypt 匹配，抹平账号枚举时间差 */
     private static final String DUMMY_HASH = "$2a$10$cVE1lWv7M2v9xkKj8vzLxO9uKq3mQh3wXx3a0cB0n5U7kYz1m2o3K";
 
@@ -61,7 +63,11 @@ public class AuthService {
 
     @Transactional
     public Map<String, Object> register(String username, String password, String nickname,
-                                        String gender, String birthday, String bio) {
+                                        String gender, String birthday, String bio, String ip) {
+        // L-9（修复）：注册按 IP 限流
+        if (!registerLimiter.allowed("reg:ip:" + (ip == null ? "unknown" : ip))) {
+            throw new BizException(429, "注册过于频繁，请稍后再试");
+        }
         if (username == null || username.trim().length() < 3 || username.trim().length() > 32) {
             throw new BizException(400, "用户名长度需为 3-32 位");
         }
@@ -107,8 +113,8 @@ public class AuthService {
         if (u == null) {
             // 抹平时间差：不存在用户也执行一次假 BCrypt
             encoder.matches(password, DUMMY_HASH);
+            // M-7（修复）：不存在用户只记 IP 维度（防锁死未注册用户名）
             loginIpLimiter.recordFail(ipKey);
-            loginUserLimiter.recordFail(userKey);
             throw new BizException(401, "用户名或密码错误");
         }
         if (!encoder.matches(password, u.getPasswordHash())) {
@@ -158,16 +164,22 @@ public class AuthService {
         } catch (Exception e) {
             throw new BizException(401, "登录已过期，请重新登录");
         }
-        UserEntity u = userRepo.findById(userId)
+        // H-1（修复并发竞态）：悲观写锁串行化 refresh 轮换（校验-写入原子）
+        UserEntity u = userRepo.findByIdForUpdate(userId)
                 .orElseThrow(() -> new BizException(401, "登录已过期，请重新登录"));
         Integer ver = claims.get("ver", Integer.class);
         if (ver == null || !ver.equals(u.getVer() == null ? 0 : u.getVer())) {
             throw new BizException(401, "登录已过期，请重新登录");
         }
         // P1-3（安全加固）：refresh 轮换 + 重用检测——提交的 refresh 必须等于当前哈希
-        // 旧 refresh 被轮换后再提交 = 泄露信号 → ver+1 吊销全族并踢 WS
         String presentedHash = sha256(refreshToken.trim());
-        if (u.getRefreshTokenHash() == null || !u.getRefreshTokenHash().equals(presentedHash)) {
+        if (u.getRefreshTokenHash() == null) {
+            // M-8（修复）：存量用户升级后首次 refresh（无历史哈希）→ 温和提示重登，不误判泄露吊销
+            log.info("refresh 无历史哈希（升级过渡）: userId={}，要求重新登录", userId);
+            throw new BizException(401, "登录已过期，请重新登录");
+        }
+        if (!u.getRefreshTokenHash().equals(presentedHash)) {
+            // 旧 refresh 被轮换后再提交 = 泄露信号 → ver+1 吊销全族并踢 WS
             log.warn("refresh token 重用/过期检测: userId={}（吊销全族）", userId);
             u.setVer((u.getVer() == null ? 0 : u.getVer()) + 1);
             u.setRefreshTokenHash(null);
@@ -193,7 +205,7 @@ public class AuthService {
      */
     @Transactional
     public void deleteAccount(long userId) {
-        UserEntity u = userRepo.findById(userId).orElse(null);
+        UserEntity u = userRepo.findByIdForUpdate(userId).orElse(null);
         if (u == null) return;
         // 1) 吊销 token 族 + 踢 WS
         u.setVer((u.getVer() == null ? 0 : u.getVer()) + 1);

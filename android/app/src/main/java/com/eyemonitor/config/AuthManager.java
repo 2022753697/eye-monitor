@@ -44,6 +44,11 @@ public class AuthManager {
 
     private final OkHttpClient http;
 
+    // H-1（修复）：refresh 全局 single-flight——同一时刻至多一个刷新在途，并行调用合并等待
+    private final Object refreshLock = new Object();
+    private boolean refreshInFlight = false;
+    private final java.util.List<Callback> refreshWaiters = new java.util.ArrayList<>();
+
     /** 回调：data 为响应包中 data 字段（JsonObject） */
     public interface Callback extends ErrorSink {
         void onSuccess(JsonObject data);
@@ -151,7 +156,7 @@ public class AuthManager {
         }, cb);
     }
 
-    /** 无感刷新：refresh 成功则更新本地 token；失败清空登录态并回调错误 */
+    /** 无感刷新：全局 single-flight（并行 401 只触发一次服务端刷新，防自触发吊销） */
     public void refresh(Context ctx, Callback cb) {
         PrefsManager prefs = new PrefsManager(ctx);
         String refreshToken = prefs.getRefreshToken();
@@ -159,6 +164,14 @@ public class AuthManager {
             prefs.clearAuth();
             cb.onError(401, ctx.getString(R.string.auth_error_expired));
             return;
+        }
+        // H-1：若已有刷新在途，排队等待其结果
+        synchronized (refreshLock) {
+            if (refreshInFlight) {
+                refreshWaiters.add(cb);
+                return;
+            }
+            refreshInFlight = true;
         }
         JsonObject body = new JsonObject();
         body.addProperty("refreshToken", refreshToken);
@@ -172,14 +185,38 @@ public class AuthManager {
                     prefs.setRefreshToken(data.get("refreshToken").getAsString());
                 }
                 Log.i(TAG, "token 已无感刷新");
-                cb.onSuccess(data);
+                finishRefresh(true, data, null, cb);
             }
 
             @Override
             public void onError(int code, String msg) {
+                finishRefresh(false, null, null, cb);
                 cb.onError(code, msg);
             }
         }, cb);
+    }
+
+    /** H-1：刷新结束，唤醒排队等待者（成功共享同一份新 token；失败全部收到同一错误） */
+    private void finishRefresh(boolean ok, JsonObject data, String errMsg, Callback origin) {
+        java.util.List<Callback> waiters;
+        synchronized (refreshLock) {
+            refreshInFlight = false;
+            waiters = new java.util.ArrayList<>(refreshWaiters);
+            refreshWaiters.clear();
+        }
+        for (Callback w : waiters) {
+            if (ok) {
+                w.onSuccess(data);
+            } else {
+                w.onError(401, errMsg != null ? errMsg : "登录已过期，请重新登录");
+            }
+        }
+        // origin 由调用方（refresh 栈）负责通知：onSuccess 分支在 finishRefresh 后由原回调处理，
+        // onError 分支在 finishRefresh 后又调了 cb.onError——统一改为这里补一次 origin 成功；
+        // 若 origin 已在 onError 分支处理，则这里跳过
+        if (ok && origin != null) {
+            origin.onSuccess(data);
+        }
     }
 
     /** 本地登出：清除登录态（session 型 JWT，无需服务器注销） */

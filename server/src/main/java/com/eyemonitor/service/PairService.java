@@ -11,7 +11,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -34,7 +34,7 @@ public class PairService {
     private final ConcurrentHashMap<String, String> deviceToPair = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> userToPair = new ConcurrentHashMap<>();
 
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     // F-01（安全加固 2026-10）：加入尝试限流（10 次/小时失败锁 30 分钟）+ PENDING 30 分钟过期
     private static final int PAIR_MAX_FAIL = 10;
@@ -54,6 +54,7 @@ public class PairService {
             info.userA = e.getUserA();
             info.userB = e.getUserB();
             info.complete = PairEntity.STATUS_COMPLETE.equals(e.getStatus());
+            info.setCreatedAt(e.getCreatedAt());
             pairRegistry.put(e.getPairCode(), info);
             if (info.userA != null) userToPair.put(info.userA, e.getPairCode());
             if (info.userB != null) userToPair.put(info.userB, e.getPairCode());
@@ -144,6 +145,7 @@ public class PairService {
             // F-01：PENDING 超时后禁止再被认领（需要重新创建）
             if (info.isExpiredPending()) {
                 log.warn("配对码已过期: code={}", maskCode(pairCode));
+                dropExpiredPair(info);
                 return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
             }
             info.userA = userId;
@@ -153,13 +155,14 @@ public class PairService {
             // F-01：PENDING 超时后禁止被第二人认领
             if (info.isExpiredPending()) {
                 log.warn("配对码已过期: code={}", maskCode(pairCode));
+                dropExpiredPair(info);
                 return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
             }
             info.userB = userId;
             info.deviceBId = deviceId;
             info.sessionB = session;
         } else {
-            log.warn("配对已满: code={}, user={}", pairCode, userId);
+            log.warn("配对已满: code={}, user={}", maskCode(pairCode), userId);
             return WsMessage.createError(deviceId, null, "该配对码已有两台设备");
         }
         info.complete = info.userA != null && info.userB != null;
@@ -168,7 +171,7 @@ public class PairService {
         if (info.complete) {
             notifyPeerOnline(info, userId);
         }
-        log.info("配对完成: code={}, userA={}, userB={}, complete={}", pairCode, info.userA, info.userB, info.complete);
+        log.info("配对完成: code={}, userA={}, userB={}, complete={}", maskCode(pairCode), info.userA, info.userB, info.complete);
         return WsMessage.createPairConfirm(deviceId, pairCode, info.complete);
     }
 
@@ -210,6 +213,7 @@ public class PairService {
         info.userA = e.getUserA();
         info.userB = e.getUserB();
         info.complete = PairEntity.STATUS_COMPLETE.equals(e.getStatus());
+        info.setCreatedAt(e.getCreatedAt());
         pairRegistry.put(e.getPairCode(), info);
         if (info.userA != null) userToPair.put(info.userA, e.getPairCode());
         if (info.userB != null) userToPair.put(info.userB, e.getPairCode());
@@ -229,8 +233,16 @@ public class PairService {
             e.setStatus(info.complete ? PairEntity.STATUS_COMPLETE : PairEntity.STATUS_PENDING);
             pairRepo.save(e);
         } catch (Exception ex) {
-            log.error("持久化配对失败: code={}", info.pairCode, ex);
+            log.error("持久化配对失败: code={}", maskCode(info.pairCode), ex);
         }
+    }
+
+    /** M-3（修复）：过期 PENDING 清理（registry + DB 行），防内存/表行累积 */
+    private void dropExpiredPair(PairInfo info) {
+        String code = info.getPairCode();
+        pairRegistry.remove(code);
+        userToPair.remove(info.userA);
+        removePairRow(code);
     }
 
     private void removePairRow(String pairCode) {
@@ -238,7 +250,7 @@ public class PairService {
             PairEntity e = pairRepo.findByPairCode(pairCode);
             if (e != null) pairRepo.delete(e);
         } catch (Exception ex) {
-            log.error("删除配对行失败: code={}", pairCode, ex);
+            log.error("删除配对行失败: code={}", maskCode(pairCode), ex);
         }
     }
 
@@ -360,7 +372,7 @@ public class PairService {
             pairRegistry.remove(pairCode);
         }
         removePairRow(pairCode);
-        log.info("解除配对: code={}", pairCode);
+        log.info("解除配对: code={}", maskCode(pairCode));
     }
 
     // ==================== 连接生命周期 ====================
@@ -434,7 +446,9 @@ public class PairService {
         private WebSocketSession sessionB;
         private boolean complete;
         /** F-01：创建时间（PENDING 30 分钟过期判定） */
-        private final long createdAt = System.currentTimeMillis();
+        private long createdAt = System.currentTimeMillis();
+        /** M-3（修复）：DB 持久化创建时间回填（重启后过期语义不复活） */
+        void setCreatedAt(long ts) { if (ts > 0) this.createdAt = ts; }
 
         public PairInfo(String pairCode) {
             this.pairCode = pairCode;

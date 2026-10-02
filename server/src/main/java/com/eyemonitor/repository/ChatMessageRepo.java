@@ -13,7 +13,7 @@ public interface ChatMessageRepo extends JpaRepository<ChatMessageEntity, Long> 
 
     List<ChatMessageEntity> findByPairCodeAndTsGreaterThanOrderByTsAsc(String pairCode, long afterTs);
 
-    ChatMessageEntity findByPairCodeAndTs(String pairCode, long ts);
+    ChatMessageEntity findFirstByPairCodeAndTs(String pairCode, long ts);
 
     /** 标记已读：该配对中非 reader 发送、ts 不晚于 upToTs 且未读过的消息 */
     @Modifying

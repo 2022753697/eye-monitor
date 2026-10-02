@@ -50,21 +50,6 @@ public class MediaController {
     private final UserRepo userRepo;
     private final com.eyemonitor.repository.FolderRepo folderRepo;
 
-    // P1-1：配对日上传配额（200MB / 500 文件，内存态按 pairCode+日期）
-    private static final long QUOTA_BYTES_PER_DAY = 200L * 1024 * 1024;
-    private static final int QUOTA_FILES_PER_DAY = 500;
-    private final java.util.concurrent.ConcurrentHashMap<String, long[]> uploadQuota = new java.util.concurrent.ConcurrentHashMap<>();
-
-    private boolean allowUpload(String pairCode, long size) {
-        String key = pairCode + ":" + java.time.LocalDate.now();
-        long[] acc = uploadQuota.computeIfAbsent(key, k -> new long[2]); // [bytes, files]
-        synchronized (acc) {
-            if (acc[1] >= QUOTA_FILES_PER_DAY || acc[0] + size > QUOTA_BYTES_PER_DAY) return false;
-            acc[0] += size;
-            acc[1]++;
-            return true;
-        }
-    }
 
     public MediaController(MediaFileRepo mediaFileRepo, MediaService mediaService,
                            PairService pairService, UserRepo userRepo,
@@ -97,11 +82,6 @@ public class MediaController {
         }
         if (ext == null) {
             throw new BizException(400, "仅支持图片(jpg/png/webp)、视频(mp4/mov/3gp)或音频(m4a/mp3/aac)");
-        }
-
-        // P1-1（安全加固）：配对日配额（200MB / 500 个文件每日，防磁盘耗尽 DoS）
-        if (!allowUpload(pairCode, file.getSize())) {
-            throw new BizException(429, "今日上传已达上限，请明天再传");
         }
 
         // P2-3（安全加固）：folderId 归属校验（复用 moveFolder 同款，防媒体挂到他人文件夹）
@@ -176,9 +156,10 @@ public class MediaController {
 
         Resource resource = new FileSystemResource(p);
         long length = Files.size(p);
-        // P1-1：下载 Content-Type 由扩展名白名单推导（不再回放客户端 mime）
-        MediaType mediaType = MediaType.parseMediaType(
-                MediaService.contentTypeOf(MediaService.extOfFileName(e.getFileName())));
+        // P1-1/M-5（修复）：下载 Content-Type 从服务端权威的存储路径扩展名推导（不再取客户端文件名）
+        String pathExt = e.getPath() == null ? null
+                : com.eyemonitor.service.MediaService.extOfFileName(e.getPath());
+        MediaType mediaType = MediaType.parseMediaType(MediaService.contentTypeOf(pathExt));
 
         String rangeHeader = request.getHeader(HttpHeaders.RANGE);
         if (rangeHeader == null) {

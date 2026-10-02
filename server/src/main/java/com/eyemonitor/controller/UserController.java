@@ -90,6 +90,14 @@ public class UserController {
         if (!"jpg".equals(ext) && !"png".equals(ext) && !"webp".equals(ext)) {
             throw new BizException(400, "头像只支持 jpg/png/webp");
         }
+        // L-4（修复）：头像也走 magic-byte 校验（与媒体通道一致，防伪装内容）
+        try {
+            if (!MediaService.magicMatches(file.getBytes(), ext)) {
+                throw new BizException(400, "文件内容与类型不符");
+            }
+        } catch (java.io.IOException e) {
+            throw new BizException(400, "头像读取失败");
+        }
         try {
             String fileName = mediaService.storeAvatar(file.getBytes(), ext, u.getId());
             // 清理旧头像（业务功能内更新；不动别人数据）

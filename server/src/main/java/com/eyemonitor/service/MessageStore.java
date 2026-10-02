@@ -86,7 +86,7 @@ public class MessageStore {
     public boolean recallChat(String pairCode, long msgTs, long operatorUserId) {
         try {
             if (pairCode == null) return false;
-            ChatMessageEntity e = chatRepo.findByPairCodeAndTs(pairCode, msgTs);
+            ChatMessageEntity e = chatRepo.findFirstByPairCodeAndTs(pairCode, msgTs);
             if (e == null) {
                 log.warn("撤回失败：消息不存在 pair={} ts={}", pairCode, msgTs);
                 return false;

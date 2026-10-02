@@ -23,10 +23,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ApiResponse<Map<String, Object>> register(@RequestBody Map<String, Object> body) {
+    public ApiResponse<Map<String, Object>> register(@RequestBody Map<String, Object> body,
+                                                     HttpServletRequest request) {
         return ApiResponse.ok(authService.register(
                 str(body, "username"), str(body, "password"), str(body, "nickname"),
-                str(body, "gender"), str(body, "birthday"), str(body, "bio")));
+                str(body, "gender"), str(body, "birthday"), str(body, "bio"),
+                clientIp(request)));
     }
 
     @PostMapping("/login")
@@ -65,12 +67,19 @@ public class AuthController {
         return v == null ? null : String.valueOf(v);
     }
 
-    /** 真实客户端 IP（nginx 已设置 X-Real-IP） */
+    /** 真实客户端 IP（nginx 已设置 X-Real-IP）；L-8：格式校验，防伪造头刷限流键 */
     private static String clientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Real-IP");
-        if (ip == null || ip.isBlank()) ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
+        if (!isIp(ip)) ip = request.getHeader("X-Forwarded-For");
         if (ip != null && ip.indexOf(',') > 0) ip = ip.substring(0, ip.indexOf(',')).trim();
+        if (!isIp(ip)) ip = request.getRemoteAddr();
+        if (!isIp(ip)) ip = "unknown";
         return ip;
+    }
+
+    /** 简单 IPv4/IPv6 合法性校验 */
+    private static boolean isIp(String s) {
+        if (s == null || s.isBlank() || s.length() > 45) return false;
+        return s.matches("[0-9a-fA-F:.]+");
     }
 }

@@ -57,7 +57,7 @@ public class MediaService {
     }
 
     /** P1-1：magic-byte 嗅探（前 12 字节，宽松校验不误伤手机相册文件） */
-    static boolean magicMatches(byte[] b, String ext) {
+    public static boolean magicMatches(byte[] b, String ext) {
         if (b == null || b.length < 8) return true; // 小文件不误伤（放行，大小本身受配额限制）
         int v0 = b[0] & 0xFF, v1 = b[1] & 0xFF, v2 = b[2] & 0xFF, v3 = b[3] & 0xFF;
         switch (ext == null ? "" : ext.toLowerCase()) {
@@ -72,12 +72,16 @@ public class MediaService {
             case "mov":
             case "3gp":
             case "m4a":
-                return b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p'; // ....ftyp
+            case "heic":
+            case "heif":
+                // M-6（修复）：heic/heif 与 mp4 家族同属 ftyp box 容器（ftypheic/heix/mif1 等品牌）
+                return b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p';
             case "mp3":
                 return (v0 == 0x49 && v1 == 0x44 && v2 == 0x33) // ID3
                         || (v0 == 0xFF && (v1 & 0xE0) == 0xE0); // MPEG frame sync
             case "aac":
-                return (v0 == 0xFF && (v1 & 0xF6) == 0xF0) || (v0 == 0xFF && (v1 & 0xF6) == 0xF8);
+                // ADTS 同步字 0xFFF（低 4 位为 layer/profile 变体）
+                return v0 == 0xFF && (v1 & 0xF0) == 0xF0;
             default:
                 return true; // 未知扩展名放行（白名单在 controller 层已拦）
         }
