@@ -2047,6 +2047,11 @@ public class MainActivity extends AppCompatActivity {
     /** 更多面板分页适配器：第 1 页 = 图片/SOS/权限/诊断/解除/清空/轨迹/我的；第 2 页 = 任务 + 预留位 */
     private class MorePageAdapter extends RecyclerView.Adapter<MorePageAdapter.Holder> {
         @Override
+        public int getItemViewType(int position) {
+            return position;
+        }
+
+        @Override
         public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(
                     viewType == 0 ? R.layout.item_more_page1 : R.layout.item_more_page2,

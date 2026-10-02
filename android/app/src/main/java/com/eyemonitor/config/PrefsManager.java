@@ -14,6 +14,8 @@ public class PrefsManager {
     private static final String KEY_DEVICE_ID = "device_id";
     private static final String KEY_PAIR_CODE = "pair_code";
     private static final String KEY_SERVER_URL = "server_url";
+    /** 本地开发默认地址：Android 模拟器访问宿主机回环 = 10.0.2.2（真机需在 Profile 改为局域网 IP 或云端 wss） */
+    private static final String DEFAULT_SERVER_URL = "ws://10.0.2.2:8080/ws/eye";
     private static final String KEY_MONITOR_PROMPT_COUNT = "monitor_prompt_count";
     private static final String KEY_MONITOR_SETTINGS_PENDING = "monitor_settings_pending";
     private static final String KEY_NICKNAME = "nickname";
@@ -81,9 +83,11 @@ public class PrefsManager {
         prefs.edit().remove(KEY_PAIR_CODE).apply();
     }
 
-    /** 获取服务器地址 */
+    /** 获取服务器地址（未设置时默认本地模拟器地址） */
     public String getServerUrl() {
-        return prefs.getString(KEY_SERVER_URL, "");
+        String url = prefs.getString(KEY_SERVER_URL, "");
+        if (url == null || url.trim().isEmpty()) return DEFAULT_SERVER_URL;
+        return url;
     }
 
     /** 设置服务器地址 */
