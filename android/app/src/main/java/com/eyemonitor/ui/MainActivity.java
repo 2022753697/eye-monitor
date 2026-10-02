@@ -156,7 +156,6 @@ public class MainActivity extends AppCompatActivity {
     private final java.util.List<AnniversaryCacheEntity> anniversaryList = new java.util.ArrayList<>();
     private int anniversaryIndex = 0;
     private android.view.GestureDetector anniversaryGesture;
-    private android.view.GestureDetector anniversaryTap;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
     /** taskId -> 任务实体（聊天气泡状态徽标数据源，随 loadChatHistory 刷新） */
@@ -465,19 +464,6 @@ public class MainActivity extends AppCompatActivity {
 
         // 纪念日：静态爱心 + 左右滑动切换（点击进纪念日页）
         viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
-        // E3 点缀：双击爱心悬浮 → 爱心小爆发（仅顶部爱心区域，聊天空白区不响应）
-        anniversaryTap = new android.view.GestureDetector(this,
-                new android.view.GestureDetector.SimpleOnGestureListener() {
-                    @Override
-                    public boolean onDoubleTap(android.view.MotionEvent e) {
-                        View hv = viewAnniversaryHeart;
-                        if (hv != null) {
-                            spawnHeartBurst(hv.getX() + hv.getWidth() / 2f,
-                                    hv.getY() + hv.getHeight() / 2f);
-                        }
-                        return true;
-                    }
-                });
         tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
         tvAnniversaryHeartLabel = findViewById(R.id.tv_anniversary_heart_label);
         anniversaryGesture = new android.view.GestureDetector(this,
@@ -521,8 +507,7 @@ public class MainActivity extends AppCompatActivity {
                                     .scaleX(1f).scaleY(1f).setDuration(120).start()).start();
                     break;
             }
-            // E3 点缀：双击爱心悬浮 → 爱心小爆发（仅此处触发，聊天空白区不响应）
-            anniversaryTap.onTouchEvent(event);
+            // 滑动手势切换纪念日
             return anniversaryGesture.onTouchEvent(event);
         });
         ivAnniversaryHeart = findViewById(R.id.iv_anniversary_heart);
@@ -2240,36 +2225,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** E3 点缀：双击聊天空白区 → 5-7 颗爱心上飘淡出（纯展示，自清除） */
-    private void spawnHeartBurst(float x, float y) {
-        final android.widget.FrameLayout panel = findViewById(R.id.view_chat_panel);
-        if (panel == null) return;
-        try {
-            final int n = 5 + (int) (Math.random() * 3); // 5-7 颗
-            for (int i = 0; i < n; i++) {
-                android.widget.ImageView heart = new android.widget.ImageView(this);
-                heart.setImageResource(R.drawable.ic_heart);
-                heart.setImageTintList(android.content.res.ColorStateList.valueOf(
-                        getColor(i % 2 == 0 ? R.color.primary : R.color.accent)));
-                int size = (int) (getResources().getDisplayMetrics().density * (14 + Math.random() * 12));
-                android.widget.FrameLayout.LayoutParams lp =
-                        new android.widget.FrameLayout.LayoutParams(size, size);
-                lp.leftMargin = (int) x - size / 2;
-                lp.topMargin = (int) y - size / 2;
-                heart.setLayoutParams(lp);
-                heart.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-                panel.addView(heart);
-                float rise = (float) (60 + Math.random() * 80) * getResources().getDisplayMetrics().density;
-                long dur = 700 + (long) (Math.random() * 300);
-                heart.setTranslationY(0f);
-                heart.setAlpha(1f);
-                heart.animate().translationY(-rise).alpha(0f).setDuration(dur)
-                        .setStartDelay(50L * i)
-                        .withEndAction(() -> panel.removeView(heart)).start();
-            }
-        } catch (Exception ignored) {}
-    }
-
-    /** E5 点缀：连续互聊天数 → 更多面板页 2 槽位（无消息/低天数时显示占位文案） */
     /** 互斥用：立即隐藏更多面板（不走动画，仅用于切到另一面板时） */
     private void hideMorePanelInstant() {
         morePanel.clearAnimation();
