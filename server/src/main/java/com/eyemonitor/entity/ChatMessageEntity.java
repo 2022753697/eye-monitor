@@ -10,7 +10,9 @@ import jakarta.persistence.Table;
 
 /** 聊天消息表（eye_chat_messages） */
 @Entity
-@Table(name = "eye_chat_messages", indexes = @Index(name = "idx_chat_pair_ts", columnList = "pair_code,ts"))
+@Table(name = "eye_chat_messages", indexes = {
+        @Index(name = "idx_chat_pair_ts", columnList = "pair_code,ts"),
+        @Index(name = "idx_chat_ts", columnList = "ts")})
 public class ChatMessageEntity {
 
     @Id

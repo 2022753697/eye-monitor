@@ -10,7 +10,9 @@ import jakarta.persistence.Table;
 
 /** SOS 记录表（eye_sos_logs，首版可选启用） */
 @Entity
-@Table(name = "eye_sos_logs", indexes = @Index(name = "idx_sos_pair", columnList = "pair_code"))
+@Table(name = "eye_sos_logs", indexes = {
+        @Index(name = "idx_sos_pair", columnList = "pair_code"),
+        @Index(name = "idx_sos_ts", columnList = "ts")})
 public class SosLogEntity {
 
     @Id

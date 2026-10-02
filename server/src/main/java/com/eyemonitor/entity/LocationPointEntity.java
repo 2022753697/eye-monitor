@@ -10,7 +10,9 @@ import jakarta.persistence.Table;
 
 /** 位置点表（eye_location_points），轨迹回放数据源 */
 @Entity
-@Table(name = "eye_location_points", indexes = @Index(name = "idx_loc_pair_user_ts", columnList = "pair_code,user_id,ts"))
+@Table(name = "eye_location_points", indexes = {
+        @Index(name = "idx_loc_pair_user_ts", columnList = "pair_code,user_id,ts"),
+        @Index(name = "idx_loc_ts", columnList = "ts")})
 public class LocationPointEntity {
 
     @Id

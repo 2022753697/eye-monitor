@@ -38,6 +38,7 @@ cd ~/eye-deploy          # 部署目录（docker-compose.yml 所在）
 cd ~/eye-deploy
 cp .env.example .env
 # 编辑 .env，填入强随机值（openssl rand -base64 48 生成 DB_PASS/DB_ROOT_PASS/JWT_SECRET）
+chmod 600 .env    # P2-6/F-20：凭据文件仅属主可读
 docker compose up -d --build
 ```
 
@@ -163,7 +164,14 @@ docker compose logs -f app                 # 实时跟
 - 30 天清理策略自动清聊天/轨迹（设计如此）
 - 应用账号 `eye` 只授权 eye_monitor 库，勿给 root 权限
 
-## 六、常见问题
+## 六、升级注意（2026-10 安全加固批次）
+
+1. **存量用户升级后需重新登录一次**：新增 `refresh_token_hash` 列（`ddl-auto: update` 自动加），存量会话首次自动 refresh 因无历史哈希返回 401 → App 引导重新登录（一次性，非故障）。
+2. **密码策略**：新注册/改密要求 ≥8 位含字母数字；存量弱密码账号可继续登录（不强制改密）。
+3. **nginx 新配置**：`client_max_body_size 110m`（>1MB 上传）+ `log_format wsauth`（日志不记 query/token），重部署时一并生效。
+4. **上传配额已移除**（2026-10 决策）：不限制每日上传量，保留 magic-byte 类型校验。
+
+## 七、常见问题
 
 | 现象 | 处理 |
 |---|---|
