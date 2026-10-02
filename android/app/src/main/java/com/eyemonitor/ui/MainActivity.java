@@ -156,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
     private final java.util.List<AnniversaryCacheEntity> anniversaryList = new java.util.ArrayList<>();
     private int anniversaryIndex = 0;
     private android.view.GestureDetector anniversaryGesture;
+    private android.view.GestureDetector anniversaryTap;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
     /** taskId -> 任务实体（聊天气泡状态徽标数据源，随 loadChatHistory 刷新） */
@@ -370,16 +371,6 @@ public class MainActivity extends AppCompatActivity {
             com.eyemonitor.util.Toasts.showRes(this, R.string.chat_title_easter);
             return true;
         });
-        // E3 点缀：双击聊天空白区 → 爱心小爆发（纯展示，600ms 双击）
-        final android.view.GestureDetector chatTap = new android.view.GestureDetector(this,
-                new android.view.GestureDetector.SimpleOnGestureListener() {
-                    @Override
-                    public boolean onDoubleTap(android.view.MotionEvent e) {
-                        spawnHeartBurst(e.getX(), e.getY());
-                        return true;
-                    }
-                });
-        rvChat.setOnTouchListener((v, event) -> chatTap.onTouchEvent(event));
         btnMic.setOnClickListener(v -> toggleVoiceMode());
         btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
         // 微信式按住说话：按下录音 → 松开发送 / 滑到取消按钮释放 = 放弃
@@ -474,6 +465,19 @@ public class MainActivity extends AppCompatActivity {
 
         // 纪念日：静态爱心 + 左右滑动切换（点击进纪念日页）
         viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
+        // E3 点缀：双击爱心悬浮 → 爱心小爆发（仅顶部爱心区域，聊天空白区不响应）
+        anniversaryTap = new android.view.GestureDetector(this,
+                new android.view.GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onDoubleTap(android.view.MotionEvent e) {
+                        View hv = viewAnniversaryHeart;
+                        if (hv != null) {
+                            spawnHeartBurst(hv.getX() + hv.getWidth() / 2f,
+                                    hv.getY() + hv.getHeight() / 2f);
+                        }
+                        return true;
+                    }
+                });
         tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
         tvAnniversaryHeartLabel = findViewById(R.id.tv_anniversary_heart_label);
         anniversaryGesture = new android.view.GestureDetector(this,
@@ -483,6 +487,7 @@ public class MainActivity extends AppCompatActivity {
                         return true; // 接收滑动事件
                     }
                     @Override
+
                     public boolean onSingleTapUp(android.view.MotionEvent e) {
                         // OnTouchListener 拦截了 click，这里手动触发跳转纪念日页
                         startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
@@ -516,6 +521,8 @@ public class MainActivity extends AppCompatActivity {
                                     .scaleX(1f).scaleY(1f).setDuration(120).start()).start();
                     break;
             }
+            // E3 点缀：双击爱心悬浮 → 爱心小爆发（仅此处触发，聊天空白区不响应）
+            anniversaryTap.onTouchEvent(event);
             return anniversaryGesture.onTouchEvent(event);
         });
         ivAnniversaryHeart = findViewById(R.id.iv_anniversary_heart);
@@ -2227,8 +2234,6 @@ public class MainActivity extends AppCompatActivity {
             hideEmojiPanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
             morePanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
-            // E5 点缀：页 2 显示连续互聊天数（只读聚合，低频：仅面板展开时）
-            updateStreakBadge();
             // 最新消息滚到面板上方，不被面板遮挡
             scrollToBottom();
         }
@@ -2265,53 +2270,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** E5 点缀：连续互聊天数 → 更多面板页 2 槽位（无消息/低天数时显示占位文案） */
-    private void updateStreakBadge() {
-        final View badge = morePanel.findViewById(R.id.tv_more_streak);
-        if (badge == null) return;
-        AppDatabase.dbExecutor.execute(() -> {
-            long since = System.currentTimeMillis() - 90L * 24 * 3600 * 1000;
-            List<Long> ts = AppDatabase.getInstance(this).chatDao().getRecentTimestamps(since);
-            final int streak = countStreakDays(ts, System.currentTimeMillis());
-            runOnUiThread(() -> {
-                if (badge != null) {
-                    if (streak >= 2) {
-                        ((TextView) badge).setText(getString(R.string.more_streak_text, streak));
-                    } else {
-                        ((TextView) badge).setText(R.string.more_streak_placeholder);
-                    }
-                }
-            });
-        });
-    }
-
-    /** 连续互聊天数：以今天（或昨天）为终点向前数连续有消息的天（任一方向算互聊） */
-    private static int countStreakDays(List<Long> timestamps, long nowMs) {
-        if (timestamps == null || timestamps.isEmpty()) return 0;
-        java.util.Set<Long> days = new java.util.HashSet<>();
-        java.util.Calendar c = java.util.Calendar.getInstance();
-        for (long t : timestamps) {
-            c.setTimeInMillis(t);
-            days.add((long) (c.get(java.util.Calendar.YEAR) * 1000 + c.get(java.util.Calendar.DAY_OF_YEAR)));
-        }
-        java.util.Calendar today = java.util.Calendar.getInstance();
-        today.setTimeInMillis(nowMs);
-        long todayKey = today.get(java.util.Calendar.YEAR) * 1000L + today.get(java.util.Calendar.DAY_OF_YEAR);
-        // 今天没消息则从昨天起算（留 24h 缓冲）
-        long cursor = days.contains(todayKey) ? todayKey
-                : (today.get(java.util.Calendar.YEAR) * 1000L + (today.get(java.util.Calendar.DAY_OF_YEAR) - 1));
-        int streak = 0;
-        while (days.contains(cursor)) {
-            streak++;
-            // 回退一天
-            java.util.Calendar prev = java.util.Calendar.getInstance();
-            prev.set(java.util.Calendar.YEAR, (int) (cursor / 1000));
-            prev.set(java.util.Calendar.DAY_OF_YEAR, (int) (cursor % 1000));
-            prev.add(java.util.Calendar.DAY_OF_YEAR, -1);
-            cursor = prev.get(java.util.Calendar.YEAR) * 1000L + prev.get(java.util.Calendar.DAY_OF_YEAR);
-        }
-        return streak;
-    }
-
     /** 互斥用：立即隐藏更多面板（不走动画，仅用于切到另一面板时） */
     private void hideMorePanelInstant() {
         morePanel.clearAnimation();

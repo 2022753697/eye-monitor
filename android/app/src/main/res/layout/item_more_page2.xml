@@ -74,25 +74,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
-        <!-- 连续互聊 / 小惊喜占位（E5/C4：进入面板时计算更新） -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="4dp">
-
-            <TextView
-                android:id="@+id/tv_more_streak"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/more_streak_placeholder"
-                android:textColor="@color/text_tertiary"
-                android:textSize="10sp"
-                android:gravity="center" />
-        </LinearLayout>
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"

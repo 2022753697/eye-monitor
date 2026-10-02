@@ -114,10 +114,10 @@ public class AnniversaryActivity extends AppCompatActivity {
                 adapter.setData(all);
                 boolean empty = all == null || all.isEmpty();
                 if (empty) {
+                    // 空态只展示图标+文案（底部已有「添加纪念日」按钮，不再重复）
                     com.eyemonitor.util.EmptyStateUtil.show(this, R.id.es_anniversary,
                             R.drawable.ic_task, R.string.anniversary_empty,
-                            R.string.anniversary_empty_sub, R.string.anniversary_add,
-                            v -> showEditDialog(null));
+                            R.string.anniversary_empty_sub, 0, null);
                 } else {
                     com.eyemonitor.util.EmptyStateUtil.hide(this, R.id.es_anniversary);
                 }
