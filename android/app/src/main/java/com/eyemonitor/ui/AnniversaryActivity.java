@@ -81,7 +81,7 @@ public class AnniversaryActivity extends AppCompatActivity {
         Button btnAdd = findViewById(R.id.btn_anniversary_add);
         btnAdd.setOnClickListener(v -> showEditDialog(null));
 
-        tvEmpty = findViewById(R.id.tv_anniversary_empty);
+
         rvList = findViewById(R.id.rv_anniversaries);
         rvList.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AnniversaryAdapter();
@@ -112,7 +112,16 @@ public class AnniversaryActivity extends AppCompatActivity {
                     AppDatabase.getInstance(this).cacheDao().getAnniversaries();
             runOnUiThread(() -> {
                 adapter.setData(all);
-                tvEmpty.setVisibility(all == null || all.isEmpty() ? View.VISIBLE : View.GONE);
+                boolean empty = all == null || all.isEmpty();
+                if (empty) {
+                    com.eyemonitor.util.EmptyStateUtil.show(this, R.id.es_anniversary,
+                            R.drawable.ic_task, R.string.anniversary_empty,
+                            R.string.anniversary_empty_sub, R.string.anniversary_add,
+                            v -> showEditDialog(null));
+                } else {
+                    com.eyemonitor.util.EmptyStateUtil.hide(this, R.id.es_anniversary);
+                }
+                tvEmpty.setVisibility(View.GONE);
             });
         });
     }

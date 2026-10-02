@@ -13,6 +13,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,6 +50,7 @@ public class TaskActivity extends BaseActivity {
 
     private RecyclerView rvTasks;
     private TextView tvEmpty;
+    private View esTask;
     private LinearLayout llFilters;
     private final List<TaskEntity> all = new ArrayList<>();
     private int filterIndex = 0; // 0 全部 / 1 进行中 / 2 已完成 / 3 已拒绝
@@ -78,7 +80,22 @@ public class TaskActivity extends BaseActivity {
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
         rvTasks.setAdapter(new TaskAdapter());
         llFilters = findViewById(R.id.ll_task_filters);
-        tvEmpty = findViewById(R.id.tv_task_empty);
+
+        esTask = findViewById(R.id.es_task);
+        if (esTask != null) {
+            // 空态组件：图标 + 标题 + 副文案 + 主按钮（直达发布弹窗）
+            android.widget.ImageView esIcon = esTask.findViewById(R.id.es_icon);
+            if (esIcon != null) esIcon.setImageResource(R.drawable.ic_task);
+            TextView esTitle = esTask.findViewById(R.id.es_title);
+            if (esTitle != null) esTitle.setText(R.string.task_empty);
+            TextView esSub = esTask.findViewById(R.id.es_subtitle);
+            if (esSub != null) esSub.setText(R.string.task_empty_sub);
+            Button esAction = esTask.findViewById(R.id.es_action);
+            if (esAction != null) {
+                esAction.setText(R.string.task_publish);
+                esAction.setOnClickListener(v -> showPublishDialog());
+            }
+        }
         buildFilterChips();
 
         reload();
@@ -150,7 +167,8 @@ public class TaskActivity extends BaseActivity {
             shown.add(e);
         }
         if (rvTasks.getAdapter() != null) ((TaskAdapter) rvTasks.getAdapter()).setData(shown);
-        if (tvEmpty != null) tvEmpty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
+        if (esTask != null) esTask.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
+        if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
     }
 
     /** 操作后的延迟刷新：Room 落库在 MonitorService 的 dbExecutor 异步进行，立即 reload 读到旧数据 */

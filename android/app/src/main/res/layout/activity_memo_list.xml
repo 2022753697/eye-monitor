@@ -55,15 +55,12 @@
         android:padding="12dp"
         android:paddingBottom="24dp" />
 
-    <!-- 空态 -->
-    <TextView
-        android:id="@+id/tv_memo_empty"
+    <!-- 空态（组件化） -->
+    <include
+        layout="@layout/component_empty_state"
+        android:id="@+id/es_memo"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/memo_empty"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
         android:visibility="gone" />
 </LinearLayout>

@@ -79,7 +79,7 @@
                         android:id="@+id/tv_perm_notification"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -127,7 +127,7 @@
                         android:id="@+id/tv_perm_location"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -175,7 +175,7 @@
                         android:id="@+id/tv_perm_audio"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -223,7 +223,7 @@
                         android:id="@+id/tv_perm_bluetooth"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -271,7 +271,7 @@
                         android:id="@+id/tv_perm_usage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -319,7 +319,7 @@
                         android:id="@+id/tv_perm_accessibility"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 
@@ -367,7 +367,7 @@
                         android:id="@+id/tv_perm_battery"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/status_warn"
+                        android:textColor="@color/status_warn_text"
                         android:textSize="@dimen/text_13" />
                 </LinearLayout>
 

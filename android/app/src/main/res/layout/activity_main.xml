@@ -144,7 +144,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:textColor="@color/text_on_primary"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_20"
                     android:textStyle="bold" />
 
                 <!-- 对方正在输入…（typing 事件时显示 3s） -->
@@ -176,14 +176,14 @@
                         android:layout_width="12dp"
                         android:layout_height="16dp"
                         android:src="@drawable/ic_battery_lv2"
-                        android:contentDescription="电量" />
+                        android:contentDescription="@string/cd_battery" />
 
                     <TextView
                         android:id="@+id/tv_peer_battery_pct"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="10sp"
+                        android:textSize="@dimen/text_11"
                         android:layout_marginStart="2dp" />
 
                     <ImageView
@@ -191,7 +191,7 @@
                         android:layout_width="10dp"
                         android:layout_height="12dp"
                         android:src="@drawable/ic_charging_off"
-                        android:contentDescription="充电状态"
+                        android:contentDescription="@string/cd_charging"
                         android:layout_marginStart="6dp" />
 
                     <TextView
@@ -199,7 +199,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="10sp"
+                        android:textSize="@dimen/text_11"
                         android:layout_marginStart="4dp" />
 
                     <ImageView
@@ -207,7 +207,7 @@
                         android:layout_width="10dp"
                         android:layout_height="12dp"
                         android:src="@drawable/ic_bluetooth_off"
-                        android:contentDescription="蓝牙"
+                        android:contentDescription="@string/cd_bluetooth"
                         android:layout_marginStart="6dp" />
 
                     <TextView
@@ -215,7 +215,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_on_primary_muted"
-                        android:textSize="10sp"
+                        android:textSize="@dimen/text_11"
                         android:layout_marginStart="4dp" />
                 </LinearLayout>
             </LinearLayout>
@@ -224,7 +224,7 @@
             <LinearLayout
                 android:id="@+id/btn_chat_map"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_height="@dimen/touch_target"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_btn_white_rect"
@@ -252,7 +252,7 @@
             <LinearLayout
                 android:id="@+id/btn_chat_gallery"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_height="@dimen/touch_target"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_btn_white_rect"
@@ -503,7 +503,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
+                android:textSize="@dimen/text_11"
                 android:maxWidth="200dp"
                 android:maxLines="1"
                 android:ellipsize="end"

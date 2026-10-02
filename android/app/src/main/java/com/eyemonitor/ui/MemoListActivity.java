@@ -72,7 +72,17 @@ public class MemoListActivity extends BaseActivity {
                 adapter.notifyDataSetChanged();
                 boolean empty = all.isEmpty();
                 findViewById(R.id.rv_memos).setVisibility(empty ? View.GONE : View.VISIBLE);
-                findViewById(R.id.tv_memo_empty).setVisibility(empty ? View.VISIBLE : View.GONE);
+                View es = findViewById(R.id.es_memo);
+                if (es != null) {
+                    if (empty) {
+                        com.eyemonitor.util.EmptyStateUtil.show(this, R.id.es_memo,
+                                R.drawable.ic_memo, R.string.memo_empty, R.string.memo_empty_sub,
+                                R.string.memo_new, v -> startActivity(
+                                        new Intent(MemoListActivity.this, MemoEditActivity.class)));
+                    } else {
+                        com.eyemonitor.util.EmptyStateUtil.hide(this, R.id.es_memo);
+                    }
+                }
             });
         });
     }

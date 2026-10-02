@@ -54,9 +54,11 @@
                     android:layout_gravity="center"
                     android:src="@drawable/avatar_female"
                     android:contentDescription="@string/profile_avatar_hint"
+                    android:background="@drawable/bg_avatar_ring"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:padding="4dp"
                     android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless" />
+                    android:focusable="true" />
             </FrameLayout>
 
             <!-- 编辑卡片 -->

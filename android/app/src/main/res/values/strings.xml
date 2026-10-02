@@ -227,6 +227,7 @@
     <!-- 纪念日（Wave2） -->
     <string name="anniversary_title">纪念日</string>
     <string name="anniversary_add">添加纪念日</string>
+    <string name="anniversary_empty_sub">记录属于你们的重要日子，一起倒数</string>
     <string name="anniversary_edit">编辑</string>
     <string name="anniversary_delete">删除</string>
     <string name="anniversary_empty">还没有纪念日，点下方按钮添加第一个吧</string>
@@ -442,8 +443,7 @@
     <string name="media_move_to_folder_title">移动到…</string>
     <string name="media_move_failed">移动失败：%1$s</string>
     <string name="media_delete_confirm">确定删除该文件吗？双方共享图库都会同步删除。</string>
-    <string name="media_delete_failed">删除失败：%1$s</string>
-    <string name="video">视频</string>
+    <string name="media_delete_failed">删除失败：%1$s</string>    <string name="video">视频</string>
     <string name="gallery_empty">暂无共享媒体</string>
 
     <!-- 情侣任务（发布任务功能） -->
@@ -530,6 +530,8 @@
     <string name="memo_title">备忘录</string>
     <string name="memo_new">＋ 新建</string>
     <string name="memo_empty">还没有备忘录，点右上角新建一条～</string>
+    <string name="memo_empty_sub">随手记下想和 TA 分享的点滴</string>
+    <string name="task_empty_sub">发布第一个小任务，让 TA 开心一下</string>
     <string name="memo_detail_title">备忘录详情</string>
     <string name="memo_edit">编辑</string>
     <string name="memo_edit_new">新建备忘录</string>
@@ -552,4 +554,7 @@
     <string name="memo_reminder_at">提醒 %1$s</string>
     <string name="memo_items_count">☑ %1$d</string>
     <string name="memo_processed_at">提醒已触发 %1$s</string>
+    <string name="cd_battery">电量</string>
+    <string name="cd_charging">充电状态</string>
+    <string name="cd_bluetooth">蓝牙</string>
 </resources>

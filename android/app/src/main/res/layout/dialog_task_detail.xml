@@ -26,9 +26,9 @@
             android:id="@+id/tv_detail_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:textColor="@color/text_primary"
-            android:textSize="17sp"
+            android:textSize="@dimen/text_17"
             android:textStyle="bold" />
 
         <!-- 配图条（多图全部显示，横滑；点击放大） -->
@@ -79,35 +79,29 @@
             android:orientation="vertical"
             android:layout_marginTop="10dp" />
 
-        <!-- 操作按钮区（按 角色×状态 显示，代码控制） -->
+        <!-- 操作按钮区（按 角色×状态 显示，代码控制；真 Button 体系） -->
         <LinearLayout
             android:id="@+id/ll_detail_actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginTop="14dp">
+            android:layout_marginTop="@dimen/space_14">
 
-            <TextView
+            <Button
                 android:id="@+id/btn_detail_primary"
+                style="@style/Widget.EyeMonitor.Button.Dialog"
                 android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:background="@drawable/bg_pill_primary"
-                android:gravity="center"
-                android:textColor="@color/text_on_primary"
-                android:textSize="15sp"
+                android:layout_height="@dimen/touch_target"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
-            <TextView
+            <Button
                 android:id="@+id/btn_detail_secondary"
+                style="@style/Widget.EyeMonitor.Button.DialogOutlined"
                 android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:background="@drawable/bg_btn_outline_coral"
-                android:gravity="center"
-                android:textColor="@color/primary"
-                android:textSize="15sp"
+                android:layout_height="@dimen/touch_target"
+                android:layout_marginTop="@dimen/space_8"
                 android:textStyle="bold"
-                android:layout_marginTop="8dp"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
