@@ -828,6 +828,24 @@ public class GalleryActivity extends AppCompatActivity {
         });
     }
 
+    /** E2 点缀：日头后缀（今天/周末，纯展示） */
+    private String daySuffix(String day) {
+        try {
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyy-M-d", java.util.Locale.getDefault());
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            c.setTime(fmt.parse(day));
+            java.util.Calendar today = java.util.Calendar.getInstance();
+            boolean isToday = c.get(java.util.Calendar.YEAR) == today.get(java.util.Calendar.YEAR)
+                    && c.get(java.util.Calendar.DAY_OF_YEAR) == today.get(java.util.Calendar.DAY_OF_YEAR);
+            if (isToday) return " · " + getString(R.string.gallery_day_today);
+            int dow = c.get(java.util.Calendar.DAY_OF_WEEK);
+            if (dow == java.util.Calendar.SATURDAY || dow == java.util.Calendar.SUNDAY) {
+                return " · " + getString(R.string.gallery_day_weekend);
+            }
+        } catch (Exception ignored) {}
+        return "";
+    }
+
     /** 空态切换（组件化：图标/标题/副文案，文件夹视图与根视图不同文案） */
     private void updateEmpty(boolean empty) {
         View es = findViewById(R.id.es_gallery);
@@ -938,7 +956,8 @@ public class GalleryActivity extends AppCompatActivity {
 
             void bind(GalleryRow row, int position) {
                 if (viewType == ROW_HEADER) {
-                    tvDay.setText(row.day);
+                    // E2 点缀：今天/周末贴纸（纯展示，本地日期比较）
+                    tvDay.setText(row.day + daySuffix(row.day));
                     return;
                 }
                 if (viewType == ROW_FOLDER) {

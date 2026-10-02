@@ -50,7 +50,21 @@ public final class Toasts {
         show(ctx, text, R.drawable.ic_toast_error, Toast.LENGTH_SHORT);
     }
 
+    /** 庆祝态 💗（配对/完成/兑现/纪念日等“高光时刻”专用，不扩大使用面） */
+    public static void showCelebrate(Context ctx, CharSequence text) {
+        show(ctx, text, R.drawable.ic_toast_heart, Toast.LENGTH_SHORT, true);
+    }
+
+    /** 庆祝态（字符串资源版） */
+    public static void showCelebrateRes(Context ctx, int resId) {
+        show(ctx, ctx.getString(resId), R.drawable.ic_toast_heart, Toast.LENGTH_SHORT, true);
+    }
+
     private static void show(Context ctx, CharSequence text, int iconRes, int duration) {
+        show(ctx, text, iconRes, duration, false);
+    }
+
+    private static void show(Context ctx, CharSequence text, int iconRes, int duration, boolean celebrate) {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -74,6 +88,18 @@ public final class Toasts {
         Toast t = Toast.makeText(ctx, text, duration);
         t.setView(row);
         t.setGravity(Gravity.CENTER, 0, 0);
+        if (celebrate) {
+            row.setScaleX(0.8f);
+            row.setScaleY(0.8f);
+            row.setAlpha(0f);
+            row.post(() -> {
+                try {
+                    row.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
+                } catch (Exception ignored) {
+                    // 优雅降级：动画失败仍是普通 Toast
+                }
+            });
+        }
         t.show();
     }
 }

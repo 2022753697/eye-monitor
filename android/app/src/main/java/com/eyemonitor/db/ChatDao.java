@@ -19,6 +19,10 @@ public interface ChatDao {
     @Query("SELECT * FROM chat ORDER BY timestamp ASC")
     List<ChatEntity> getAll();
 
+    /** E5 只读：近 N 天消息时间戳（连续互聊聚合用，无写入） */
+    @Query("SELECT timestamp FROM chat WHERE timestamp >= :since ORDER BY timestamp ASC")
+    List<Long> getRecentTimestamps(long since);
+
     /** 清空聊天记录 */
     @Query("DELETE FROM chat")
     void clear();

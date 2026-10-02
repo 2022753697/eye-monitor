@@ -196,7 +196,7 @@ public class AnniversaryActivity extends AppCompatActivity {
                 SyncManager.syncAnniversaries(AnniversaryActivity.this);
                 runOnUiThread(() -> {
                     dialog.dismiss();
-                    com.eyemonitor.util.Toasts.showRes(AnniversaryActivity.this, R.string.anniversary_save_ok);
+                    com.eyemonitor.util.Toasts.showCelebrateRes(AnniversaryActivity.this, R.string.anniversary_save_ok);
                     reload();
                 });
             }

@@ -346,7 +346,7 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskComplete(this, e.taskId);
-                com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_complete);
+                com.eyemonitor.util.Toasts.showCelebrateRes(this, R.string.task_toast_complete);
                 dlg.dismiss();
                 reloadSoon();
             });
@@ -355,7 +355,7 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskReward(this, e.taskId);
-                com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_reward);
+                com.eyemonitor.util.Toasts.showCelebrateRes(this, R.string.task_toast_reward);
                 dlg.dismiss();
                 reloadSoon();
             });
@@ -397,6 +397,10 @@ public class TaskActivity extends BaseActivity {
             if (group.getCheckedChipId() != View.NO_ID) {
                 com.google.android.material.chip.Chip chip = group.findViewById(group.getCheckedChipId());
                 if (chip != null) {
+                    // M5 点缀：选中弹跳（1→1.12→1.00，热区不变）
+                    chip.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120)
+                            .withEndAction(() -> chip.animate().scaleX(1f).scaleY(1f)
+                                    .setDuration(60).start()).start();
                     etReason.setText(chip.getText());
                     etReason.setSelection(etReason.length());
                 }
@@ -433,6 +437,17 @@ public class TaskActivity extends BaseActivity {
         final EditText etRewardCustom = body.findViewById(R.id.et_task_reward_custom);
         final TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
         final com.google.android.material.chip.ChipGroup cgReward = body.findViewById(R.id.cg_reward);
+        // M5 点缀：预置奖励选中弹跳（与自定义输入互斥逻辑共存）
+        cgReward.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (group.getCheckedChipId() != View.NO_ID) {
+                com.google.android.material.chip.Chip chip = group.findViewById(group.getCheckedChipId());
+                if (chip != null) {
+                    chip.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120)
+                            .withEndAction(() -> chip.animate().scaleX(1f).scaleY(1f)
+                                    .setDuration(60).start()).start();
+                }
+            }
+        });
 
         // 自定义奖励输入时取消预置选中（单选互斥）
         etRewardCustom.addTextChangedListener(new android.text.TextWatcher() {

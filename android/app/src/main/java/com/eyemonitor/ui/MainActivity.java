@@ -149,8 +149,10 @@ public class MainActivity extends AppCompatActivity {
 
     // 纪念日：爱心图标固定，左右滑动切换数字与名称
     private View viewAnniversaryHeart;
+    private View ivAnniversaryHeart;
     private TextView tvAnniversaryHeartCount;
     private TextView tvAnniversaryHeartLabel;
+    private android.animation.ValueAnimator heartBeatAnim;
     private final java.util.List<AnniversaryCacheEntity> anniversaryList = new java.util.ArrayList<>();
     private int anniversaryIndex = 0;
     private android.view.GestureDetector anniversaryGesture;
@@ -171,7 +173,12 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvTypingHint;
     private final Handler chatUiHandler = new Handler(Looper.getMainLooper());
     private final Runnable hideTypingRunnable = () -> {
-        if (tvTypingHint != null) tvTypingHint.setVisibility(View.GONE);
+        if (tvTypingHint != null) {
+            tvTypingHint.animate().alpha(0f).translationY(2 * getResources().getDisplayMetrics().density)
+                    .setDuration(120).withEndAction(() -> {
+                        if (tvTypingHint != null) tvTypingHint.setVisibility(View.GONE);
+                    }).start();
+        }
     };
     private MediaPlayer voicePlayer;
     private MediaRecorder voiceRecorder;
@@ -358,6 +365,21 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
         tvChatTitle.setOnTouchListener((v, event) -> titleGesture.onTouchEvent(event));
+        // E4 点缀：长按标题彩蛋（与点击改名并存，500ms 阈值）
+        tvChatTitle.setOnLongClickListener(v -> {
+            com.eyemonitor.util.Toasts.showRes(this, R.string.chat_title_easter);
+            return true;
+        });
+        // E3 点缀：双击聊天空白区 → 爱心小爆发（纯展示，600ms 双击）
+        final android.view.GestureDetector chatTap = new android.view.GestureDetector(this,
+                new android.view.GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onDoubleTap(android.view.MotionEvent e) {
+                        spawnHeartBurst(e.getX(), e.getY());
+                        return true;
+                    }
+                });
+        rvChat.setOnTouchListener((v, event) -> chatTap.onTouchEvent(event));
         btnMic.setOnClickListener(v -> toggleVoiceMode());
         btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
         // 微信式按住说话：按下录音 → 松开发送 / 滑到取消按钮释放 = 放弃
@@ -481,7 +503,22 @@ public class MainActivity extends AppCompatActivity {
                         return false;
                     }
                 });
-        viewAnniversaryHeart.setOnTouchListener((v, event) -> anniversaryGesture.onTouchEvent(event));
+        viewAnniversaryHeart.setOnTouchListener((v, event) -> {
+            // M1 点缀：按下微缩、松开回弹（触控热区不变）
+            switch (event.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(120).start();
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(180)
+                            .withEndAction(() -> v.animate()
+                                    .scaleX(1f).scaleY(1f).setDuration(120).start()).start();
+                    break;
+            }
+            return anniversaryGesture.onTouchEvent(event);
+        });
+        ivAnniversaryHeart = findViewById(R.id.iv_anniversary_heart);
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 权限流程：批次1安全集合 → 后台定位单独批次 → 监控设置引导（批次后弹，避免非法组合被系统终止）
@@ -761,7 +798,7 @@ public class MainActivity extends AppCompatActivity {
                         pairAwaitingPeer = false;
                         prefs.setPairAwaitingPeer(false);
                         setPairResultVisible(getString(R.string.pair_success_with_code, code));
-                        com.eyemonitor.util.Toasts.showRes(this, R.string.pair_success);
+                        com.eyemonitor.util.Toasts.showCelebrateRes(this, R.string.pair_success);
                     } else {
                         // 已创建 / 已恢复配对：等待对方加入，停留在配对面板（码本页可见）
                         pairAwaitingPeer = true;
@@ -858,6 +895,25 @@ public class MainActivity extends AppCompatActivity {
         hideMorePanel();
         hideEmojiPanel();
         scrollToBottom();
+        // M2 点缀：发送钮小爆发 + 新气泡弹入（位置一次性动画，防 onBindViewHolder 重复触发）
+        try {
+            btnSend.animate().cancel();
+            btnSend.setScaleX(0.85f);
+            btnSend.setScaleY(0.85f);
+            btnSend.animate().scaleX(1.10f).scaleY(1.10f).setDuration(80).start();
+            btnSend.postDelayed(() -> btnSend.animate().scaleX(1f).scaleY(1f)
+                    .setDuration(120).start(), 80);
+            final int lastPos = chatAdapter.getItemCount() - 1;
+            rvChat.post(() -> {
+                if (rvChat.getLayoutManager() == null) return;
+                View b = rvChat.getLayoutManager().findViewByPosition(lastPos);
+                if (b != null) {
+                    b.setScaleX(0.92f);
+                    b.setScaleY(0.92f);
+                    b.animate().scaleX(1f).scaleY(1f).setDuration(220).start();
+                }
+            });
+        } catch (Exception ignored) {}
     }
 
     // --- 媒体发送（照片/视频，HTTP 上传 + WS 元数据） ---
@@ -1442,7 +1498,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void showTypingHint() {
         if (tvTypingHint == null) return;
+        // M6 点缀：淡入 + 轻上移（不再硬出现）
+        tvTypingHint.animate().cancel();
+        tvTypingHint.setAlpha(0f);
+        tvTypingHint.setTranslationY(2 * getResources().getDisplayMetrics().density);
         tvTypingHint.setVisibility(View.VISIBLE);
+        tvTypingHint.animate().alpha(1f).translationY(0f).setDuration(150).start();
         chatUiHandler.removeCallbacks(hideTypingRunnable);
         chatUiHandler.postDelayed(hideTypingRunnable, 3000);
     }
@@ -1903,6 +1964,7 @@ public class MainActivity extends AppCompatActivity {
         if (anniversaryList.isEmpty()) {
             countText = "+";
             labelText = getString(R.string.anniversary_add);
+            stopHeartbeat();
         } else if (anniversaryIndex < anniversaryList.size()) {
             AnniversaryCacheEntity e = anniversaryList.get(anniversaryIndex);
             Calendar today = AnniversaryUtils.today();
@@ -1910,10 +1972,16 @@ public class MainActivity extends AppCompatActivity {
             long next = AnniversaryUtils.daysUntilNext(e, today);
             countText = since >= 0 ? String.valueOf(since)
                     : next >= 0 ? String.valueOf(next) : "+";
-            labelText = e.name != null ? e.name : getString(R.string.anniversary_add);
+            // E1 点缀：当天即纪念日 → 高光文案
+            boolean isToday = next == 0;
+            labelText = e.name != null && !isToday ? e.name
+                    : e.name != null ? getString(R.string.anniversary_today, e.name)
+                    : getString(R.string.anniversary_add);
+            startHeartbeat();
         } else {
             countText = "+";
             labelText = getString(R.string.anniversary_add);
+            stopHeartbeat();
         }
         // 淡入淡出切换（爱心图标本身不动）
         android.view.animation.AlphaAnimation out = new android.view.animation.AlphaAnimation(1f, 0f);
@@ -1934,6 +2002,35 @@ public class MainActivity extends AppCompatActivity {
         });
         tvAnniversaryHeartCount.startAnimation(out);
         tvAnniversaryHeartLabel.startAnimation(out);
+    }
+
+    /** M1 点缀：爱心心跳呼吸（1.5s 周期，幅度 ≤6%，动画缩放=0 时跳过） */
+    private void startHeartbeat() {
+        stopHeartbeat();
+        if (ivAnniversaryHeart == null) return;
+        try {
+            if (android.provider.Settings.Global.getFloat(getContentResolver(),
+                    android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return;
+        } catch (Exception ignored) {}
+        heartBeatAnim = android.animation.ObjectAnimator.ofPropertyValuesHolder(
+                ivAnniversaryHeart,
+                android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f, 1.06f),
+                android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f, 1.06f));
+        heartBeatAnim.setDuration(900);
+        heartBeatAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        heartBeatAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+        heartBeatAnim.start();
+    }
+
+    private void stopHeartbeat() {
+        if (heartBeatAnim != null) {
+            heartBeatAnim.cancel();
+            heartBeatAnim = null;
+        }
+        if (ivAnniversaryHeart != null) {
+            ivAnniversaryHeart.setScaleX(1f);
+            ivAnniversaryHeart.setScaleY(1f);
+        }
     }
 
     /** 纪念日到期系统提示（服务层已入库 Room，这里只渲染） */
@@ -2130,9 +2227,89 @@ public class MainActivity extends AppCompatActivity {
             hideEmojiPanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
             morePanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
+            // E5 点缀：页 2 显示连续互聊天数（只读聚合，低频：仅面板展开时）
+            updateStreakBadge();
             // 最新消息滚到面板上方，不被面板遮挡
             scrollToBottom();
         }
+    }
+
+    /** E3 点缀：双击聊天空白区 → 5-7 颗爱心上飘淡出（纯展示，自清除） */
+    private void spawnHeartBurst(float x, float y) {
+        final android.widget.FrameLayout panel = findViewById(R.id.view_chat_panel);
+        if (panel == null) return;
+        try {
+            final int n = 5 + (int) (Math.random() * 3); // 5-7 颗
+            for (int i = 0; i < n; i++) {
+                android.widget.ImageView heart = new android.widget.ImageView(this);
+                heart.setImageResource(R.drawable.ic_heart);
+                heart.setImageTintList(android.content.res.ColorStateList.valueOf(
+                        getColor(i % 2 == 0 ? R.color.primary : R.color.accent)));
+                int size = (int) (getResources().getDisplayMetrics().density * (14 + Math.random() * 12));
+                android.widget.FrameLayout.LayoutParams lp =
+                        new android.widget.FrameLayout.LayoutParams(size, size);
+                lp.leftMargin = (int) x - size / 2;
+                lp.topMargin = (int) y - size / 2;
+                heart.setLayoutParams(lp);
+                heart.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+                panel.addView(heart);
+                float rise = (float) (60 + Math.random() * 80) * getResources().getDisplayMetrics().density;
+                long dur = 700 + (long) (Math.random() * 300);
+                heart.setTranslationY(0f);
+                heart.setAlpha(1f);
+                heart.animate().translationY(-rise).alpha(0f).setDuration(dur)
+                        .setStartDelay(50L * i)
+                        .withEndAction(() -> panel.removeView(heart)).start();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    /** E5 点缀：连续互聊天数 → 更多面板页 2 槽位（无消息/低天数时显示占位文案） */
+    private void updateStreakBadge() {
+        final View badge = morePanel.findViewById(R.id.tv_more_streak);
+        if (badge == null) return;
+        AppDatabase.dbExecutor.execute(() -> {
+            long since = System.currentTimeMillis() - 90L * 24 * 3600 * 1000;
+            List<Long> ts = AppDatabase.getInstance(this).chatDao().getRecentTimestamps(since);
+            final int streak = countStreakDays(ts, System.currentTimeMillis());
+            runOnUiThread(() -> {
+                if (badge != null) {
+                    if (streak >= 2) {
+                        ((TextView) badge).setText(getString(R.string.more_streak_text, streak));
+                    } else {
+                        ((TextView) badge).setText(R.string.more_streak_placeholder);
+                    }
+                }
+            });
+        });
+    }
+
+    /** 连续互聊天数：以今天（或昨天）为终点向前数连续有消息的天（任一方向算互聊） */
+    private static int countStreakDays(List<Long> timestamps, long nowMs) {
+        if (timestamps == null || timestamps.isEmpty()) return 0;
+        java.util.Set<Long> days = new java.util.HashSet<>();
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        for (long t : timestamps) {
+            c.setTimeInMillis(t);
+            days.add((long) (c.get(java.util.Calendar.YEAR) * 1000 + c.get(java.util.Calendar.DAY_OF_YEAR)));
+        }
+        java.util.Calendar today = java.util.Calendar.getInstance();
+        today.setTimeInMillis(nowMs);
+        long todayKey = today.get(java.util.Calendar.YEAR) * 1000L + today.get(java.util.Calendar.DAY_OF_YEAR);
+        // 今天没消息则从昨天起算（留 24h 缓冲）
+        long cursor = days.contains(todayKey) ? todayKey
+                : (today.get(java.util.Calendar.YEAR) * 1000L + (today.get(java.util.Calendar.DAY_OF_YEAR) - 1));
+        int streak = 0;
+        while (days.contains(cursor)) {
+            streak++;
+            // 回退一天
+            java.util.Calendar prev = java.util.Calendar.getInstance();
+            prev.set(java.util.Calendar.YEAR, (int) (cursor / 1000));
+            prev.set(java.util.Calendar.DAY_OF_YEAR, (int) (cursor % 1000));
+            prev.add(java.util.Calendar.DAY_OF_YEAR, -1);
+            cursor = prev.get(java.util.Calendar.YEAR) * 1000L + prev.get(java.util.Calendar.DAY_OF_YEAR);
+        }
+        return streak;
     }
 
     /** 互斥用：立即隐藏更多面板（不走动画，仅用于切到另一面板时） */

@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">恋视</string>
     <string name="fg_notification_title">恋视守护中</string>
-    <string name="fg_notification_content">Ta 的每一次行动，都有我在意</string>
+    <string name="fg_notification_content">TA 的每一次行动，都有我在意</string>
 
     <!-- 微信式媒体选择器 -->
     <string name="picker_album_all">最近照片</string>
@@ -64,7 +64,7 @@
     <string name="pair_disconnected">连接断开，请重试</string>
     <string name="pair_connect_failed">连接失败: %1$s</string>
     <string name="pair_success_with_code">配对成功！码: %1$s</string>
-    <string name="pair_success">配对成功</string>
+    <string name="pair_success">配对成功，接下来的路一起走 💗</string>
     <string name="pair_code_share">配对码: %1$s，分享给对方</string>
     <string name="pair_created_share">已创建配对，请将码分享给对方</string>
     <string name="pair_failed">配对失败: %1$s</string>
@@ -102,8 +102,8 @@
     <!-- P2 聊天增强 -->
     <string name="chat_typing_hint">对方正在输入…</string>
     <string name="chat_read_label">已读</string>
-    <string name="chat_send_failed">未送达</string>
-    <string name="chat_recalled_self">你撤回了一条消息</string>
+    <string name="chat_send_failed">消息没飞出去，点一下重发</string>
+    <string name="chat_recalled_self">你悄悄撤回了一条消息</string>
     <string name="chat_recalled_peer">%1$s 撤回了一条消息</string>
     <string name="chat_action_title">消息操作</string>
     <string name="chat_action_quote">引用</string>
@@ -124,7 +124,7 @@
     <string name="voice_recording_stop">结束录音</string>
     <string name="voice_recording_cancel">取消</string>
     <string name="voice_record_failed">录音启动失败</string>
-    <string name="voice_too_short">录音太短（至少 1 秒）</string>
+    <string name="voice_too_short">太短啦，至少 1 秒才听得清</string>
     <string name="voice_uploading">语音上传中…</string>
     <string name="voice_upload_failed">语音上传失败：%1$s</string>
     <string name="voice_play_hint">🎵 语音 %1$s · 点按播放</string>
@@ -152,7 +152,7 @@
     <string name="ok">确定</string>
     <string name="btn_send">发送</string>
     <string name="menu_my_location">我的位置</string>
-    <string name="menu_go_to_peer">去找他</string>
+    <string name="menu_go_to_peer">去找 TA</string>
     <string name="toast_self_no_location">暂无我的位置</string>
     <string name="toast_peer_no_location">对方暂无位置</string>
     <string name="menu_gender">设置性别</string>
@@ -230,7 +230,7 @@
     <string name="anniversary_empty_sub">记录属于你们的重要日子，一起倒数</string>
     <string name="anniversary_edit">编辑</string>
     <string name="anniversary_delete">删除</string>
-    <string name="anniversary_empty">还没有纪念日，点下方按钮添加第一个吧</string>
+    <string name="anniversary_empty">还没有纪念日，从「在一起那天」开始倒数吧</string>
     <string name="anniversary_dialog_add_title">添加纪念日</string>
     <string name="anniversary_dialog_edit_title">编辑纪念日</string>
     <string name="anniversary_name_hint">纪念日名称（如：在一起的日子）</string>
@@ -445,7 +445,7 @@
     <string name="media_delete_confirm">确定删除该文件吗？双方共享图库都会同步删除。</string>
     <string name="media_delete_failed">删除失败：%1$s</string>    <string name="video">视频</string>
     <string name="gallery_empty">还没有共享媒体</string>
-    <string name="gallery_empty_sub">上传照片/视频，随时翻看彼此的日常</string>
+    <string name="gallery_empty_sub">把晚霞、夜宵和碎碎念都存进来</string>
     <string name="gallery_folder_empty_sub">这个文件夹还是空的，去上传一张吧</string>
 
     <!-- 情侣任务（发布任务功能） -->
@@ -463,7 +463,7 @@
     <string name="task_reason_3">下次一定</string>
     <string name="task_publish">发布任务</string>
     <string name="task_publish_title">发布任务</string>
-    <string name="task_publish_hint">写下想让他/她做的事…</string>
+    <string name="task_publish_hint">写下想和 TA 一起做的事…</string>
     <string name="task_photo_label">配图（可选）</string>
     <string name="task_publish_hint_label">任务内容</string>
     <string name="task_reject_reason_hint">拒绝理由（必填）</string>
@@ -521,7 +521,7 @@
     <string name="task_notify_complete">%1$s 确认任务完成：%2$s，记得点奖励兑现</string>
     <string name="task_notify_reward_title">🎉 奖励兑现</string>
     <string name="task_notify_reward">%1$s 兑现了奖励：%2$s</string>
-    <string name="task_toast_sent">任务已发布 💌</string>
+    <string name="task_toast_sent">任务已发布，等 TA 接单 💌</string>
     <string name="task_toast_accept">已接受任务 😊</string>
     <string name="task_toast_reject">已拒绝任务</string>
     <string name="task_toast_complete">已确认完成 ❤</string>
@@ -567,4 +567,17 @@
     <string name="cd_thumb">缩略图</string>
     <string name="cd_no_image">无图</string>
     <string name="cd_pin">置顶</string>
+
+    <!-- E1 点缀：纪念日当天高光 -->
+    <string name="anniversary_today">%1$s · 就是今天 🎂</string>
+    <!-- E4 彩蛋：长按聊天标题 -->
+    <string name="chat_title_easter">恋视 · 一直守护你们</string>
+    <!-- C4/E5：更多面板页 2 占位（连续互聊 N 天或小惊喜占位） -->
+    <string name="more_streak_placeholder">更多小惊喜，正在路上…</string>
+    <string name="more_streak_text">你们已经连续互聊 %1$d 天 💗</string>
+    <!-- E2 点缀：图库日头 -->
+    <string name="gallery_day_today">今天</string>
+    <string name="gallery_day_weekend">周末</string>
+
+    <!-- F1 节日占位（策略见 docs/ui-whimsy-plan.md §2.4）：不预置具体文案，待产品定档后由 SeasonalGreeting 只读映射 -->
 </resources>
