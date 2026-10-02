@@ -50,8 +50,9 @@ public class TaskActivity extends BaseActivity {
     private int filterIndex = 0; // 0 全部 / 1 进行中 / 2 已完成 / 3 已拒绝
     private final List<TextView> filterChips = new ArrayList<>();
 
-    /** 发布弹窗状态：选中的配图 fileId（从选图器回程后重新打开弹窗带入） */
+    /** 发布弹窗状态：选中的配图 fileId（上传成功后就地更新弹窗缩略图，不重开弹窗） */
     private String pendingPhotoFileId;
+    private androidx.appcompat.app.AlertDialog publishDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -379,14 +380,12 @@ public class TaskActivity extends BaseActivity {
             }
         });
 
-        // 配图行（pendingPhotoFileId 非空 = 已选，点击移除）
-        if (pendingPhotoFileId != null) {
-            tvPhoto.setText(R.string.task_remove_photo);
-        }
+        // 配图行（pendingPhotoFileId 非空 = 已选，点击移除；空 = 去选图）
+        refreshPublishPhotoView();
         body.findViewById(R.id.ll_task_photo).setOnClickListener(v -> {
             if (pendingPhotoFileId != null) {
                 pendingPhotoFileId = null;
-                tvPhoto.setText(R.string.task_add_photo);
+                refreshPublishPhotoView();
                 Toast.makeText(this, R.string.task_remove_photo, Toast.LENGTH_SHORT).show();
             } else {
                 Intent pick = new Intent(this, MediaPickerActivity.class);
@@ -394,7 +393,7 @@ public class TaskActivity extends BaseActivity {
             }
         });
 
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        publishDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.task_publish_title)
                 .setView(body)
                 .setPositiveButton(R.string.task_publish_send, (d, w) -> {
@@ -428,7 +427,41 @@ public class TaskActivity extends BaseActivity {
                 .show();
     }
 
+    /** 发布弹窗配图视图刷新：有图=显示缩略图+「更换配图」，无图=隐藏缩略图+「添加配图」 */
+    private void refreshPublishPhotoView() {
+        if (publishDialog == null || !publishDialog.isShowing()) return;
+        View body = publishDialog.findViewById(android.R.id.custom);
+        if (body == null) return;
+        ImageView ivThumb = body.findViewById(R.id.iv_task_photo_thumb);
+        TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
+        if (pendingPhotoFileId != null) {
+            File f = MediaUtils.localMediaFile(this, pendingPhotoFileId);
+            if (f != null && f.exists()) {
+                com.bumptech.glide.Glide.with(this)
+                        .load(f)
+                        .centerCrop()
+                        .into(ivThumb);
+                ivThumb.setVisibility(View.VISIBLE);
+                tvPhoto.setText(R.string.task_change_photo);
+            } else {
+                ivThumb.setVisibility(View.GONE);
+                tvPhoto.setText(R.string.task_remove_photo);
+            }
+        } else {
+            ivThumb.setVisibility(View.GONE);
+            tvPhoto.setText(R.string.task_add_photo);
+        }
+    }
+
     /** 选图器回程：取第 1 张 → 拷贝 → 上传 → 拿 fileId 重新打开发布弹窗 */
+    @Override
+    protected void onDestroy() {
+        if (publishDialog != null && publishDialog.isShowing()) {
+            publishDialog.dismiss();
+        }
+        super.onDestroy();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -442,15 +475,20 @@ public class TaskActivity extends BaseActivity {
 
     private void uploadTaskPhoto(Uri uri) {
         try {
-            File tmp = new File(getCacheDir(), "task_photo_" + System.currentTimeMillis());
-            if (!MediaUtils.copyUriToFile(this, uri, tmp)) {
+            String mime = getContentResolver().getType(uri);
+            if (mime == null) mime = "image/jpeg";
+            if (mime.startsWith("video")) {
                 Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
                 return;
             }
-            String mime = getContentResolver().getType(uri);
-            if (mime != null && mime.startsWith("video")) {
+            final String mimeFinal = mime;
+            // 临时文件必须带扩展名：AuthManager.uploadMedia 按文件名推 mime，无扩展名会被服务器拒（400）
+            String ext = "jpg";
+            if (mime.contains("png")) ext = "png";
+            else if (mime.contains("webp")) ext = "webp";
+            File tmp = new File(getCacheDir(), "task_photo_" + System.currentTimeMillis() + "." + ext);
+            if (!MediaUtils.copyUriToFile(this, uri, tmp)) {
                 Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
-                tmp.delete();
                 return;
             }
             Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
@@ -473,7 +511,7 @@ public class TaskActivity extends BaseActivity {
                     if (archived) {
                         MediaCacheEntity e = new MediaCacheEntity();
                         e.fileId = fileId;
-                        e.mime = mime;
+                        e.mime = mimeFinal;
                         e.size = tmp.length();
                         e.ts = System.currentTimeMillis();
                         e.localPath = dst.getAbsolutePath();
@@ -482,9 +520,10 @@ public class TaskActivity extends BaseActivity {
                                         .cacheDao().upsertMedia(e));
                     }
                     tmp.delete();
+                    // 就地更新发布弹窗缩略图（不重开弹窗，避免对话框叠加）
                     runOnUiThread(() -> {
                         pendingPhotoFileId = fileId;
-                        showPublishDialog();
+                        refreshPublishPhotoView();
                     });
                 }
 

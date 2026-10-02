@@ -475,6 +475,7 @@
     <string name="task_reward_custom_hint">自定义奖励（如「周末陪我看电影」）</string>
     <string name="task_photo_label">配图（可选）</string>
     <string name="task_add_photo">+ 配图</string>
+    <string name="task_change_photo">更换配图</string>
     <string name="task_remove_photo">移除配图</string>
     <string name="task_publish_send">发送任务</string>
     <string name="task_publish_empty">任务内容不能为空</string>
