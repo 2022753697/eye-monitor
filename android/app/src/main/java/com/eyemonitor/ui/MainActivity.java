@@ -54,6 +54,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
@@ -61,6 +62,7 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
+import com.eyemonitor.db.TaskEntity;
 import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.service.AppUsageTracker;
@@ -154,6 +156,8 @@ public class MainActivity extends AppCompatActivity {
     private android.view.GestureDetector anniversaryGesture;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
+    /** taskId -> 任务实体（聊天气泡状态徽标数据源，随 loadChatHistory 刷新） */
+    private final java.util.Map<String, TaskEntity> taskByTaskId = new java.util.HashMap<>();
     /** WiFi 自动下载去重（同一 fileId 只自动触发一次） */
     private final java.util.Set<String> mediaAutoDownloading = new java.util.HashSet<>();
 
@@ -401,43 +405,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 更多面板：格子绑定
+        // 更多面板：ViewPager2 分页（第 1 页 = 现 8 入口；第 2 页 = 任务 + 预留位，左滑可见）
         bottomBar = findViewById(R.id.bottom_bar);
         morePanel = findViewById(R.id.more_panel);
         emojiPanel = findViewById(R.id.emoji_panel);
         emojiGrid = findViewById(R.id.grid_emoji);
         initEmojiGrid();
-        morePanel.findViewById(R.id.grid_image).setOnClickListener(v -> pickMedia());
-        morePanel.findViewById(R.id.grid_sos).setOnClickListener(v -> {
-            hideMorePanel();
-            showSosPanel();
+        ViewPager2 vpMore = morePanel.findViewById(R.id.vp_more);
+        vpMore.setAdapter(new MorePageAdapter());
+        vpMore.setOffscreenPageLimit(2);
+        vpMore.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                updateMoreDots(position);
+            }
         });
-        morePanel.findViewById(R.id.grid_permissions).setOnClickListener(v -> {
-            hideMorePanel();
-            openPermissionSettings();
-        });
-        morePanel.findViewById(R.id.grid_diagnose).setOnClickListener(v -> {
-            hideMorePanel();
-            runAccessibilityTest();
-        });
-        morePanel.findViewById(R.id.grid_unpair).setOnClickListener(v -> {
-            hideMorePanel();
-            showUnpairDialog();
-        });
-        morePanel.findViewById(R.id.grid_clear).setOnClickListener(v -> {
-            hideMorePanel();
-            clearChatHistory();
-        });
-        morePanel.findViewById(R.id.grid_profile).setOnClickListener(v -> {
-            hideMorePanel();
-            startActivity(new Intent(this, ProfileActivity.class));
-            Transitions.push(this);
-        });
-        morePanel.findViewById(R.id.grid_track).setOnClickListener(v -> {
-            hideMorePanel();
-            startActivity(new Intent(this, TrackReplayActivity.class));
-            Transitions.push(this);
-        });
+        updateMoreDots(0);
 
         // 发送按钮状态色：无输入灰 / 有输入粉
         updateSendButtonState();
@@ -1047,14 +1030,19 @@ public class MainActivity extends AppCompatActivity {
             AppDatabase db = AppDatabase.getInstance(MainActivity.this);
             List<MediaCacheEntity> media = db.cacheDao().getMedia();
             List<ChatEntity> all = db.chatDao().getAll();
+            List<TaskEntity> tasks = db.taskDao().getAll();
             runOnUiThread(() -> {
                 mediaByFileId.clear();
                 for (MediaCacheEntity m : media) mediaByFileId.put(m.fileId, m);
+                taskByTaskId.clear();
+                for (TaskEntity t : tasks) taskByTaskId.put(t.taskId, t);
                 chatAdapter.clear();
                 peerUpToTs = 0;
                 for (ChatEntity e : all) {
                     int type;
-                    if ("media".equals(e.kind)) {
+                    if ("task".equals(e.kind)) {
+                        type = e.isSelf ? TYPE_TASK_SELF : TYPE_TASK_PEER;
+                    } else if ("media".equals(e.kind)) {
                         type = e.isSelf ? TYPE_MEDIA_SELF : TYPE_MEDIA_PEER;
                     } else if ("system".equals(e.kind)) {
                         type = TYPE_SYSTEM;
@@ -1067,6 +1055,9 @@ public class MainActivity extends AppCompatActivity {
                     ci.peerRead = e.peerRead;
                     ci.deleted = e.deleted;
                     ci.failed = "pending".equals(e.sendState) || failedMsgTs.contains(e.timestamp);
+                    if (type == TYPE_TASK_SELF || type == TYPE_TASK_PEER) {
+                        fillTaskItem(ci, taskByTaskId.get(e.text), type == TYPE_TASK_SELF);
+                    }
                     if (!e.isSelf) peerUpToTs = Math.max(peerUpToTs, e.timestamp);
                     chatAdapter.addItem(ci);
                 }
@@ -1089,6 +1080,57 @@ public class MainActivity extends AppCompatActivity {
                 rvChat.scrollToPosition(chatAdapter.getItemCount() - 1);
             }
         });
+    }
+
+    /** 任务气泡 ChatItem 填充（从 TaskEntity 拷贝展示字段；null=任务数据缺失仍可显示） */
+    private void fillTaskItem(ChatItem ci, TaskEntity t, boolean self) {
+        ci.taskMine = self;
+        if (t == null) {
+            ci.taskContent = ci.text != null ? ci.text : "";
+            ci.taskReward = "";
+            ci.taskStatusText = "";
+            ci.taskStatusColor = R.color.text_secondary;
+            return;
+        }
+        ci.taskContent = t.content != null ? t.content : "";
+        String reward = (t.rewardText != null && !t.rewardText.isEmpty()) ? t.rewardText
+                : (t.rewardType != null ? t.rewardType : "");
+        ci.taskReward = reward.isEmpty() ? "" : getString(R.string.task_reward_of, reward);
+        switch (t.status == null ? "" : t.status) {
+            case TaskEntity.STATUS_PENDING:
+                ci.taskStatusText = "⏳ " + getString(R.string.task_status_pending);
+                break;
+            case TaskEntity.STATUS_ACCEPTED:
+                ci.taskStatusText = "⏳ " + getString(R.string.task_status_accepted)
+                        + " · " + getString(R.string.task_status_await_reward);
+                break;
+            case TaskEntity.STATUS_REJECTED:
+                ci.taskStatusText = "💔 " + getString(R.string.task_status_rejected)
+                        + (t.reason != null && !t.reason.isEmpty() ? " · " + t.reason : "");
+                break;
+            case TaskEntity.STATUS_COMPLETED:
+                ci.taskStatusText = "❤ " + getString(R.string.task_status_completed)
+                        + " · " + getString(R.string.task_status_await_reward);
+                break;
+            case TaskEntity.STATUS_REWARDED:
+                ci.taskStatusText = "✅ " + getString(R.string.task_status_rewarded);
+                break;
+            default:
+                ci.taskStatusText = t.status;
+        }
+        switch (t.status == null ? "" : t.status) {
+            case TaskEntity.STATUS_REJECTED:
+                ci.taskStatusColor = R.color.status_error;
+                break;
+            case TaskEntity.STATUS_REWARDED:
+                ci.taskStatusColor = R.color.status_success;
+                break;
+            case TaskEntity.STATUS_COMPLETED:
+                ci.taskStatusColor = R.color.status_ok;
+                break;
+            default:
+                ci.taskStatusColor = R.color.text_secondary;
+        }
     }
 
     // --- P2 聊天增强 ---
@@ -1741,6 +1783,13 @@ public class MainActivity extends AppCompatActivity {
                 // 服务层已落库/清理，这里整页重载以渲染媒体气泡或移除被删项
                 loadChatHistory();
                 break;
+            case "task_publish":
+            case "task_respond":
+            case "task_complete":
+            case "task_reward":
+                // 服务层已同步任务状态 + 聊天气泡，这里重载让气泡徽标更新（自己发布/响应也走同路径）
+                loadChatHistory();
+                break;
             case "error":
                 handleError(message);
                 break;
@@ -1994,6 +2043,78 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --- 更多面板（QQ 风格网格，弹出时顶起输入栏，与输入法互斥） ---
+
+    /** 更多面板分页适配器：第 1 页 = 图片/SOS/权限/诊断/解除/清空/轨迹/我的；第 2 页 = 任务 + 预留位 */
+    private class MorePageAdapter extends RecyclerView.Adapter<MorePageAdapter.Holder> {
+        @Override
+        public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(
+                    viewType == 0 ? R.layout.item_more_page1 : R.layout.item_more_page2,
+                    parent, false);
+            return new Holder(v, viewType);
+        }
+
+        @Override
+        public void onBindViewHolder(Holder h, int position) {}
+
+        @Override
+        public int getItemCount() {
+            return 2;
+        }
+
+        class Holder extends RecyclerView.ViewHolder {
+            Holder(View v, int page) {
+                super(v);
+                if (page == 0) {
+                    v.findViewById(R.id.grid_image).setOnClickListener(x -> pickMedia());
+                    v.findViewById(R.id.grid_sos).setOnClickListener(x -> {
+                        hideMorePanel();
+                        showSosPanel();
+                    });
+                    v.findViewById(R.id.grid_permissions).setOnClickListener(x -> {
+                        hideMorePanel();
+                        openPermissionSettings();
+                    });
+                    v.findViewById(R.id.grid_diagnose).setOnClickListener(x -> {
+                        hideMorePanel();
+                        runAccessibilityTest();
+                    });
+                    v.findViewById(R.id.grid_unpair).setOnClickListener(x -> {
+                        hideMorePanel();
+                        showUnpairDialog();
+                    });
+                    v.findViewById(R.id.grid_clear).setOnClickListener(x -> {
+                        hideMorePanel();
+                        clearChatHistory();
+                    });
+                    v.findViewById(R.id.grid_profile).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
+                    v.findViewById(R.id.grid_track).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, TrackReplayActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
+                } else {
+                    v.findViewById(R.id.grid_task).setOnClickListener(x -> {
+                        hideMorePanel();
+                        startActivity(new Intent(MainActivity.this, TaskActivity.class));
+                        Transitions.push(MainActivity.this);
+                    });
+                }
+            }
+        }
+    }
+
+    /** 页码指示点刷新（当前页高亮） */
+    private void updateMoreDots(int position) {
+        View d0 = morePanel.findViewById(R.id.more_dot_0);
+        View d1 = morePanel.findViewById(R.id.more_dot_1);
+        d0.setAlpha(position == 0 ? 1f : 0.25f);
+        d1.setAlpha(position == 1 ? 1f : 0.25f);
+    }
 
     /** 切换更多面板：输入栏+面板整个底部块一起滑入/滑出，显示时收起输入法并滚到最新消息 */
     private void toggleMorePanel() {
@@ -2343,6 +2464,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int TYPE_SYSTEM = 2;
     private static final int TYPE_MEDIA_SELF = 3;
     private static final int TYPE_MEDIA_PEER = 4;
+    private static final int TYPE_TASK_SELF = 5;
+    private static final int TYPE_TASK_PEER = 6;
 
     public static class ChatItem {
         public final int type;
@@ -2359,6 +2482,12 @@ public class MainActivity extends AppCompatActivity {
         public boolean failed;
         /** 引用跳转定位闪烁（瞬态 UI 标记：bind 时脉动高亮） */
         public boolean flash;
+        /** 任务气泡（TYPE_TASK_*）：从 TaskEntity 拷贝的展示字段 */
+        public String taskContent;
+        public String taskReward;
+        public String taskStatusText;
+        public int taskStatusColor;
+        public boolean taskMine;
 
         public ChatItem(int type, String text, String from, String time, long ts) {
             this(type, text, from, time, ts, 0, null);
@@ -2413,6 +2542,10 @@ public class MainActivity extends AppCompatActivity {
                 case TYPE_MEDIA_PEER:
                     view = inflater.inflate(R.layout.item_chat_media, parent, false);
                     break;
+                case TYPE_TASK_SELF:
+                case TYPE_TASK_PEER:
+                    view = inflater.inflate(R.layout.item_task, parent, false);
+                    break;
                 default:
                     view = inflater.inflate(R.layout.item_chat_system, parent, false);
                     break;
@@ -2454,6 +2587,11 @@ public class MainActivity extends AppCompatActivity {
             WaveformView waveformView;
             TextView tvVoiceDuration;
             FrameLayout flVideoBadge;
+            // 任务气泡视图
+            LinearLayout llTaskCard;
+            TextView tvTaskContent;
+            TextView tvTaskReward;
+            TextView tvTaskStatus;
 
             ViewHolder(View view, int viewType) {
                 super(view);
@@ -2493,6 +2631,13 @@ public class MainActivity extends AppCompatActivity {
                         flVideoBadge = view.findViewById(R.id.fl_video_badge);
                         tvTime = view.findViewById(R.id.tv_chat_time);
                         tvFrom = view.findViewById(R.id.tv_chat_from);
+                        break;
+                    case TYPE_TASK_SELF:
+                    case TYPE_TASK_PEER:
+                        llTaskCard = view.findViewById(R.id.ll_task_card);
+                        tvTaskContent = view.findViewById(R.id.tv_task_content);
+                        tvTaskReward = view.findViewById(R.id.tv_task_reward);
+                        tvTaskStatus = view.findViewById(R.id.tv_task_status);
                         break;
                     default:
                         tvText = view.findViewById(R.id.tv_system_text);
@@ -2617,6 +2762,10 @@ public class MainActivity extends AppCompatActivity {
                     case TYPE_MEDIA_PEER:
                         bindMedia(this, item, position);
                         break;
+                    case TYPE_TASK_SELF:
+                    case TYPE_TASK_PEER:
+                        bindTask(this, item);
+                        break;
                     default:
                         tvText.setText(MainActivity.this.styleSystemText(item));
                         break;
@@ -2628,6 +2777,34 @@ public class MainActivity extends AppCompatActivity {
     // --- 媒体气泡渲染 ---
 
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
+    /** 任务气泡绑定：自己=右侧珊瑚卡（白字），对方=左侧白卡（深字）；点击进任务详情 */
+    private void bindTask(ChatAdapter.ViewHolder h, ChatItem item) {
+        final boolean self = item.type == TYPE_TASK_SELF;
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) h.llTaskCard.getLayoutParams();
+        lp.gravity = self ? Gravity.END : Gravity.START;
+        h.llTaskCard.setLayoutParams(lp);
+        h.llTaskCard.setBackgroundResource(self ? R.drawable.bg_bubble_self : R.drawable.bg_bubble_peer);
+        int contentColor = self ? R.color.white : R.color.text_primary;
+        h.tvTaskContent.setTextColor(getResources().getColor(contentColor));
+        h.tvTaskContent.setText(item.taskContent);
+        h.tvTaskReward.setText(item.taskReward);
+        h.tvTaskReward.setTextColor(self ? R.color.white : R.color.accent);
+        h.tvTaskStatus.setText(item.taskStatusText);
+        h.tvTaskStatus.setTextColor(self ? R.color.white
+                : getResources().getColor(item.taskStatusColor));
+        h.llTaskCard.setOnClickListener(v -> openTaskDetail(item.text));
+    }
+
+    /** 打开任务详情（聊天气泡点击 → TaskActivity，带 taskId） */
+    private void openTaskDetail(String taskId) {
+        if (taskId == null || taskId.isEmpty()) return;
+        hideMorePanel();
+        Intent intent = new Intent(this, TaskActivity.class);
+        intent.putExtra(MonitorService.EXTRA_TASK_ID, taskId);
+        startActivity(intent);
+        Transitions.push(this);
+    }
+
     private void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
         final boolean self = item.type == TYPE_MEDIA_SELF;
         // 已撤回：隐藏媒体内容，占位区显示「已撤回」（媒体 ViewHolder 无 tv_recalled，复用 tv_media_hint）

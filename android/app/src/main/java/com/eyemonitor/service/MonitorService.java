@@ -31,6 +31,7 @@ import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.db.LocationCacheEntity;
+import com.eyemonitor.db.TaskEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.util.MapNav;
 import com.eyemonitor.ui.MainActivity;
@@ -108,6 +109,18 @@ public class MonitorService extends Service {
     public static final String EXTRA_MEDIA_SIZE = "media_size";
     public static final String EXTRA_MEDIA_DURATION = "media_duration";
     public static final String EXTRA_MEDIA_FROM = "media_from";
+    // 情侣任务：发布/响应/确认完成/确认兑现（借道 MonitorService 的 WebSocket）
+    public static final String ACTION_SEND_TASK_PUBLISH = "com.eyemonitor.SEND_TASK_PUBLISH";
+    public static final String ACTION_SEND_TASK_RESPOND = "com.eyemonitor.SEND_TASK_RESPOND";
+    public static final String ACTION_SEND_TASK_COMPLETE = "com.eyemonitor.SEND_TASK_COMPLETE";
+    public static final String ACTION_SEND_TASK_REWARD = "com.eyemonitor.SEND_TASK_REWARD";
+    public static final String EXTRA_TASK_ID = "task_id";
+    public static final String EXTRA_TASK_CONTENT = "task_content";
+    public static final String EXTRA_TASK_MEDIA = "task_media";
+    public static final String EXTRA_TASK_REWARD_TYPE = "task_reward_type";
+    public static final String EXTRA_TASK_REWARD_TEXT = "task_reward_text";
+    public static final String EXTRA_TASK_ACTION = "task_action";
+    public static final String EXTRA_TASK_REASON = "task_reason";
 
     // 静态引用：PairActivity 配对成功后将 WSClient 交给 MonitorService
     private static WSClient sharedWSClient;
@@ -360,6 +373,49 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 发布任务：本地立即可见 + WS 发送（对方收到后各自落库） */
+    public static void sendTaskPublish(Context context, String taskId, String content,
+                                       String mediaFileId, String rewardType, String rewardText) {
+        if (context == null || taskId == null || content == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_TASK_PUBLISH);
+        intent.putExtra(EXTRA_TASK_ID, taskId);
+        intent.putExtra(EXTRA_TASK_CONTENT, content);
+        if (mediaFileId != null) intent.putExtra(EXTRA_TASK_MEDIA, mediaFileId);
+        if (rewardType != null) intent.putExtra(EXTRA_TASK_REWARD_TYPE, rewardType);
+        if (rewardText != null) intent.putExtra(EXTRA_TASK_REWARD_TEXT, rewardText);
+        context.startService(intent);
+    }
+
+    /** 响应任务：action=accept|reject；拒绝必填 reason */
+    public static void sendTaskRespond(Context context, String taskId, String action, String reason) {
+        if (context == null || taskId == null || action == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_TASK_RESPOND);
+        intent.putExtra(EXTRA_TASK_ID, taskId);
+        intent.putExtra(EXTRA_TASK_ACTION, action);
+        if (reason != null) intent.putExtra(EXTRA_TASK_REASON, reason);
+        context.startService(intent);
+    }
+
+    /** 发布方确认任务完成（已完成❤） */
+    public static void sendTaskComplete(Context context, String taskId) {
+        if (context == null || taskId == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_TASK_COMPLETE);
+        intent.putExtra(EXTRA_TASK_ID, taskId);
+        context.startService(intent);
+    }
+
+    /** 接收方确认奖励兑现（已兑现❤） */
+    public static void sendTaskReward(Context context, String taskId) {
+        if (context == null || taskId == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_TASK_REWARD);
+        intent.putExtra(EXTRA_TASK_ID, taskId);
+        context.startService(intent);
+    }
+
     /** 资料变更后广播 user_profile 给对方（借道 MonitorService 的 WebSocket） */
     public static void sendProfileUpdate(Context context, String nickname, String avatar,
                                          String gender, String birthday, String bio) {
@@ -485,6 +541,64 @@ public class MonitorService extends Service {
             } else {
                 Log.w(TAG, "媒体元数据发送失败: fileId=" + fileId + ", wsClient=" + wsClient
                         + ", paired=" + (prefs.getPairCode() != null));
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_TASK_PUBLISH.equals(intent.getAction())) {
+            String taskId = intent.getStringExtra(EXTRA_TASK_ID);
+            String content = intent.getStringExtra(EXTRA_TASK_CONTENT);
+            if (taskId != null && content != null && wsClient != null && prefs.getPairCode() != null) {
+                WsMessage msg = WsMessage.createTaskPublish(prefs.getDeviceId(), prefs.getPairCode(),
+                        taskId, content, intent.getStringExtra(EXTRA_TASK_MEDIA),
+                        intent.getStringExtra(EXTRA_TASK_REWARD_TYPE),
+                        intent.getStringExtra(EXTRA_TASK_REWARD_TEXT), prefs.getNickname());
+                boolean sent = wsClient.send(msg);
+                Log.i(TAG, "发布任务: taskId=" + taskId + ", sent=" + sent);
+                // 本地立即可见（不论是否连上，重连后由服务端任务历史对账）
+                applyTaskLocal(msg, true);
+                broadcastEvent(msg);
+            } else {
+                Log.w(TAG, "任务发布失败: taskId=" + taskId + ", wsClient=" + wsClient
+                        + ", paired=" + (prefs.getPairCode() != null));
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_TASK_RESPOND.equals(intent.getAction())) {
+            String taskId = intent.getStringExtra(EXTRA_TASK_ID);
+            String action = intent.getStringExtra(EXTRA_TASK_ACTION);
+            if (taskId != null && action != null && wsClient != null && prefs.getPairCode() != null) {
+                WsMessage msg = WsMessage.createTaskRespond(prefs.getDeviceId(), prefs.getPairCode(),
+                        taskId, action, intent.getStringExtra(EXTRA_TASK_REASON));
+                boolean sent = wsClient.send(msg);
+                Log.i(TAG, "响应任务: taskId=" + taskId + ", action=" + action + ", sent=" + sent);
+                applyTaskLocal(msg, false);
+                broadcastEvent(msg);
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_TASK_COMPLETE.equals(intent.getAction())) {
+            String taskId = intent.getStringExtra(EXTRA_TASK_ID);
+            if (taskId != null && wsClient != null && prefs.getPairCode() != null) {
+                WsMessage msg = WsMessage.createTaskComplete(prefs.getDeviceId(), prefs.getPairCode(), taskId);
+                boolean sent = wsClient.send(msg);
+                Log.i(TAG, "确认任务完成: taskId=" + taskId + ", sent=" + sent);
+                applyTaskLocal(msg, false);
+                broadcastEvent(msg);
+            }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_SEND_TASK_REWARD.equals(intent.getAction())) {
+            String taskId = intent.getStringExtra(EXTRA_TASK_ID);
+            if (taskId != null && wsClient != null && prefs.getPairCode() != null) {
+                WsMessage msg = WsMessage.createTaskReward(prefs.getDeviceId(), prefs.getPairCode(), taskId);
+                boolean sent = wsClient.send(msg);
+                Log.i(TAG, "确认奖励兑现: taskId=" + taskId + ", sent=" + sent);
+                applyTaskLocal(msg, false);
+                broadcastEvent(msg);
             }
             return START_NOT_STICKY;
         }
@@ -1120,6 +1234,13 @@ public class MonitorService extends Service {
                 removeMediaLocal(message);
                 broadcastEvent(message);
                 break;
+            case "task_publish":
+            case "task_respond":
+            case "task_complete":
+            case "task_reward":
+                // 情侣任务：本地状态更新 + 聊天气泡 + 系统通知（全状态推送）
+                handleTaskReceived(message);
+                break;
             case "error":
                 Log.w(TAG, "服务器错误: " + message.getPayload());
                 // 广播给 UI（如配对失效需要清空本地配对并提示重新配对）
@@ -1415,6 +1536,146 @@ public class MonitorService extends Service {
             if (db.chatDao().countMediaChat(fid) > 0) return;
             db.chatDao().insert(new ChatEntity("media", fid, from, false, ts));
         });
+    }
+
+    /** 收到的任务消息：本地状态同步（TaskEntity 状态源 + 聊天气泡）→ 广播 UI → 系统通知 */
+    private void handleTaskReceived(WsMessage message) {
+        applyTaskLocal(message, false);
+        broadcastEvent(message);
+        final String taskId = str(message.getPayload(), "taskId");
+        if (taskId == null || taskId.isEmpty()) return;
+        final String type = message.getType();
+        AppDatabase db = AppDatabase.getInstance(this);
+        AppDatabase.dbExecutor.execute(() -> {
+            try {
+                TaskEntity e = db.taskDao().get(taskId);
+                if (e == null) return;
+                String content = e.content != null && !e.content.isEmpty() ? e.content : "任务";
+                String reward = taskRewardDisplay(e);
+                String peerNick = e.peerName != null && !e.peerName.isEmpty()
+                        ? e.peerName : prefs.getPeerNickname();
+                if (peerNick == null || peerNick.isEmpty()) peerNick = getString(R.string.chat_title_default);
+                String title, text;
+                switch (type) {
+                    case "task_publish":
+                        title = getString(R.string.task_notify_publish_title);
+                        text = getString(R.string.task_notify_publish, peerNick, content,
+                                reward != null ? reward : getString(R.string.task_notify_no_reward));
+                        break;
+                    case "task_respond":
+                        if (TaskEntity.STATUS_ACCEPTED.equals(e.status)) {
+                            title = getString(R.string.task_notify_accept_title);
+                            text = getString(R.string.task_notify_accept, peerNick, content);
+                        } else {
+                            title = getString(R.string.task_notify_reject_title);
+                            text = getString(R.string.task_notify_reject, peerNick,
+                                    e.reason != null && !e.reason.isEmpty() ? e.reason : content);
+                        }
+                        break;
+                    case "task_complete":
+                        title = getString(R.string.task_notify_complete_title);
+                        text = getString(R.string.task_notify_complete, peerNick, content);
+                        break;
+                    case "task_reward":
+                        title = getString(R.string.task_notify_reward_title);
+                        text = getString(R.string.task_notify_reward, peerNick, content);
+                        break;
+                    default:
+                        return;
+                }
+                showTaskNotification(title, text, taskId);
+            } catch (Exception ex) {
+                Log.w(TAG, "任务通知组装失败 taskId=" + taskId, ex);
+            }
+        });
+    }
+
+    /** 任务本地同步（发布/响应/确认的本地状态源）：Room 禁止主线程，全部走 dbExecutor */
+    private void applyTaskLocal(WsMessage message, boolean mine) {
+        Map<String, Object> payload = message.getPayload();
+        String taskId = payload != null && payload.get("taskId") instanceof String
+                ? (String) payload.get("taskId") : null;
+        if (taskId == null || taskId.isEmpty()) return;
+        final long ts = message.getTimestamp() > 0 ? message.getTimestamp() : System.currentTimeMillis();
+        final AppDatabase db = AppDatabase.getInstance(this);
+        final String type = message.getType();
+        final boolean selfPublish = mine;
+        db.dbExecutor.execute(() -> {
+            try {
+                switch (type) {
+                    case "task_publish": {
+                        if (db.taskDao().count(taskId) > 0) return; // 幂等去重
+                        String peerName = selfPublish ? prefs.getNickname() : str(payload, "from");
+                        TaskEntity e = new TaskEntity(taskId, str(payload, "content"),
+                                str(payload, "mediaFileId"), str(payload, "rewardType"),
+                                str(payload, "rewardText"), peerName, selfPublish,
+                                TaskEntity.STATUS_PENDING, null, ts);
+                        db.taskDao().upsert(e);
+                        // 聊天气泡（kind=task, text=taskId）按 (kind, ts, text) 去重
+                        if (db.chatDao().countByKindTsText("task", ts, taskId) == 0) {
+                            db.chatDao().insert(new ChatEntity("task", taskId,
+                                    selfPublish ? null : e.peerName, selfPublish, ts));
+                        }
+                        break;
+                    }
+                    case "task_respond": {
+                        String action = str(payload, "action");
+                        String status = "accept".equals(action) ? TaskEntity.STATUS_ACCEPTED
+                                : TaskEntity.STATUS_REJECTED;
+                        db.taskDao().updateStatus(taskId, status, str(payload, "reason"));
+                        break;
+                    }
+                    case "task_complete":
+                        db.taskDao().updateStatusWithTs(taskId, TaskEntity.STATUS_COMPLETED, ts, 0);
+                        break;
+                    case "task_reward":
+                        db.taskDao().updateStatusWithTs(taskId, TaskEntity.STATUS_REWARDED, 0, ts);
+                        break;
+                }
+            } catch (Exception ex) {
+                Log.w(TAG, "任务本地同步失败 type=" + type, ex);
+            }
+        });
+    }
+
+    /** 奖励展示文案：自定义原文优先，其次预置类型 */
+    private static String taskRewardDisplay(TaskEntity e) {
+        if (e.rewardText != null && !e.rewardText.isEmpty()) return e.rewardText;
+        if (e.rewardType != null && !e.rewardType.isEmpty()) return e.rewardType;
+        return null;
+    }
+
+    private static String str(Map<String, Object> payload, String key) {
+        if (payload == null) return null;
+        Object v = payload.get(key);
+        return v == null ? null : String.valueOf(v);
+    }
+
+    /** 任务状态变更系统通知（全状态推送；点击进任务详情） */
+    private void showTaskNotification(String title, String text, String taskId) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "缺少 POST_NOTIFICATIONS 权限，无法发送任务通知");
+                return;
+            }
+        }
+        Intent intent = new Intent(this, com.eyemonitor.ui.TaskActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra(EXTRA_TASK_ID, taskId);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, (int) System.currentTimeMillis(), intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID + "_event")
+                .setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build();
+        notificationManager.notify((int) (System.currentTimeMillis() % 100000), notification);
+        Log.i(TAG, "任务通知已发送: " + title + " | " + text);
     }
 
     /** media_deleted：清理本地媒体聊天气泡与缓存文件（Room 缓存行由 SyncManager 清理） */

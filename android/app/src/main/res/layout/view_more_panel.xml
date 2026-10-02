@@ -7,239 +7,33 @@
     android:background="@color/surface"
     android:elevation="4dp">
 
-    <!-- 第 1 行：图片 / SOS 紧急求助 / 权限设置 / 无障碍诊断 -->
+    <!-- 可左右滑动的分页面板（第 1 页现 8 入口；第 2 页：任务 + 预留位） -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/vp_more"
+        android:layout_width="match_parent"
+        android:layout_height="180dp" />
+
+    <!-- 页码指示点 -->
     <LinearLayout
+        android:id="@+id/ll_more_dots"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingTop="14dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
+        android:gravity="center"
+        android:paddingBottom="10dp">
 
-        <LinearLayout
-            android:id="@+id/grid_image"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_image"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_image"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
+        <View
+            android:id="@+id/more_dot_0"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:background="@drawable/bg_dot"
+            android:layout_marginEnd="5dp" />
 
-        <LinearLayout
-            android:id="@+id/grid_sos"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_sos"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/status_error" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_sos"
-                android:textColor="@color/status_error"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_permissions"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_settings"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_permissions"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_diagnose"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_debug"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_diagnose"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 第 2 行：解除配对 / 清空聊天 / 历史轨迹 / 我的主页 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="16dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
-
-        <LinearLayout
-            android:id="@+id/grid_unpair"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_delete"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_unpair"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_clear"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_delete"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/text_secondary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_clear_chat"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_track"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_track"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_track"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_profile"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_person"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_profile"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
+        <View
+            android:id="@+id/more_dot_1"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:background="@drawable/bg_dot"
+            android:layout_marginStart="5dp" />
     </LinearLayout>
 </LinearLayout>

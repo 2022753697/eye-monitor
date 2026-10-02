@@ -7,6 +7,7 @@ import com.eyemonitor.repository.FenceRepo;
 import com.eyemonitor.repository.LocationPointRepo;
 import com.eyemonitor.repository.MediaFileRepo;
 import com.eyemonitor.repository.SosLogRepo;
+import com.eyemonitor.repository.TaskRepo;
 import com.eyemonitor.repository.UserRepo;
 import com.eyemonitor.security.AuthUtil;
 import com.eyemonitor.service.MediaService;
@@ -39,12 +40,14 @@ public class PairController {
     private final FenceRepo fenceRepo;
     private final MediaFileRepo mediaFileRepo;
     private final SosLogRepo sosLogRepo;
+    private final TaskRepo taskRepo;
     private final MediaService mediaService;
 
     public PairController(PairService pairService, UserRepo userRepo,
                           ChatMessageRepo chatMessageRepo, LocationPointRepo locationPointRepo,
                           AnniversaryRepo anniversaryRepo, FenceRepo fenceRepo,
-                          MediaFileRepo mediaFileRepo, SosLogRepo sosLogRepo, MediaService mediaService) {
+                          MediaFileRepo mediaFileRepo, SosLogRepo sosLogRepo, MediaService mediaService,
+                          TaskRepo taskRepo) {
         this.pairService = pairService;
         this.userRepo = userRepo;
         this.chatMessageRepo = chatMessageRepo;
@@ -53,6 +56,7 @@ public class PairController {
         this.fenceRepo = fenceRepo;
         this.mediaFileRepo = mediaFileRepo;
         this.sosLogRepo = sosLogRepo;
+        this.taskRepo = taskRepo;
         this.mediaService = mediaService;
     }
 
@@ -99,6 +103,7 @@ public class PairController {
         anniversaryRepo.deleteByPairCode(pairCode);
         fenceRepo.deleteByPairCode(pairCode);
         sosLogRepo.deleteByPairCode(pairCode);
+        taskRepo.deleteByPairCode(pairCode);
         // 配对身份
         pairService.unpair(pairCode);
         return ApiResponse.ok(null);

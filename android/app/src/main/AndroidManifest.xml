@@ -108,6 +108,11 @@
             android:exported="false"
             android:launchMode="singleTop" />
 
+        <activity
+            android:name=".ui.TaskActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
         <!-- 前台监控服务 -->
         <service
             android:name=".service.MonitorService"

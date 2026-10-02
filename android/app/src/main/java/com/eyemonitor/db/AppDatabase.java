@@ -24,9 +24,22 @@ import java.util.concurrent.Executors;
         FenceCacheEntity.class,
         MediaCacheEntity.class,
         AppNameCacheEntity.class,
-        FolderCacheEntity.class}, version = 7, exportSchema = false)
+        FolderCacheEntity.class,
+        TaskEntity.class}, version = 8, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
+    /** v7 -> v8：情侣任务本地缓存表（任务气泡/任务页数据源） */
+    public static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `task_cache` (" +
+                    "`taskId` TEXT NOT NULL, `content` TEXT, `mediaFileId` TEXT, " +
+                    "`rewardType` TEXT, `rewardText` TEXT, `peerName` TEXT, " +
+                    "`isMine` INTEGER NOT NULL, `status` TEXT, `reason` TEXT, " +
+                    "`ts` INTEGER NOT NULL, `completedTs` INTEGER NOT NULL, " +
+                    "`rewardedTs` INTEGER NOT NULL, PRIMARY KEY(`taskId`))");
+        }
+    };
     /** v6 -> v7：语音波形缓存（WaveformAnalyzer 算的包络 CSV，新消息有，旧消息 null） */
     public static final Migration MIGRATION_6_7 = new Migration(6, 7) {
         @Override
@@ -106,6 +119,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract CacheDao cacheDao();
 
+    public abstract TaskDao taskDao();
+
     public static AppDatabase getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
@@ -113,7 +128,7 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

@@ -6,6 +6,7 @@ import com.eyemonitor.security.WsSessionManager;
 import com.eyemonitor.repository.MediaFileRepo;
 import com.eyemonitor.service.MessageStore;
 import com.eyemonitor.service.PairService;
+import com.eyemonitor.service.TaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,14 +33,17 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private final MessageStore messageStore;
     private final WsSessionManager wsSessionManager;
     private final MediaFileRepo mediaFileRepo;
+    private final TaskService taskService;
 
     public EyeWebSocketHandler(PairService pairService, MessageStore messageStore,
                                WsSessionManager wsSessionManager,
-                               MediaFileRepo mediaFileRepo) {
+                               MediaFileRepo mediaFileRepo,
+                               TaskService taskService) {
         this.pairService = pairService;
         this.messageStore = messageStore;
         this.wsSessionManager = wsSessionManager;
         this.mediaFileRepo = mediaFileRepo;
+        this.taskService = taskService;
     }
 
     @Override
@@ -82,6 +86,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "chat_recall" -> handleChatRecall(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
             case "media" -> handleMedia(session, msg, userId);
+            case "task_publish", "task_respond", "task_complete", "task_reward" -> handleTaskMessage(session, msg, userId);
             default -> handleForward(session, msg);
         }
     }
@@ -157,8 +162,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     }
 
     /** 媒体消息：落库聊天行（text=fileId, kind=media）保证离线补收，再转发给对方 */
-    private void handleMedia(WebSocketSession session, WsMessage msg, long userId) {
-        String pairCode = resolvePairCode(msg, userId);
+    private void handleMedia(WebSocketSession session, WsMessage msg, long userId) {        String pairCode = resolvePairCode(msg, userId);
         Map<String, Object> payload = msg.getPayload();
         String fileId = payload != null && payload.get("fileId") instanceof String
                 ? (String) payload.get("fileId") : null;
@@ -178,6 +182,21 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             }
         }
         pairService.forwardToPeer(msg.getDeviceId(), msg);
+    }
+
+    /** 任务消息：TaskService 状态机校验+落库 → 成功才转发给 peer；业务失败回 system_tip */
+    private void handleTaskMessage(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        TaskService.Result r = taskService.process(msg, userId, pairCode);
+        if (r.forward) {
+            pairService.forwardToPeer(msg.getDeviceId(), msg);
+            return;
+        }
+        if (r.error != null) {
+            log.warn("任务消息被拒: type={}, error={}", msg.getType(), r.error);
+            pairService.sendMessage(session, new WsMessage("system_tip", msg.getDeviceId(), pairCode,
+                    Map.of("text", r.error), System.currentTimeMillis()));
+        }
     }
 
     private void handleForward(WebSocketSession session, WsMessage msg) {

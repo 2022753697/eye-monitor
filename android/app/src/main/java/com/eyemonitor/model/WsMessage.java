@@ -199,6 +199,44 @@ public class WsMessage {
         return new WsMessage("media_deleted", deviceId, pairCode, payload, System.currentTimeMillis());
     }
 
+    // --- 情侣任务消息类型（契约 v1，与 server 侧同步） ---
+
+    /** 发布任务：taskId=客户端生成的幂等键；mediaFileId 可选（纯文字任务不带）；from=发布方昵称 */
+    public static WsMessage createTaskPublish(String deviceId, String pairCode, String taskId,
+                                              String content, String mediaFileId,
+                                              String rewardType, String rewardText, String from) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("taskId", taskId);
+        payload.put("content", content);
+        if (mediaFileId != null && !mediaFileId.isEmpty()) payload.put("mediaFileId", mediaFileId);
+        if (rewardType != null && !rewardType.isEmpty()) payload.put("rewardType", rewardType);
+        if (rewardText != null && !rewardText.isEmpty()) payload.put("rewardText", rewardText);
+        if (from != null && !from.isEmpty()) payload.put("from", from);
+        return new WsMessage("task_publish", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 响应任务：action=accept|reject；拒绝必填 reason */
+    public static WsMessage createTaskRespond(String deviceId, String pairCode, String taskId,
+                                              String action, String reason) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("taskId", taskId);
+        payload.put("action", action);
+        if (reason != null && !reason.isEmpty()) payload.put("reason", reason);
+        return new WsMessage("task_respond", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 发布方确认任务完成（已完成❤） */
+    public static WsMessage createTaskComplete(String deviceId, String pairCode, String taskId) {
+        return new WsMessage("task_complete", deviceId, pairCode,
+                Map.of("taskId", taskId), System.currentTimeMillis());
+    }
+
+    /** 接收方确认奖励兑现（已兑现❤） */
+    public static WsMessage createTaskReward(String deviceId, String pairCode, String taskId) {
+        return new WsMessage("task_reward", deviceId, pairCode,
+                Map.of("taskId", taskId), System.currentTimeMillis());
+    }
+
     // --- JSON 序列化/反序列化 ---
 
     public String toJson() {

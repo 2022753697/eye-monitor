@@ -56,4 +56,16 @@ public class PairEntity {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    /** 该 userId 是否为配对成员 */
+    public boolean belongs(long userId) {
+        return (userA != null && userA == userId) || (userB != null && userB == userId);
+    }
+
+    /** 配对中 userId 的另一方（非成员返回 null） */
+    public Long peerOf(long userId) {
+        if (userA != null && userA == userId) return userB;
+        if (userB != null && userB == userId) return userA;
+        return null;
+    }
 }
