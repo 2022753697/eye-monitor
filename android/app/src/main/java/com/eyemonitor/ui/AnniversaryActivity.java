@@ -53,7 +53,7 @@ public class AnniversaryActivity extends AppCompatActivity {
     private static final String TAG = "AnniversaryActivity";
 
     private RecyclerView rvList;
-    private TextView tvEmpty;
+    private TextView tvEmpty; // 空态已组件化，字段仅保留兼容（不再使用）
     private AnniversaryAdapter adapter;
     private volatile boolean busy;
 
@@ -121,7 +121,6 @@ public class AnniversaryActivity extends AppCompatActivity {
                 } else {
                     com.eyemonitor.util.EmptyStateUtil.hide(this, R.id.es_anniversary);
                 }
-                tvEmpty.setVisibility(View.GONE);
             });
         });
     }

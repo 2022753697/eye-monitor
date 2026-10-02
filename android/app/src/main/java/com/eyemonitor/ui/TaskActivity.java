@@ -49,7 +49,6 @@ public class TaskActivity extends BaseActivity {
     private static final int REQ_PICK_PHOTO = 1001;
 
     private RecyclerView rvTasks;
-    private TextView tvEmpty;
     private View esTask;
     private LinearLayout llFilters;
     private final List<TaskEntity> all = new ArrayList<>();
@@ -168,7 +167,6 @@ public class TaskActivity extends BaseActivity {
         }
         if (rvTasks.getAdapter() != null) ((TaskAdapter) rvTasks.getAdapter()).setData(shown);
         if (esTask != null) esTask.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
-        if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
     }
 
     /** 操作后的延迟刷新：Room 落库在 MonitorService 的 dbExecutor 异步进行，立即 reload 读到旧数据 */
