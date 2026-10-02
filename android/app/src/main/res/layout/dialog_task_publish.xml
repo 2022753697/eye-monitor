@@ -55,42 +55,42 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_0"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_0" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_1"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_1" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_2"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_2" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_3"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_3" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_4"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_4" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_reward_5"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+                style="@style/Widget.EyeMonitor.Chip.Selectable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_reward_5" />

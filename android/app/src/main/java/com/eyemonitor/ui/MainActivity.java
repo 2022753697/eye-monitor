@@ -2594,9 +2594,12 @@ public class MainActivity extends AppCompatActivity {
             FrameLayout flVideoBadge;
             // 任务气泡视图
             LinearLayout llTaskCard;
+            ImageView ivTaskBubbleIcon;
+            TextView tvTaskTitle;
             TextView tvTaskContent;
             TextView tvTaskReward;
             TextView tvTaskStatus;
+            TextView tvTaskHint;
 
             ViewHolder(View view, int viewType) {
                 super(view);
@@ -2640,9 +2643,12 @@ public class MainActivity extends AppCompatActivity {
                     case TYPE_TASK_SELF:
                     case TYPE_TASK_PEER:
                         llTaskCard = view.findViewById(R.id.ll_task_card);
+                        ivTaskBubbleIcon = view.findViewById(R.id.iv_task_bubble_icon);
+                        tvTaskTitle = view.findViewById(R.id.tv_task_title);
                         tvTaskContent = view.findViewById(R.id.tv_task_content);
                         tvTaskReward = view.findViewById(R.id.tv_task_reward);
                         tvTaskStatus = view.findViewById(R.id.tv_task_status);
+                        tvTaskHint = view.findViewById(R.id.tv_task_hint);
                         break;
                     default:
                         tvText = view.findViewById(R.id.tv_system_text);
@@ -2782,21 +2788,28 @@ public class MainActivity extends AppCompatActivity {
     // --- 媒体气泡渲染 ---
 
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
-    /** 任务气泡绑定：自己=右侧珊瑚卡（白字），对方=左侧白卡（深字）；点击进任务详情 */
+    /** 任务气泡绑定：自己=右侧珊瑚渐变卡（白字），对方=左侧白卡粉色描边（深字）；点击进任务详情 */
     private void bindTask(ChatAdapter.ViewHolder h, ChatItem item) {
         final boolean self = item.type == TYPE_TASK_SELF;
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) h.llTaskCard.getLayoutParams();
         lp.gravity = self ? Gravity.END : Gravity.START;
         h.llTaskCard.setLayoutParams(lp);
-        h.llTaskCard.setBackgroundResource(self ? R.drawable.bg_bubble_self : R.drawable.bg_bubble_peer);
-        int contentColor = self ? R.color.white : R.color.text_primary;
-        h.tvTaskContent.setTextColor(getResources().getColor(contentColor));
+        h.llTaskCard.setBackgroundResource(self ? R.drawable.bg_task_bubble_self : R.drawable.bg_task_bubble_peer);
+        // 标题行图标/文字：自己=白字，对方=珊瑚
+        int titleColor = self ? R.color.white : R.color.primary;
+        h.ivTaskBubbleIcon.setImageTintList(android.content.res.ColorStateList.valueOf(
+                getResources().getColor(titleColor)));
+        h.tvTaskTitle.setTextColor(getResources().getColor(titleColor));
+        h.tvTaskContent.setTextColor(getResources().getColor(
+                self ? R.color.white : R.color.text_primary));
         h.tvTaskContent.setText(item.taskContent);
         h.tvTaskReward.setText(item.taskReward);
         h.tvTaskReward.setTextColor(self ? R.color.white : R.color.accent);
         h.tvTaskStatus.setText(item.taskStatusText);
         h.tvTaskStatus.setTextColor(self ? R.color.white
                 : getResources().getColor(item.taskStatusColor));
+        h.tvTaskHint.setTextColor(getResources().getColor(
+                self ? R.color.white : R.color.primary));
         h.llTaskCard.setOnClickListener(v -> openTaskDetail(item.text));
     }
 

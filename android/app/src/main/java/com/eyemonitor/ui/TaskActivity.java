@@ -137,6 +137,11 @@ public class TaskActivity extends BaseActivity {
         if (tvEmpty != null) tvEmpty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
+    /** 操作后的延迟刷新：Room 落库在 MonitorService 的 dbExecutor 异步进行，立即 reload 读到旧数据 */
+    private void reloadSoon() {
+        rvTasks.postDelayed(this::reload, 300);
+    }
+
     private void reload() {
         AppDatabase db = AppDatabase.getInstance(this);
         AppDatabase.dbExecutor.execute(() -> {
@@ -149,7 +154,7 @@ public class TaskActivity extends BaseActivity {
         });
     }
 
-    // --- 列表适配器 ---
+    // --- 列表适配器（面板卡片：日期+状态pill / 内容大字 / 奖励） ---
 
     private class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.Holder> {
         private final List<TaskEntity> data = new ArrayList<>();
@@ -162,10 +167,7 @@ public class TaskActivity extends BaseActivity {
 
         @Override
         public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = new LinearLayout(TaskActivity.this);
-            ((LinearLayout) v).setOrientation(LinearLayout.VERTICAL);
-            int pad = dp(12);
-            v.setPadding(pad, pad, pad, pad);
+            View v = getLayoutInflater().inflate(R.layout.item_task_card, parent, false);
             return new Holder(v);
         }
 
@@ -181,110 +183,147 @@ public class TaskActivity extends BaseActivity {
         }
 
         class Holder extends RecyclerView.ViewHolder {
-            LinearLayout root;
+            final TextView tvDate, tvStatus, tvContent, tvReward;
 
             Holder(View itemView) {
                 super(itemView);
-                root = (LinearLayout) itemView;
+                tvDate = itemView.findViewById(R.id.tv_task_card_date);
+                tvStatus = itemView.findViewById(R.id.tv_task_card_status);
+                tvContent = itemView.findViewById(R.id.tv_task_card_content);
+                tvReward = itemView.findViewById(R.id.tv_task_card_reward);
+                itemView.setOnClickListener(v -> showDetailDialog(data.get(getBindingAdapterPosition())));
             }
 
             void bind(TaskEntity e) {
-                root.removeAllViews();
-                root.setBackgroundResource(R.drawable.bg_card);
-                root.setClickable(true);
-                root.setFocusable(true);
-
-                // 发布方 + 时间行
-                LinearLayout head = row();
-                String who = e.isMine ? getString(R.string.chat_self_name)
-                        : (e.peerName != null && !e.peerName.isEmpty() ? e.peerName : getString(R.string.chat_title_default));
-                TextView tvWho = text(who, 12, true, R.color.primary);
-                TextView tvTime = text(fmtTime(e.ts), 11, false, R.color.text_secondary);
-                head.addView(tvWho, lp(0, 1f));
-                head.addView(tvTime);
-                root.addView(head);
-
-                // 任务内容
-                root.addView(text(e.content != null ? e.content : "", 15, false, R.color.text_primary));
-
-                // 奖励行
+                tvDate.setText(fmtTime(e.ts));
+                tvContent.setText(e.content != null ? e.content : "");
                 String reward = rewardDisplay(e);
-                if (reward != null && !reward.isEmpty()) {
-                    root.addView(text(getString(R.string.task_reward_of, reward), 12, false, R.color.accent));
+                tvReward.setText(reward != null && !reward.isEmpty()
+                        ? "🎁 " + getString(R.string.task_reward_of, reward) : "");
+                tvStatus.setText(statusDisplay(e));
+                int pillBg = R.drawable.bg_pill_gray;
+                int pillColor = R.color.text_secondary;
+                switch (e.status == null ? "" : e.status) {
+                    case TaskEntity.STATUS_ACCEPTED:
+                        pillBg = R.drawable.bg_pill_pink;
+                        pillColor = R.color.primary;
+                        break;
+                    case TaskEntity.STATUS_COMPLETED:
+                    case TaskEntity.STATUS_REWARDED:
+                        pillBg = R.drawable.bg_pill_green;
+                        pillColor = R.color.status_ok;
+                        break;
+                    case TaskEntity.STATUS_REJECTED:
+                        pillBg = R.drawable.bg_pill_red;
+                        pillColor = R.color.status_error;
+                        break;
                 }
-
-                // 状态行
-                TextView tvStatus = text(statusDisplay(e), 12, true, statusColor(e));
-                root.addView(tvStatus);
-
-                root.setOnClickListener(v -> showDetailDialog(e));
+                tvStatus.setBackgroundResource(pillBg);
+                tvStatus.setTextColor(getResources().getColor(pillColor));
             }
         }
     }
 
-    // --- 详情弹窗（任务信息 + 时间线 + 按角色×状态的操作按钮） ---
+    // --- 详情弹窗（dialog_task_detail：信息卡 + 时间线 + 按角色×状态的操作按钮） ---
 
     private void showDetailDialog(final TaskEntity e) {
-        LinearLayout body = new LinearLayout(this);
-        body.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        body.setPadding(pad, pad, pad, pad);
-
+        View body = getLayoutInflater().inflate(R.layout.dialog_task_detail, null);
         String who = e.isMine ? getString(R.string.chat_self_name)
                 : (e.peerName != null && !e.peerName.isEmpty() ? e.peerName : getString(R.string.chat_title_default));
-        body.addView(text(getString(R.string.task_publisher_of, who), 12, true, R.color.primary));
-        body.addView(text(e.content != null ? e.content : "", 16, false, R.color.text_primary));
+        ((TextView) body.findViewById(R.id.tv_detail_who))
+                .setText(getString(R.string.task_publisher_of, who) + " · " + fmtTime(e.ts));
+        ((TextView) body.findViewById(R.id.tv_detail_content))
+                .setText(e.content != null ? e.content : "");
         String reward = rewardDisplay(e);
-        if (reward != null && !reward.isEmpty()) {
-            body.addView(text(getString(R.string.task_reward_of, reward), 13, false, R.color.accent));
-        }
-
-        // 时间线
-        body.addView(text(fmtTime(e.ts), 11, false, R.color.text_secondary));
+        ((TextView) body.findViewById(R.id.tv_detail_reward))
+                .setText(reward != null && !reward.isEmpty()
+                        ? "🎁 " + getString(R.string.task_reward_of, reward) : "");
+        TextView tvReason = body.findViewById(R.id.tv_detail_reason);
         if (TaskEntity.STATUS_REJECTED.equals(e.status) && e.reason != null && !e.reason.isEmpty()) {
-            body.addView(text(getString(R.string.task_rejected_at, e.reason), 12, false, R.color.status_error));
+            tvReason.setText(getString(R.string.task_rejected_at, e.reason));
+            tvReason.setVisibility(View.VISIBLE);
         }
-        if (e.completedTs > 0) {
-            body.addView(text(getString(R.string.task_completed_at, fmtTime(e.completedTs)), 12, false, R.color.status_ok));
-        }
-        if (e.rewardedTs > 0) {
-            body.addView(text(getString(R.string.task_rewarded_at, fmtTime(e.rewardedTs)), 12, false, R.color.status_success));
-        }
-        body.addView(text(statusDisplay(e), 13, true, statusColor(e)));
 
-        AlertDialog dlg = new AlertDialog.Builder(this)
-                .setTitle(R.string.task_detail_title)
-                .setView(body)
-                .setNegativeButton(R.string.cancel, null)
-                .create();
+        // 时间线：4 步（发布/接受/完成/兑现）——绿实心●=已完成，灰空心○=待进行
+        LinearLayout tl = body.findViewById(R.id.ll_detail_timeline);
+        addTimelineRow(tl, getString(R.string.tl_published), fmtTime(e.ts),
+                true, R.color.status_ok);
+        boolean accepted = !TaskEntity.STATUS_PENDING.equals(e.status);
+        addTimelineRow(tl, getString(R.string.tl_accepted),
+                accepted && e.ts > 0 ? "—" : "", accepted, accepted ? R.color.status_ok : R.color.text_secondary);
+        boolean completed = TaskEntity.STATUS_COMPLETED.equals(e.status)
+                || TaskEntity.STATUS_REWARDED.equals(e.status);
+        addTimelineRow(tl, getString(R.string.tl_completed),
+                completed && e.completedTs > 0 ? fmtTime(e.completedTs) : (accepted ? getString(R.string.tl_await) : ""),
+                completed, completed ? R.color.status_ok : R.color.text_secondary);
+        boolean rewarded = TaskEntity.STATUS_REWARDED.equals(e.status);
+        addTimelineRow(tl, getString(R.string.tl_rewarded),
+                rewarded && e.rewardedTs > 0 ? fmtTime(e.rewardedTs) : (completed ? getString(R.string.tl_await) : ""),
+                rewarded, rewarded ? R.color.status_ok : R.color.text_secondary);
 
         // 操作按钮（按 角色×状态）
-        boolean isReceiver = !e.isMine;
+        TextView btnPrimary = body.findViewById(R.id.btn_detail_primary);
+        TextView btnSecondary = body.findViewById(R.id.btn_detail_secondary);
+        final boolean isReceiver = !e.isMine;
         if (isReceiver && TaskEntity.STATUS_PENDING.equals(e.status)) {
-            dlg.setButton(AlertDialog.BUTTON_POSITIVE, getString(R.string.task_accept),
-                    (d, w) -> {
-                        MonitorService.sendTaskRespond(this, e.taskId, "accept", null);
-                        Toast.makeText(this, R.string.task_toast_accept, Toast.LENGTH_SHORT).show();
-                        reload();
-                    });
-            dlg.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.task_reject),
-                    (d, w) -> showRejectDialog(e));
+            btnPrimary.setText(R.string.task_accept);
+            btnPrimary.setVisibility(View.VISIBLE);
+            btnPrimary.setOnClickListener(v -> {
+                MonitorService.sendTaskRespond(this, e.taskId, "accept", null);
+                Toast.makeText(this, R.string.task_toast_accept, Toast.LENGTH_SHORT).show();
+                reloadSoon();
+            });
+            btnSecondary.setText(R.string.task_reject);
+            btnSecondary.setVisibility(View.VISIBLE);
+            btnSecondary.setOnClickListener(v -> showRejectDialog(e));
         } else if (e.isMine && TaskEntity.STATUS_ACCEPTED.equals(e.status)) {
-            dlg.setButton(AlertDialog.BUTTON_POSITIVE, getString(R.string.task_confirm_complete),
-                    (d, w) -> {
-                        MonitorService.sendTaskComplete(this, e.taskId);
-                        Toast.makeText(this, R.string.task_toast_complete, Toast.LENGTH_SHORT).show();
-                        reload();
-                    });
+            btnPrimary.setText(R.string.task_confirm_complete);
+            btnPrimary.setVisibility(View.VISIBLE);
+            btnPrimary.setOnClickListener(v -> {
+                MonitorService.sendTaskComplete(this, e.taskId);
+                Toast.makeText(this, R.string.task_toast_complete, Toast.LENGTH_SHORT).show();
+                reloadSoon();
+            });
         } else if (isReceiver && TaskEntity.STATUS_COMPLETED.equals(e.status)) {
-            dlg.setButton(AlertDialog.BUTTON_POSITIVE, getString(R.string.task_confirm_reward),
-                    (d, w) -> {
-                        MonitorService.sendTaskReward(this, e.taskId);
-                        Toast.makeText(this, R.string.task_toast_reward, Toast.LENGTH_SHORT).show();
-                        reload();
-                    });
+            btnPrimary.setText(R.string.task_confirm_reward);
+            btnPrimary.setVisibility(View.VISIBLE);
+            btnPrimary.setOnClickListener(v -> {
+                MonitorService.sendTaskReward(this, e.taskId);
+                Toast.makeText(this, R.string.task_toast_reward, Toast.LENGTH_SHORT).show();
+                reloadSoon();
+            });
         }
-        dlg.show();
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("💌 " + getString(R.string.task_detail_title))
+                .setView(body)
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /** 时间线行：●/○ + 文字 + 时间 */
+    private void addTimelineRow(LinearLayout tl, String label, String time, boolean done, int dotColor) {
+        LinearLayout row = row();
+        TextView dot = new TextView(this);
+        dot.setText(done ? "●" : "○");
+        dot.setTextSize(10);
+        dot.setTextColor(getResources().getColor(dotColor));
+        row.addView(dot);
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextSize(13);
+        tv.setTextColor(getResources().getColor(done ? R.color.text_primary : R.color.text_secondary));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(4);
+        tv.setLayoutParams(lp);
+        row.addView(tv, lp(0, 1f));
+        TextView tvTime = new TextView(this);
+        tvTime.setText(time);
+        tvTime.setTextSize(11);
+        tvTime.setTextColor(getResources().getColor(R.color.text_secondary));
+        row.addView(tvTime);
+        tl.addView(row);
     }
 
     /** 拒绝：预置理由 chips（Material ChipGroup）+ 自定义输入（必填） */
@@ -313,7 +352,7 @@ public class TaskActivity extends BaseActivity {
                     }
                     MonitorService.sendTaskRespond(this, e.taskId, "reject", reason);
                     Toast.makeText(this, R.string.task_toast_reject, Toast.LENGTH_SHORT).show();
-                    reload();
+                    reloadSoon();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .create();
@@ -383,7 +422,7 @@ public class TaskActivity extends BaseActivity {
                             pendingPhotoFileId, preset, custom.isEmpty() ? preset : custom);
                     pendingPhotoFileId = null;
                     Toast.makeText(this, R.string.task_toast_sent, Toast.LENGTH_SHORT).show();
-                    reload();
+                    reloadSoon();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
