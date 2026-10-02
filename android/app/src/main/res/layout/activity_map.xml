@@ -30,14 +30,14 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:src="@drawable/avatar_female"
-            android:contentDescription="我的位置" />
+            android:contentDescription="@string/cd_my_location" />
 
         <ImageView
             android:id="@+id/iv_avatar_peer"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:src="@drawable/avatar_female"
-            android:contentDescription="对方位置"
+            android:contentDescription="@string/cd_peer_location"
             android:layout_marginStart="10dp" />
     </LinearLayout>
 

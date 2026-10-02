@@ -1,49 +1,82 @@
-# 眼互 UI 设计规范（v1，2025-09）
+# 眼互 UI 设计指南 v2（2026-10 改造版）
 
-> 配套实施计划：`.omc/plans/ui-style-system-v1.md`；需求来源：`.omc/specs/deep-interview-ui-strategy.md`
-> 原则一句话：**Material Components 做底座，自研令牌层集中管理，新页面从模板出发。**
+> 基于 `docs/ui-redesign-plan.md` 落地成果。v1 见 git 历史。
+> 品牌：产品名「恋视」（strings 保持），工程代号「眼互/EyeMonitor」。品牌珊瑚 #FF6B6B 用于装饰/渐变/图标；**承载文字的交互面一律用 AA 变体**。
 
----
+## 1. Design Tokens
 
-## 1. 设计令牌（禁止直接写死）
+### 颜色（colors.xml）
+| Token | 值 | 用途 | 对比度 |
+|-------|----|------|--------|
+| primary | #FF6B6B | 渐变/装饰/图标（品牌色） | — |
+| primary_fill | #D13F47 | **实心按钮底** | 白字 4.67:1 ✅ |
+| primary_text | #C03D3D | 描边按钮/珊瑚文字 | on-white 5.28:1 ✅ |
+| accent | #FFA26B | 装饰/强调图标 | — |
+| accent_text | #C97A3D | 暖橙文字 | ≥4.5 ✅ |
+| text_primary | #4A3B3D | 主文本 | 8.6:1 ✅ |
+| text_secondary | #7A696C | 次要文本 | 5.16:1 ✅ |
+| text_tertiary | #A99A9C | 图标/时间戳（不承诺 AA） | — |
+| text_on_primary_muted | #E6FFFFFF | 头栏次要文字 | 90% 白 |
+| status_ok_text | #2E7D63 | 成功文字 | 4.97:1 ✅ |
+| status_warn_text | #9A6217 | 警示文字 | 5.08:1 ✅ |
+| status_error_text | #B33A2C | 错误文字 | 5.90:1 ✅ |
+| status_error_fill | #C94A3B | 危险按钮底 | 白字 ≥4.0 ✅ |
+| header_grad_start/end | #EE5F68/#D96F52 | 标准页头栏渐变 | 白字大字号 3.25:1 ✅ |
+| surface_ok/error/press | #E3F3EB/#FBEAE6/#14FF6B6B | pill 浅底/按压 | — |
 
-| 类别 | 位置 | 引用方式 |
-|------|------|----------|
-| 语义色 | `res/values/attrs.xml` + `themes.xml` 映射 | 布局用 `?attr/textPrimary`、`?attr/colorPrimary` 等 |
-| 间距 | `res/values/dimens.xml`（8dp 步进：space_2/4/8/10/12/14/16/24/32）| `@dimen/space_16` |
-| 圆角 | `dimens.xml`（radius_sm 8 / md 12 / lg 16 / xl 24）| `@dimen/radius_lg` |
-| 字号 | `dimens.xml`（text_12/13/14/15/16/20）| `@dimen/text_14` |
+**规则**：状态色（status_ok/warn/error/success）的**填充**用于装饰/图标；**文字**必须用 `*_text` 变体。
 
-- **禁止**：布局/Java 中出现 `#RRGGBB` 硬编码色值（drawable 内除外）；已由构建检查 `checkUiStyle` 拦截。
-- **皮肤预留**：语义色全部走 `?attr/`，未来换肤 = 替换 `themes.xml` 中的 attr 实现（theme overlay）。
+### 字号（dimens.xml）
+`text_10`（仅角标）`text_11`（图注/时间戳）`text_12`（Label）`text_13/14/15/16/17`（正文）`text_18`（次级标题）`text_20`（HeaderTitle 页标题）`text_24/28/30`（hero）。
+**禁止**：正文内容性文本用 10/11sp（仅角标/时间戳可用，配合 text_tertiary）。
 
-## 2. 组件样式清单（`res/values/styles.xml`）
+### 间距/圆角/高度
+- 间距：space_2~64（8dp 步进 + 28）
+- 圆角：radius_sm 8 / md 12（输入/白钮）/ lg 16（卡片/标准按钮）/ xl 24（底部面板）/ full 999（胶囊）
+- 高度：touch_target 44（最低触控）/ bar_height 48（标准按钮/输入）/ bar_height_hero 56（头栏）
+- **禁止 52dp 固定高、禁止 14dp 圆角**（checkUiStyle 拦截）
+- 阴影：shadow_1 2 / 2 4 / 3 8 / 4 12
 
-| 样式 | 用途 |
-|------|------|
-| `Widget.EyeMonitor.Button.Primary` | 主操作（填充暖色） |
-| `Widget.EyeMonitor.Button.Outlined` | 次级操作（描边） |
-| `Widget.EyeMonitor.Button.Header` | 头栏按钮（半透明白） |
-| `Widget.EyeMonitor.Button.Danger` | 危险操作（状态红：删除/解绑/SOS） |
-| `Widget.EyeMonitor.Button.Sos` | SOS 圆形按钮特例（保留自绘 background） |
-| `Widget.EyeMonitor.RadioButton` | 单选（tint 跟随主色） |
-| `Widget.EyeMonitor.Card` | 通用圆角卡片 |
-| `Widget.EyeMonitor.EditText` | 输入框 |
-| `TextAppearance.EyeMonitor.HeaderTitle / Display / Title / Body / Label` | 排版层级 |
+## 2. 组件规范
 
-> 防呆：`themes.xml` 已将 `materialButtonStyle / radioButtonStyle / editTextStyle` 指向本体系——**裸 `<Button>` 也自动是圆角非大写形态**。
+### 头栏（component_header_bar.xml）
+- 标准页 = include 组件：标准渐变 `bg_header_gradient_std` + 44dp 圆底返回（bg_header_icon）+ 20sp 居中标题（HeaderTitle）
+- 右动作：`Button.HeaderAction`（44dp 热区胶囊）或 `Button.HeaderText`（次级纯文字）
+- 变体：聊天头（vivid 渐变 + 状态行 11sp/90% 白 + 44dp 双钮）、Hero（Login/Main 未配对 28sp）
+- **不要再手工写 minHeight/inset/padding 六件套**（HeaderAction/Dialog 样式已内置）
 
-## 3. 新页面流程（护栏）
+### 按钮
+Primary（primary_fill）/ Outlined（primary_text 描边）/ Danger（status_error_fill）/ HeaderAction / HeaderText / Dialog / DialogOutlined。**禁止 TextView 伪按钮**（bg_pill_* 只用于状态 pill 非按钮语义）。
 
-1. 复制 `res/layout/template_page.xml`（渐变头栏 + 内容区骨架已就位）
-2. 继承 `com.eyemonitor.ui.BaseActivity`（系统栏配色兜底）
-3. 内容控件引用第 2 节样式；间距用 `@dimen/space_*`；颜色用 `?attr/*`
-4. 字符串进 `strings.xml`，禁止硬编码中文
-5. 构建时 `checkUiStyle` 自动校验，违规即失败
+### 空态（component_empty_state + EmptyStateUtil）
+图标落 bg_icon_circle 圆底 + 标题 + 副文案 + 可选主按钮。文案模板见 §4。
 
-## 4. 页面改造边界（本轮非目标，下一迭代）
+### Toast（Toasts）
+`Toasts.show / showRes / showLong / showOk / showWarn / showError`——深色圆角 pill + 语义 icon、居中。**禁止裸 Toast.makeText**（checkUiStyle 建议阶段）。
 
-- 完整组件表（Chip/FAB/Dialog/BottomSheet/EmptyState 全量样式）
-- 全部页面深度重排（本轮仅 5 个焦点页精修）
-- 自定义 lint 规则（当前为脚本级构建检查）
-- 皮肤功能模块（换肤入口/多主题/持久化）——结构已预留，功能未做
+## 3. 已知残差（验收记录）
+| 项 | 说明 |
+|----|------|
+| 聊天头状态行（11sp #E6FFFFFF on 渐变） | ~2.6:1，依赖图标冗余信息，记录 |
+| SOS 红钮白字 | 3.66:1，大字号接近达标，记录 |
+| Gallery 扇形 FAB 菜单 | 保留（产品特例），文案已令牌化 |
+| 更多面板页 2 空占位 | P3 产品决策：补真实入口或隐藏 |
+
+## 4. 空态文案表
+| 页面 | 图标 | 标题 | 副文案 | 主按钮 |
+|------|------|------|--------|--------|
+| 任务 | 💌 ic_task | 还没有任务 | 发布第一个小任务，让 TA 开心一下 | 发布任务 |
+| 备忘录 | 📝 ic_memo | 还没有备忘录 | 随手记下想和 TA 分享的点滴 | ＋ 新建 |
+| 纪念日 | ❤️ ic_task | 还没有纪念日… | 记录属于你们的重要日子，一起倒数 | 添加纪念日 |
+| 图库根 | 🖼️ ic_image | 还没有共享媒体 | 上传照片/视频，随时翻看彼此的日常 | — |
+| 图库文件夹 | 🖼️ | 文件夹空 | 这个文件夹还是空的，去上传一张吧 | — |
+
+## 5. 文案规范（摘要）
+- 称呼对方统一 **TA**（禁 他/她 混用）
+- Emoji：每字符串 ≤1，禁用于按钮/错误/权限引导
+- 按钮动词表：取消（恒左）/ 确定·保存·删除·兑现（按动作）/ 危险操作恒右 Danger
+- contentDescription 一律 `@string/cd_*`
+
+## 6. 检查工具
+- `./gradlew assembleDebug`（挂接 checkUiStyle：裸 Button、布局硬编码色、52dp/14dp 等违规即失败）
+- 对比度用 WebAIM Contrast Checker 复核；A11y 用 Android Accessibility Scanner

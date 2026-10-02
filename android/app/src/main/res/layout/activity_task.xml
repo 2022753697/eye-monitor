@@ -24,7 +24,7 @@
             android:src="@drawable/ic_back"
             android:tint="@color/white"
             android:background="@drawable/bg_header_icon"
-            android:contentDescription="返回"
+            android:contentDescription="@string/cd_back"
             style="?attr/borderlessButtonStyle" />
 
         <TextView

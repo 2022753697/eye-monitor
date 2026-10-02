@@ -22,7 +22,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:contentDescription="缩略图" />
+                android:contentDescription="@string/cd_thumb" />
 
             <ImageView
                 android:id="@+id/iv_memo_thumb_placeholder"
@@ -31,7 +31,7 @@
                 android:layout_gravity="center"
                 android:src="@drawable/ic_memo"
                 android:tint="@color/text_secondary"
-                android:contentDescription="无图" />
+                android:contentDescription="@string/cd_no_image" />
         </FrameLayout>
 
         <!-- 正文 + 时间 -->
@@ -75,7 +75,7 @@
                 android:src="@drawable/ic_pin"
                 android:tint="@color/accent"
                 android:visibility="gone"
-                android:contentDescription="置顶" />
+                android:contentDescription="@string/cd_pin" />
 
             <ImageView
                 android:id="@+id/iv_memo_alarm"
@@ -85,7 +85,7 @@
                 android:src="@drawable/ic_alarm"
                 android:tint="@color/status_warn"
                 android:visibility="gone"
-                android:contentDescription="提醒" />
+                android:contentDescription="@string/cd_reminder" />
 
             <TextView
                 android:id="@+id/tv_memo_items"

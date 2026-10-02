@@ -188,8 +188,7 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                     prefs.setServerUrl(url);
                     tvServerUrl.setText(url);
-                    Toast.makeText(this, R.string.profile_server_url_saved,
-                            Toast.LENGTH_LONG).show();
+                    com.eyemonitor.util.Toasts.showLong(this, getString(R.string.profile_server_url_saved));
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();

@@ -260,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 prefs.clearAuth();
                 stopService(new Intent(MainActivity.this, MonitorService.class));
-                Toast.makeText(MainActivity.this, R.string.kicked_toast, Toast.LENGTH_LONG).show();
+                com.eyemonitor.util.Toasts.showLong(MainActivity.this, getString(R.string.kicked_toast));
                 Intent go = new Intent(MainActivity.this, LoginActivity.class);
                 go.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(go);
@@ -770,7 +770,7 @@ public class MainActivity extends AppCompatActivity {
                         viewPairPanel.setVisibility(android.view.View.VISIBLE);
                         viewChatPanel.setVisibility(android.view.View.GONE);
                         setPairResultVisible(getString(R.string.pair_code_share, code));
-                        Toast.makeText(this, R.string.pair_created_share, Toast.LENGTH_LONG).show();
+                        com.eyemonitor.util.Toasts.showLong(this, getString(R.string.pair_created_share));
                     }
                     // 启动监控服务，由它管理 WebSocket 与 App 切换监控
 
@@ -782,7 +782,7 @@ public class MainActivity extends AppCompatActivity {
                 String errMsg = message.getPayload() != null
                         ? (String) message.getPayload().get("message") : getString(R.string.pair_failed, "");
                 setPairResultVisible(getString(R.string.pair_failed, errMsg));
-                Toast.makeText(this, errMsg, Toast.LENGTH_LONG).show();
+                com.eyemonitor.util.Toasts.showLong(this, errMsg);
                 pairAwaitingPeer = false;
                 prefs.setPairAwaitingPeer(false);
                 disconnectPairWs();

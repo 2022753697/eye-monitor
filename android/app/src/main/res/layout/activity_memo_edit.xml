@@ -24,7 +24,7 @@
             android:src="@drawable/ic_back"
             android:tint="@color/white"
             android:background="@drawable/bg_header_icon"
-            android:contentDescription="返回"
+            android:contentDescription="@string/cd_back"
             style="?attr/borderlessButtonStyle" />
 
         <TextView
@@ -148,7 +148,7 @@
                     android:layout_height="18dp"
                     android:src="@drawable/ic_alarm"
                     android:tint="@color/status_warn"
-                    android:contentDescription="提醒" />
+                    android:contentDescription="@string/cd_reminder" />
 
                 <TextView
                     android:id="@+id/tv_memo_reminder_time"

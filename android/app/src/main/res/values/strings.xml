@@ -559,4 +559,12 @@
     <string name="cd_battery">电量</string>
     <string name="cd_charging">充电状态</string>
     <string name="cd_bluetooth">蓝牙</string>
+    <string name="cd_back">返回</string>
+    <string name="cd_anniversary">纪念日</string>
+    <string name="cd_my_location">我的位置</string>
+    <string name="cd_peer_location">对方位置</string>
+    <string name="cd_reminder">提醒</string>
+    <string name="cd_thumb">缩略图</string>
+    <string name="cd_no_image">无图</string>
+    <string name="cd_pin">置顶</string>
 </resources>

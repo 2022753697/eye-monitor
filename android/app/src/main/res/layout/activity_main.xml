@@ -484,7 +484,7 @@
                     android:layout_height="38dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_heart"
-                    android:contentDescription="纪念日" />
+                    android:contentDescription="@string/cd_anniversary" />
 
                 <TextView
                     android:id="@+id/tv_anniversary_heart_count"

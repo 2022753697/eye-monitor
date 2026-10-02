@@ -203,7 +203,7 @@ public class LoginActivity extends AppCompatActivity {
 
     /** 服务器地址为空：提示并直接弹出设置弹窗（登录/注册前强制设置） */
     private void promptServerUrl() {
-        Toast.makeText(this, R.string.profile_server_url_required, Toast.LENGTH_LONG).show();
+        com.eyemonitor.util.Toasts.showLong(this, getString(R.string.profile_server_url_required));
         ServerUrlDialogHelper.show(this, tvServerUrlValue);
     }
 

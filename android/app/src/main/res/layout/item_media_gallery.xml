@@ -9,7 +9,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:background="@drawable/bg_media_placeholder" />
+        android:background="@drawable/bg_media_thumb_radius"
+        android:clipToOutline="true"
+        android:outlineProvider="background" />
 
     <!-- 批量选中遮罩 + 勾选角标 -->
     <View
