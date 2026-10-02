@@ -16,13 +16,16 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import java.util.Map;
 
 /**
- * WS 握手鉴权：?token=<accessToken>，校验 typ=access 且 ver 与用户当前版本一致。
- * 失败返回 403 拒绝握手。成功后把 userId 放入 session attributes。
+ * WS 握手鉴权（F-03 安全加固 2026-10）：
+ * 优先读请求头 X-Auth-Token（新客户端）；兼容 query ?token=（旧客户端过渡期）。
+ * 校验 typ=access 且 ver 与用户当前版本一致；失败返回 403 拒绝握手。
+ * 成功后把 userId 放入 session attributes。
  */
 @Component
 public class WsAuthInterceptor implements HandshakeInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(WsAuthInterceptor.class);
+    private static final String HEADER_TOKEN = "X-Auth-Token";
 
     private final JwtUtil jwtUtil;
     private final UserRepo userRepo;
@@ -35,36 +38,38 @@ public class WsAuthInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
-        String token = request.getURI().getQuery();
-        if (token == null) {
-            return refuse(response);
-        }
-        // 解析 ?token=xxx（query 可能含其他参数，逐个拆分）
-        long userId = -1;
-        for (String pair : token.split("&")) {
-            int idx = pair.indexOf('=');
-            if (idx > 0 && "token".equals(pair.substring(0, idx))) {
-                String t = pair.substring(idx + 1);
-                try {
-                    Claims claims = jwtUtil.parse(t);
-                    if (JwtUtil.TYPE_ACCESS.equals(claims.get("typ", String.class))) {
-                        userId = Long.parseLong(claims.getSubject());
-                        UserEntity user = userRepo.findById(userId).orElse(null);
-                        Integer ver = claims.get("ver", Integer.class);
-                        if (user != null && ver != null && ver.equals(user.getVer() == null ? 0 : user.getVer())) {
-                            attributes.put(AuthUtil.ATTR_USER_ID, userId);
-                            return true;
-                        }
+        // 1) Header 优先（新客户端，token 不进访问日志）
+        String token = request.getHeaders().getFirst(HEADER_TOKEN);
+        if (token == null || token.isBlank()) {
+            // 2) 兼容旧客户端：?token=<accessToken>
+            String query = request.getURI().getQuery();
+            if (query != null) {
+                for (String pair : query.split("&")) {
+                    int idx = pair.indexOf('=');
+                    if (idx > 0 && "token".equals(pair.substring(0, idx))) {
+                        token = pair.substring(idx + 1);
+                        break;
                     }
-                } catch (Exception e) {
-                    log.warn("WS 握手 token 校验失败: {}", e.getMessage());
                 }
-                userId = -1;
-                break;
             }
         }
-        if (userId == -1) {
-            log.warn("WS 握手被拒：缺少或伪造 token");
+        if (token == null || token.isBlank()) {
+            return refuse(response);
+        }
+        try {
+            Claims claims = jwtUtil.parse(token.trim());
+            if (JwtUtil.TYPE_ACCESS.equals(claims.get("typ", String.class))) {
+                long userId = Long.parseLong(claims.getSubject());
+                UserEntity user = userRepo.findById(userId).orElse(null);
+                Integer ver = claims.get("ver", Integer.class);
+                if (user != null && ver != null && ver.equals(user.getVer() == null ? 0 : user.getVer())) {
+                    attributes.put(AuthUtil.ATTR_USER_ID, userId);
+                    return true;
+                }
+            }
+            log.warn("WS 握手被拒：token 类型/版本校验失败");
+        } catch (Exception e) {
+            log.warn("WS 握手 token 校验失败: {}", e.getMessage());
         }
         return refuse(response);
     }

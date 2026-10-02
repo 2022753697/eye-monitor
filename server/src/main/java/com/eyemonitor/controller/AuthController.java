@@ -30,8 +30,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ApiResponse<Map<String, Object>> login(@RequestBody Map<String, Object> body) {
-        return ApiResponse.ok(authService.login(str(body, "username"), str(body, "password")));
+    public ApiResponse<Map<String, Object>> login(@RequestBody Map<String, Object> body,
+                                                  HttpServletRequest request) {
+        return ApiResponse.ok(authService.login(str(body, "username"), str(body, "password"),
+                clientIp(request)));
     }
 
     @PostMapping("/refresh")
@@ -51,5 +53,14 @@ public class AuthController {
     private static String str(Map<String, Object> body, String key) {
         Object v = body == null ? null : body.get(key);
         return v == null ? null : String.valueOf(v);
+    }
+
+    /** 真实客户端 IP（nginx 已设置 X-Real-IP） */
+    private static String clientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Real-IP");
+        if (ip == null || ip.isBlank()) ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
+        if (ip != null && ip.indexOf(',') > 0) ip = ip.substring(0, ip.indexOf(',')).trim();
+        return ip;
     }
 }

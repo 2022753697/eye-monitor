@@ -36,6 +36,13 @@ public class PairService {
 
     private final Random random = new Random();
 
+    // F-01（安全加固 2026-10）：加入尝试限流（10 次/小时失败锁 30 分钟）+ PENDING 30 分钟过期
+    private static final int PAIR_MAX_FAIL = 10;
+    private static final long PAIR_WINDOW_MS = 3_600_000L;
+    private static final long PAIR_LOCK_MS = 30 * 60_000L;
+    private static final long PENDING_TTL_MS = 30 * 60_000L;
+    private final SlidingWindowLimiter pairAttemptLimiter = new SlidingWindowLimiter(PAIR_MAX_FAIL, PAIR_WINDOW_MS, PAIR_LOCK_MS);
+
     public PairService(PairRepo pairRepo) {
         this.pairRepo = pairRepo;
     }
@@ -59,6 +66,11 @@ public class PairService {
 
     public synchronized WsMessage handlePairRequest(long userId, String deviceId,
                                                     String pairCode, WebSocketSession session) {
+        // F-01：加入尝试限流（防 1e6 暴力枚举）
+        String key = "pair:" + userId;
+        if (!pairAttemptLimiter.allowed(key)) {
+            return WsMessage.createError(deviceId, null, "配对尝试过于频繁，请 30 分钟后再试");
+        }
         detachUserFromOldPair(userId);
         if (pairCode != null && !pairCode.isBlank()) {
             PairInfo info = pairRegistry.get(pairCode);
@@ -66,11 +78,18 @@ public class PairService {
                 PairEntity e = pairRepo.findByPairCode(pairCode);
                 if (e == null) {
                     log.warn("无效配对码: code={}, user={}", pairCode, userId);
+                    pairAttemptLimiter.recordFail(key);
                     return WsMessage.createError(deviceId, null, "配对码无效");
                 }
                 info = restoreFromEntity(e);
             }
-            return joinOrRecover(info, userId, deviceId, session);
+            WsMessage result = joinOrRecover(info, userId, deviceId, session);
+            if ("error".equals(result.getType())) {
+                pairAttemptLimiter.recordFail(key);
+            } else {
+                pairAttemptLimiter.recordSuccess(key);
+            }
+            return result;
         }
         return createPair(userId, deviceId, session);
     }
@@ -122,10 +141,20 @@ public class PairService {
             return WsMessage.createPairConfirm(deviceId, pairCode, info.complete);
         }
         if (info.userA == null) {
+            // F-01：PENDING 超时后禁止再被认领（需要重新创建）
+            if (info.isExpiredPending()) {
+                log.warn("配对码已过期: code={}", pairCode);
+                return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
+            }
             info.userA = userId;
             info.deviceAId = deviceId;
             info.sessionA = session;
         } else if (info.userB == null) {
+            // F-01：PENDING 超时后禁止被第二人认领
+            if (info.isExpiredPending()) {
+                log.warn("配对码已过期: code={}", pairCode);
+                return WsMessage.createError(deviceId, null, "配对码已过期，请重新创建");
+            }
             info.userB = userId;
             info.deviceBId = deviceId;
             info.sessionB = session;
@@ -225,12 +254,19 @@ public class PairService {
     // ==================== 转发 ====================
 
     /**
-     * 按 deviceId 转发给配对对端（客户端高频路径）。
+     * F-02（安全加固 2026-10）：按 deviceId 转发给配对对端（客户端高频路径）。
+     * 发送者归属校验：发送方 userId 必须属于该 deviceId 所在配对，否则拒绝转发（防跨配对注入/身份伪装）。
      */
-    public void forwardToPeer(String deviceId, WsMessage message) {
+    public void forwardToPeer(long senderUserId, String deviceId, WsMessage message) {
         String pairCode = deviceToPair.get(deviceId);
         if (pairCode == null) {
             log.warn("设备未配对，无法转发: device={}, type={}", deviceId, message.getType());
+            return;
+        }
+        // F-02：发送者-配对绑定校验
+        if (senderUserId <= 0 || !belongsToPair(senderUserId, pairCode)) {
+            log.warn("拒绝转发：发送者不属于该配对 device={}, sender={}, type={}",
+                    deviceId, senderUserId, message.getType());
             return;
         }
         PairInfo info = pairRegistry.get(pairCode);
@@ -391,9 +427,16 @@ public class PairService {
         private WebSocketSession sessionA;
         private WebSocketSession sessionB;
         private boolean complete;
+        /** F-01：创建时间（PENDING 30 分钟过期判定） */
+        private final long createdAt = System.currentTimeMillis();
 
         public PairInfo(String pairCode) {
             this.pairCode = pairCode;
+        }
+
+        public boolean isExpiredPending() {
+            // 未完成的配对（无 userB）超时作废
+            return userB == null && System.currentTimeMillis() - createdAt > PENDING_TTL_MS;
         }
 
         public String getPairCode() { return pairCode; }

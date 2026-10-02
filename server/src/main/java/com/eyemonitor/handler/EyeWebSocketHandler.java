@@ -81,13 +81,13 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "pong" -> { /* 心跳回复无需处理 */ }
             case "location" -> handleLocation(session, msg, userId);
             case "chat" -> handleChat(session, msg, userId);
-            case "typing" -> pairService.forwardToPeer(msg.getDeviceId(), msg);
+            case "typing" -> pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
             case "chat_read" -> handleChatRead(session, msg, userId);
             case "chat_recall" -> handleChatRecall(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
             case "media" -> handleMedia(session, msg, userId);
             case "task_publish", "task_respond", "task_complete", "task_reward" -> handleTaskMessage(session, msg, userId);
-            default -> handleForward(session, msg);
+            default -> handleForward(session, msg, userId);
         }
     }
 
@@ -106,7 +106,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private void handleLocation(WebSocketSession session, WsMessage msg, long userId) {
         String pairCode = resolvePairCode(msg, userId);
         messageStore.saveLocation(pairCode, userId, msg.getDeviceId(), msg.getPayload(), msg.getTimestamp());
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
     private void handleChat(WebSocketSession session, WsMessage msg, long userId) {
@@ -121,7 +121,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
                 ? (String) refText : null;
         messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp(),
                 "chat", refMsgId, refTextS);
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
         // 送达回执给发送方：服务器收到即回 chat_ack{msgTs}（对方离线也视为已送达服务器，离线补收兜底）
         Map<String, Object> ackPayload = new HashMap<>();
         ackPayload.put("msgTs", msg.getTimestamp());
@@ -137,7 +137,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Object upTo = payload != null ? payload.get("upToTs") : null;
         long upToTs = upTo instanceof Number ? ((Number) upTo).longValue() : System.currentTimeMillis();
         messageStore.markChatRead(pairCode, userId, upToTs);
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
     /** chat_recall：2 分钟窗口校验后置 deleted，成功才转发（否则回错误给发送方） */
@@ -147,7 +147,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Object ts = payload != null ? payload.get("msgTs") : null;
         long msgTs = ts instanceof Number ? ((Number) ts).longValue() : 0L;
         if (messageStore.recallChat(pairCode, msgTs, userId)) {
-            pairService.forwardToPeer(msg.getDeviceId(), msg);
+            pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
         } else {
             // 业务级失败走 system_tip：type=error 会被客户端误判为配对失效（清配对+跳配对页）
             pairService.sendMessage(session, new WsMessage("system_tip", msg.getDeviceId(), pairCode,
@@ -158,7 +158,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private void handleSos(WebSocketSession session, WsMessage msg, long userId) {
         String pairCode = resolvePairCode(msg, userId);
         messageStore.saveSos(pairCode, userId, msg.getPayload(), msg.getTimestamp());
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
     /** 媒体消息：落库聊天行（text=fileId, kind=media）保证离线补收，再转发给对方 */
@@ -181,7 +181,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
                 }
             }
         }
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
     /** 任务消息：TaskService 状态机校验+落库 → 成功才转发给 peer；业务失败回 system_tip */
@@ -189,7 +189,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         String pairCode = resolvePairCode(msg, userId);
         TaskService.Result r = taskService.process(msg, userId, pairCode);
         if (r.forward) {
-            pairService.forwardToPeer(msg.getDeviceId(), msg);
+            pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
             return;
         }
         if (r.error != null) {
@@ -199,20 +199,26 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleForward(WebSocketSession session, WsMessage msg) {
+    private void handleForward(WebSocketSession session, WsMessage msg, long userId) {
         // app_switch / request_peer_location / anniversary_sync / fence_sync /
         // user_profile / sos_ack / device_status / media_deleted
         log.debug("handleForward: type={}, deviceId={}, pairCode={}",
                 msg.getType(), msg.getDeviceId(), msg.getPairCode());
-        pairService.forwardToPeer(msg.getDeviceId(), msg);
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
-    /** pairCode 优先取消息自带；缺失时按用户当前配对兜底 */
+    /**
+     * F-02（安全加固 2026-10）：服务端权威——pairCode 一律先取该用户自己的配对；
+     * 显式携带的 pairCode 必须 belongsToPair(userId)，否则返回 null（非成员无法注入他人配对）。
+     */
     private String resolvePairCode(WsMessage msg, long userId) {
-        if (msg.getPairCode() != null && !msg.getPairCode().isBlank()) {
+        String self = pairService.getPairCodeOfUser(userId);
+        if (self != null) return self;
+        if (msg.getPairCode() != null && !msg.getPairCode().isBlank()
+                && pairService.belongsToPair(userId, msg.getPairCode())) {
             return msg.getPairCode();
         }
-        return pairService.getPairCodeOfUser(userId);
+        return null;
     }
 
     @Override
