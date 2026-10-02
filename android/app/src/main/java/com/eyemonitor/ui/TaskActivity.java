@@ -25,6 +25,7 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
 import com.eyemonitor.db.TaskEntity;
 import com.eyemonitor.service.MonitorService;
+import com.eyemonitor.service.SyncManager;
 import com.eyemonitor.util.MediaUtils;
 
 import java.io.File;
@@ -83,7 +84,10 @@ public class TaskActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 拉取服务端任务对账（离线补收）+ 等同步落地后再刷一次列表
+        SyncManager.syncTasks(this);
         reload();
+        rvTasks.postDelayed(this::reload, 700);
     }
 
     // --- 筛选 chips ---

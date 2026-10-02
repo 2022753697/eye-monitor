@@ -47,7 +47,75 @@ public final class SyncManager {
         syncFolders(context);
         syncChats(context);
         syncMediaMeta(context);
+        syncTasks(context);
         pruneLocalCaches(context);
+    }
+
+    /** 任务对账（离线补收/换机恢复）：GET /api/tasks 拉全量，本地 upsert + 补齐聊天气泡行 */
+    public static void syncTasks(Context context) {
+        String pairCode = new PrefsManager(context).getPairCode();
+        if (pairCode == null) return;
+        AppDatabase db = AppDatabase.getInstance(context);
+        AuthManager.i(context).getElement(context, "/api/tasks/" + pairCode,
+                new AuthManager.ElementCallback() {
+                    @Override
+                    public void onSuccess(JsonElement data) {
+                        if (data == null || !data.isJsonArray()) return;
+                        JsonArray arr = data.getAsJsonArray();
+                        AppDatabase.dbExecutor.execute(() -> {
+                            int n = 0;
+                            for (int i = 0; i < arr.size(); i++) {
+                                JsonObject o = arr.get(i).getAsJsonObject();
+                                String taskId = o.has("taskId") ? o.get("taskId").getAsString() : null;
+                                if (taskId == null || taskId.isEmpty()) continue;
+                                String status = o.has("status") ? o.get("status").getAsString() : null;
+                                boolean isMine = o.has("isMine") && !o.get("isMine").isJsonNull()
+                                        && o.get("isMine").getAsBoolean();
+                                long ts = o.has("ts") && !o.get("ts").isJsonNull()
+                                        ? o.get("ts").getAsLong() : System.currentTimeMillis();
+                                com.eyemonitor.db.TaskEntity e = new com.eyemonitor.db.TaskEntity(
+                                        taskId,
+                                        str(o, "content"),
+                                        str(o, "mediaFileId"),
+                                        str(o, "rewardType"),
+                                        str(o, "rewardText"),
+                                        str(o, "peerName"),
+                                        isMine,
+                                        status == null ? com.eyemonitor.db.TaskEntity.STATUS_PENDING : status,
+                                        str(o, "reason"),
+                                        ts);
+                                e.mediaFileIds = str(o, "mediaFileIds");
+                                if (o.has("completedTs") && !o.get("completedTs").isJsonNull()) {
+                                    e.completedTs = o.get("completedTs").getAsLong();
+                                }
+                                if (o.has("rewardedTs") && !o.get("rewardedTs").isJsonNull()) {
+                                    e.rewardedTs = o.get("rewardedTs").getAsLong();
+                                }
+                                db.taskDao().upsert(e);
+                                // 聊天气泡行补齐（(kind,ts,text) 幂等，离线补收可见）
+                                if (db.chatDao().countByKindTsText("task", ts, taskId) == 0) {
+                                    db.chatDao().insert(new com.eyemonitor.db.ChatEntity(
+                                            "task", taskId, isMine ? null : e.peerName, isMine, ts));
+                                }
+                                n++;
+                            }
+                            Log.i(TAG, "任务同步: " + n + " 条");
+                            if (n > 0) {
+                                broadcastChatReload(context);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(int code, String msg) {
+                        Log.w(TAG, "任务同步错误: " + code + " " + msg);
+                    }
+                });
+    }
+
+    private static String str(JsonObject o, String key) {
+        if (o == null || !o.has(key) || o.get(key).isJsonNull()) return null;
+        return o.get(key).getAsString();
     }
 
     /** 同步媒体元数据（fileId/mime/duration），离线补收的媒体消息渲染与自动下载依赖它 */

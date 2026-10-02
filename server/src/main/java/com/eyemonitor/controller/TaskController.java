@@ -58,6 +58,7 @@ public class TaskController {
             m.put("ts", e.getTs());
             m.put("completedTs", e.getCompletedTs());
             m.put("rewardedTs", e.getRewardedTs());
+            m.put("isMine", e.getPublisherUser() != null && e.getPublisherUser() == userId);
             out.add(m);
         }
         return ApiResponse.ok(out);
