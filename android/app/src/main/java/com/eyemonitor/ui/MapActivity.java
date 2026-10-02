@@ -692,7 +692,7 @@ public class MapActivity extends AppCompatActivity {
     /** 进入设围栏模式：先读缓存校验围栏数量上限（最多 3 个） */
     private void enterFenceMode() {
         if (!prefs.isPaired()) {
-            Toast.makeText(this, R.string.fence_need_pair, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.fence_need_pair);
             return;
         }
         AppDatabase db = AppDatabase.getInstance(this);
@@ -701,7 +701,7 @@ public class MapActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (!fenceUiAlive) return;
                 if (fences.size() >= MAX_FENCES) {
-                    Toast.makeText(this, R.string.fence_limit_reached, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.fence_limit_reached);
                     return;
                 }
                 fenceMode = true;
@@ -774,7 +774,7 @@ public class MapActivity extends AppCompatActivity {
                     db.cacheDao().deleteFence(serverId);
                     runOnUiThread(() -> {
                         if (!fenceUiAlive) return;
-                        Toast.makeText(MapActivity.this, R.string.fence_delete_success, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(MapActivity.this, R.string.fence_delete_success);
                         loadFenceCircles();
                     });
                 });
@@ -847,12 +847,12 @@ public class MapActivity extends AppCompatActivity {
     /** 确认创建围栏：再次校验数量上限后 POST /api/fences */
     private void confirmFenceCreate() {
         if (fenceCenter == null) {
-            Toast.makeText(this, R.string.fence_pick_center_first, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.fence_pick_center_first);
             return;
         }
         String name = fenceNameInput.getText() != null ? fenceNameInput.getText().toString().trim() : "";
         if (name.isEmpty()) {
-            Toast.makeText(this, R.string.fence_name_required, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.fence_name_required);
             return;
         }
         final double radius = radiusFromProgress(fenceRadiusSeek.getProgress());
@@ -865,7 +865,7 @@ public class MapActivity extends AppCompatActivity {
             if (fences.size() >= MAX_FENCES) {
                 runOnUiThread(() -> {
                     if (fenceUiAlive) {
-                        Toast.makeText(this, R.string.fence_limit_reached, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.fence_limit_reached);
                     }
                 });
                 return;
@@ -899,7 +899,7 @@ public class MapActivity extends AppCompatActivity {
                             });
                         }
                         exitFenceMode();
-                        Toast.makeText(MapActivity.this, R.string.fence_created, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(MapActivity.this, R.string.fence_created);
                         loadFenceCircles();
                         // 停留在地图页并聚焦新围栏（可视化确认“已设置”），不返回聊天页
                         focusOnFence(centerLat, centerLng, radius);
@@ -1009,7 +1009,7 @@ public class MapActivity extends AppCompatActivity {
     /** 「去找他」：跳转高德导航到对方当前位置（不再只是聚焦地图） */
     private void goToPeer() {
         if (peerMarkers.isEmpty()) {
-            Toast.makeText(this, R.string.toast_peer_no_location, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.toast_peer_no_location);
             return;
         }
         Marker m = peerMarkers.values().iterator().next();

@@ -183,8 +183,7 @@ public class ProfileActivity extends AppCompatActivity {
                     String url = input.getText().toString().trim();
                     if (url.isEmpty()
                             || (!url.startsWith("ws://") && !url.startsWith("wss://"))) {
-                        Toast.makeText(this, R.string.profile_server_url_invalid,
-                                Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.profile_server_url_invalid);
                         return;
                     }
                     prefs.setServerUrl(url);
@@ -222,13 +221,13 @@ public class ProfileActivity extends AppCompatActivity {
         try {
             InputStream in = getContentResolver().openInputStream(uri);
             if (in == null) {
-                Toast.makeText(this, R.string.profile_avatar_upload_failed, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.profile_avatar_upload_failed);
                 return;
             }
             Bitmap bitmap = BitmapFactory.decodeStream(in);
             in.close();
             if (bitmap == null) {
-                Toast.makeText(this, R.string.profile_avatar_upload_failed, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.profile_avatar_upload_failed);
                 return;
             }
             // 等比压缩（长边 ≤1024，防超 5MB）
@@ -253,13 +252,13 @@ public class ProfileActivity extends AppCompatActivity {
             bitmap.recycle();
 
             if (out.length() > MAX_AVATAR_BYTES) {
-                Toast.makeText(this, R.string.profile_avatar_upload_failed, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.profile_avatar_upload_failed);
                 return;
             }
             doUploadAvatar(out);
         } catch (Exception e) {
             Log.e("ProfileActivity", "头像处理失败", e);
-            Toast.makeText(this, R.string.profile_avatar_upload_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.profile_avatar_upload_failed);
         }
     }
 
@@ -288,8 +287,7 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     btnSave.setEnabled(true);
                     AvatarUtils.loadInto(ivAvatar, prefs.getAvatar(), prefs.isFemale());
-                    Toast.makeText(ProfileActivity.this, R.string.profile_avatar_upload_failed,
-                            Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(ProfileActivity.this, R.string.profile_avatar_upload_failed);
                 });
             }
         });
@@ -298,7 +296,7 @@ public class ProfileActivity extends AppCompatActivity {
     private void saveProfile() {
         String nickname = etNickname.getText().toString().trim();
         if (TextUtils.isEmpty(nickname)) {
-            Toast.makeText(this, R.string.login_required_tip, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.login_required_tip);
             return;
         }
         String gender = rbFemale.isChecked() ? "female" : "male";
@@ -324,8 +322,7 @@ public class ProfileActivity extends AppCompatActivity {
                             prefs.setGender(gender);
                             prefs.setBirthday(birthday.isEmpty() ? null : birthday);
                             prefs.setBio(bio.isEmpty() ? null : bio);
-                            Toast.makeText(ProfileActivity.this, R.string.profile_saved,
-                                    Toast.LENGTH_SHORT).show();
+                            com.eyemonitor.util.Toasts.showRes(ProfileActivity.this, R.string.profile_saved);
                             // 广播给对方（若已配对）
                             MonitorService.sendProfileUpdate(ProfileActivity.this,
                                     nickname, prefs.getAvatar(), gender,

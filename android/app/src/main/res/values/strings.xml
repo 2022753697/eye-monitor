@@ -444,7 +444,9 @@
     <string name="media_move_failed">移动失败：%1$s</string>
     <string name="media_delete_confirm">确定删除该文件吗？双方共享图库都会同步删除。</string>
     <string name="media_delete_failed">删除失败：%1$s</string>    <string name="video">视频</string>
-    <string name="gallery_empty">暂无共享媒体</string>
+    <string name="gallery_empty">还没有共享媒体</string>
+    <string name="gallery_empty_sub">上传照片/视频，随时翻看彼此的日常</string>
+    <string name="gallery_folder_empty_sub">这个文件夹还是空的，去上传一张吧</string>
 
     <!-- 情侣任务（发布任务功能） -->
     <string name="chat_self_name">我</string>

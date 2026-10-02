@@ -160,7 +160,7 @@ public class MemoEditActivity extends BaseActivity {
         try {
             startActivityForResult(new Intent(this, MediaPickerActivity.class), REQ_PICK_MEMO_IMAGE);
         } catch (Exception e) {
-            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_pick_failed);
         }
     }
 
@@ -179,7 +179,7 @@ public class MemoEditActivity extends BaseActivity {
                 if (path != null) {
                     selectedImages.add(path);
                 } else {
-                    Toast.makeText(this, R.string.memo_err_image, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.memo_err_image);
                 }
             }
             if (selectedImages.size() != before) renderImageStrip();
@@ -258,7 +258,7 @@ public class MemoEditActivity extends BaseActivity {
     private void save() {
         String content = etContent.getText().toString().trim();
         if (content.isEmpty()) {
-            Toast.makeText(this, R.string.memo_err_empty, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.memo_err_empty);
             return;
         }
         final Long reminder = swReminder.isChecked() ? reminderAt : null;
@@ -299,7 +299,7 @@ public class MemoEditActivity extends BaseActivity {
             if (reminder != null) ReminderScheduler.schedule(this, memoId, reminder);
 
             runOnUiThread(() -> {
-                Toast.makeText(this, R.string.memo_save, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.memo_save);
                 finish();
             });
         });

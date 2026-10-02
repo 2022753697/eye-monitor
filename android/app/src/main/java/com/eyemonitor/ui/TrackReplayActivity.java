@@ -291,7 +291,7 @@ public class TrackReplayActivity extends AppCompatActivity {
             end.set(Calendar.MILLISECOND, 999);
             long endTs = end.getTimeInMillis();
             if (endTs < pickStart) {
-                Toast.makeText(this, R.string.track_custom_invalid, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.track_custom_invalid);
                 return;
             }
             rangeStart = pickStart;
@@ -441,7 +441,7 @@ public class TrackReplayActivity extends AppCompatActivity {
 
         if (points.size() < 2) {
             tvProgress.setText(R.string.track_empty);
-            Toast.makeText(this, R.string.track_empty, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.track_empty);
             return;
         }
         fitCameraToTracks();
@@ -471,7 +471,7 @@ public class TrackReplayActivity extends AppCompatActivity {
     private void showEmptyState() {
         runOnUiThread(() -> {
             tvProgress.setText(R.string.track_no_data);
-            Toast.makeText(TrackReplayActivity.this, R.string.track_no_data, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(TrackReplayActivity.this, R.string.track_no_data);
         });
     }
 
@@ -496,7 +496,7 @@ public class TrackReplayActivity extends AppCompatActivity {
 
     private void startPlayback() {
         if (points.size() < 2) {
-            Toast.makeText(this, R.string.track_empty, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.track_empty);
             return;
         }
         clearPolyline();

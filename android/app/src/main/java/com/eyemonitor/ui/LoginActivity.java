@@ -129,7 +129,7 @@ public class LoginActivity extends AppCompatActivity {
         String username = etUsername.getText().toString().trim();
         String password = etPassword.getText().toString();
         if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, R.string.login_required_tip, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.login_required_tip);
             return;
         }
         // 服务器地址必须已设置，否则弹窗引导输入
@@ -143,7 +143,7 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(com.google.gson.JsonObject data) {
                 runOnUiThread(() -> {
                     setBusy(false);
-                    Toast.makeText(LoginActivity.this, R.string.login_title, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(LoginActivity.this, R.string.login_title);
                     enterMain();
                 });
             }
@@ -165,7 +165,7 @@ public class LoginActivity extends AppCompatActivity {
         String password = etRegPassword.getText().toString();
         String nickname = etRegNickname.getText().toString().trim();
         if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password) || TextUtils.isEmpty(nickname)) {
-            Toast.makeText(this, R.string.login_required_tip, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.login_required_tip);
             return;
         }
         // 服务器地址必须已设置，否则弹窗引导输入
@@ -184,7 +184,7 @@ public class LoginActivity extends AppCompatActivity {
                     public void onSuccess(com.google.gson.JsonObject data) {
                         runOnUiThread(() -> {
                             setBusy(false);
-                            Toast.makeText(LoginActivity.this, R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                            com.eyemonitor.util.Toasts.showRes(LoginActivity.this, R.string.profile_saved);
                             enterMain();
                         });
                     }

@@ -149,8 +149,12 @@ public class GalleryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
 
+        // 统一 HeaderBar：返回 + 标题
+        findViewById(R.id.header_back).setOnClickListener(v -> finish());
+        ((TextView) findViewById(R.id.header_title)).setText(R.string.gallery_title);
+
         rvGallery = findViewById(R.id.rv_gallery);
-        tvEmpty = findViewById(R.id.tv_gallery_empty);
+        tvEmpty = null; // 空态已组件化（es_gallery）
         btnGallerySelect = findViewById(R.id.btn_gallery_select);
         batchBar = findViewById(R.id.batch_bar);
         tvBatchCount = findViewById(R.id.tv_batch_count);
@@ -580,10 +584,7 @@ public class GalleryActivity extends AppCompatActivity {
             }
             runOnUiThread(() -> {
                 adapter.setRows(newRows);
-                tvEmpty.setVisibility(newRows.isEmpty() ? View.VISIBLE : View.GONE);
-                tvEmpty.setText(currentFolderId == null
-                        ? getString(R.string.gallery_empty)
-                        : getString(R.string.gallery_folder_empty));
+                updateEmpty(newRows.isEmpty());
             });
         });
     }
@@ -602,7 +603,7 @@ public class GalleryActivity extends AppCompatActivity {
     private void pickMedia() {
         PrefsManager prefs = new PrefsManager(this);
         if (!prefs.isPaired()) {
-            Toast.makeText(this, R.string.media_not_paired, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_not_paired);
             return;
         }
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -612,7 +613,7 @@ public class GalleryActivity extends AppCompatActivity {
         try {
             startActivityForResult(intent, REQ_PICK_MEDIA);
         } catch (Exception e) {
-            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_pick_failed);
         }
     }
 
@@ -628,7 +629,7 @@ public class GalleryActivity extends AppCompatActivity {
     private void handleMediaPicked(final Uri uri) {
         long size = MediaUtils.querySize(this, uri);
         if (size > MediaUtils.MAX_MEDIA_BYTES) {
-            Toast.makeText(this, R.string.media_file_too_large, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_file_too_large);
             return;
         }
         String name = MediaUtils.queryDisplayName(this, uri);
@@ -642,8 +643,7 @@ public class GalleryActivity extends AppCompatActivity {
             File dir = tmp.getParentFile();
             if (dir != null) dir.mkdirs();
             if (!MediaUtils.copyUriToFile(GalleryActivity.this, uri, tmp)) {
-                runOnUiThread(() -> Toast.makeText(GalleryActivity.this, R.string.media_pick_failed,
-                        Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(GalleryActivity.this, R.string.media_pick_failed));
                 return;
             }
             long duration = video ? MediaUtils.queryDurationMs(GalleryActivity.this, uri) : 0;
@@ -652,8 +652,7 @@ public class GalleryActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (video && (finalDuration < 0 || finalDuration > MediaUtils.MAX_VIDEO_MS)) {
                     file.delete();
-                    Toast.makeText(GalleryActivity.this, R.string.media_video_too_long,
-                            Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(GalleryActivity.this, R.string.media_video_too_long);
                     return;
                 }
                 uploadMedia(file, finalName, mime, finalDuration, uri);
@@ -663,7 +662,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     private void uploadMedia(final File file, final String name, final String mime,
                              final long duration, final Uri uri) {
-        Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+        com.eyemonitor.util.Toasts.showRes(this, R.string.media_uploading);
         final Long folderId = currentFolderId;
         final PrefsManager prefs = new PrefsManager(this);
         AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), folderId,
@@ -673,8 +672,7 @@ public class GalleryActivity extends AppCompatActivity {
                         final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
                         if (fileId == null || fileId.isEmpty()) {
                             file.delete();
-                            runOnUiThread(() -> Toast.makeText(GalleryActivity.this,
-                                    R.string.auth_error_response, Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(GalleryActivity.this, R.string.auth_error_response));
                             return;
                         }
                         final long now = System.currentTimeMillis();
@@ -830,6 +828,22 @@ public class GalleryActivity extends AppCompatActivity {
         });
     }
 
+    /** 空态切换（组件化：图标/标题/副文案，文件夹视图与根视图不同文案） */
+    private void updateEmpty(boolean empty) {
+        View es = findViewById(R.id.es_gallery);
+        if (es == null) return;
+        if (!empty) {
+            es.setVisibility(View.GONE);
+            return;
+        }
+        boolean inFolder = currentFolderId != null;
+        com.eyemonitor.util.EmptyStateUtil.show(this, R.id.es_gallery,
+                R.drawable.ic_image,
+                inFolder ? R.string.gallery_folder_empty : R.string.gallery_empty,
+                inFolder ? R.string.gallery_folder_empty_sub : R.string.gallery_empty_sub,
+                0, null);
+    }
+
     private class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHolder> {
 
         final List<GalleryRow> rows = new ArrayList<>();
@@ -837,7 +851,7 @@ public class GalleryActivity extends AppCompatActivity {
         void setRows(List<GalleryRow> newRows) {
             rows.clear();
             rows.addAll(newRows);
-            tvEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+            updateEmpty(rows.isEmpty());
             notifyDataSetChanged();
         }
 
@@ -993,9 +1007,7 @@ public class GalleryActivity extends AppCompatActivity {
                                         public void onError(int code, String msg) {
                                             runOnUiThread(() -> {
                                                 tvHint.setText(R.string.media_download_hint);
-                                                Toast.makeText(GalleryActivity.this,
-                                                        R.string.media_download_failed,
-                                                        Toast.LENGTH_SHORT).show();
+                                                com.eyemonitor.util.Toasts.showRes(GalleryActivity.this, R.string.media_download_failed);
                                             });
                                         }
                                     });

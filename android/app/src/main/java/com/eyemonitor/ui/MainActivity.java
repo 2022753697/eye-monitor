@@ -547,7 +547,7 @@ public class MainActivity extends AppCompatActivity {
         PermissionHelper.onEntryFlowStep(this, requestCode);
         if (requestCode == REQ_VOICE_PERMISSION && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.voice_permission_granted, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.voice_permission_granted);
         }
     }
 
@@ -655,11 +655,11 @@ public class MainActivity extends AppCompatActivity {
     private void joinPair() {
         String code = etPairCode.getText().toString().trim();
         if (code.isEmpty()) {
-            Toast.makeText(this, R.string.pair_input_empty, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.pair_input_empty);
             return;
         }
         if (code.length() != 6) {
-            Toast.makeText(this, R.string.pair_input_invalid, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.pair_input_invalid);
             return;
         }
         connectPairWs(code, true);
@@ -761,7 +761,7 @@ public class MainActivity extends AppCompatActivity {
                         pairAwaitingPeer = false;
                         prefs.setPairAwaitingPeer(false);
                         setPairResultVisible(getString(R.string.pair_success_with_code, code));
-                        Toast.makeText(this, R.string.pair_success, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.pair_success);
                     } else {
                         // 已创建 / 已恢复配对：等待对方加入，停留在配对面板（码本页可见）
                         pairAwaitingPeer = true;
@@ -867,14 +867,14 @@ public class MainActivity extends AppCompatActivity {
         hideMorePanel();
         hideKeyboard();
         if (!prefs.isPaired()) {
-            Toast.makeText(this, R.string.media_not_paired, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_not_paired);
             return;
         }
         try {
             startActivityForResult(new Intent(this, MediaPickerActivity.class), REQ_PICK_MEDIA);
         } catch (Exception e) {
             Log.w(TAG, "打开媒体选择器失败", e);
-            Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_pick_failed);
         }
     }
 
@@ -903,8 +903,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleMediaPicked(Uri uri) {
         long size = MediaUtils.querySize(this, uri);
         if (size > MediaUtils.MAX_MEDIA_BYTES) {
-            Toast.makeText(this, R.string.media_file_too_large,
-                    Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_file_too_large);
             return;
         }
         String name = MediaUtils.queryDisplayName(this, uri);
@@ -920,8 +919,7 @@ public class MainActivity extends AppCompatActivity {
             File dir = tmp.getParentFile();
             if (dir != null) dir.mkdirs();
             if (!MediaUtils.copyUriToFile(MainActivity.this, uri, tmp)) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.media_pick_failed,
-                        Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.media_pick_failed));
                 return;
             }
             long duration = video ? MediaUtils.queryDurationMs(MainActivity.this, uri) : 0;
@@ -930,8 +928,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (video && (finalDuration < 0 || finalDuration > MediaUtils.MAX_VIDEO_MS)) {
                     file.delete();
-                    Toast.makeText(MainActivity.this, R.string.media_video_too_long,
-                            Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.media_video_too_long);
                     return;
                 }
                 uploadMedia(file, finalName, finalMime, finalDuration, uri);
@@ -941,15 +938,14 @@ public class MainActivity extends AppCompatActivity {
 
     /** 上传到服务器并广播元数据；成功后本地归档 + 聊天气泡立即显示 */
     private void uploadMedia(File file, String name, String mime, long duration, Uri uri) {
-        Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+        com.eyemonitor.util.Toasts.showRes(this, R.string.media_uploading);
         AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), new AuthManager.Callback() {
             @Override
             public void onSuccess(com.google.gson.JsonObject data) {
                 final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
                 if (fileId == null || fileId.isEmpty()) {
                     file.delete();
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, R.string.auth_error_response,
-                            Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.auth_error_response));
                     return;
                 }
                 final long now = System.currentTimeMillis();
@@ -983,8 +979,7 @@ public class MainActivity extends AppCompatActivity {
                         chatAdapter.addItem(new ChatItem(TYPE_MEDIA_SELF, fileId, from,
                                 TIME_FORMAT.format(new Date(now)), now));
                         scrollToBottom();
-                        Toast.makeText(MainActivity.this, R.string.media_send_success,
-                                Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.media_send_success);
                     });
                 });
             }
@@ -1256,7 +1251,7 @@ public class MainActivity extends AppCompatActivity {
             chatUiHandler.postDelayed(voiceTimeoutRunnable, 60_000L);
         } catch (Exception e) {
             Log.e(TAG, "录音启动失败", e);
-            Toast.makeText(this, R.string.voice_record_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.voice_record_failed);
         }
     }
 
@@ -1284,7 +1279,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (dur < 1000) {
             f.delete();
-            Toast.makeText(this, R.string.voice_too_short, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.voice_too_short);
             return;
         }
         uploadVoice(f, Math.min(dur, 60_000L));
@@ -1292,7 +1287,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** 语音走媒体上传管线（复用 /api/media/upload + WS media 元数据） */
     private void uploadVoice(final File file, final long durationMs) {
-        Toast.makeText(this, R.string.voice_uploading, Toast.LENGTH_SHORT).show();
+        com.eyemonitor.util.Toasts.showRes(this, R.string.voice_uploading);
         AuthManager.i(this).uploadMedia(this, file, prefs.getPairCode(), new AuthManager.Callback() {
             @Override
             public void onSuccess(com.google.gson.JsonObject data) {
@@ -1364,8 +1359,7 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(int code, String msg) {
-                    h.itemView.post(() -> Toast.makeText(MainActivity.this,
-                            R.string.media_download_failed, Toast.LENGTH_SHORT).show());
+                    h.itemView.post(() -> com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.media_download_failed));
                 }
             });
             return;
@@ -2180,7 +2174,7 @@ public class MainActivity extends AppCompatActivity {
                     AppDatabase.dbExecutor.execute(() ->
                             AppDatabase.getInstance(this).chatDao().clear());
                     chatAdapter.clear();
-                    Toast.makeText(this, R.string.toast_chat_cleared, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.toast_chat_cleared);
                 });
     }
 
@@ -2196,7 +2190,7 @@ public class MainActivity extends AppCompatActivity {
     /** 更多菜单 → SOS 长按面板：大按钮长按 3 秒发送（未配对/冷却中拦截） */
     private void showSosPanel() {
         if (!prefs.isPaired()) {
-            Toast.makeText(this, R.string.sos_need_pair, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.sos_need_pair);
             return;
         }
         long remaining = remainingSosCooldown();
@@ -2239,7 +2233,7 @@ public class MainActivity extends AppCompatActivity {
     private void sendSosNow() {
         prefs.setSosLastTrigger(System.currentTimeMillis());
         MonitorService.sendSos(this, getString(R.string.sos_help_me));
-        Toast.makeText(this, R.string.sos_sent, Toast.LENGTH_SHORT).show();
+        com.eyemonitor.util.Toasts.showRes(this, R.string.sos_sent);
     }
 
     /** 剩余冷却毫秒（0 = 不在冷却） */
@@ -2295,7 +2289,7 @@ public class MainActivity extends AppCompatActivity {
             if (who == null || who.isEmpty()) who = getString(R.string.chat_title_default);
             MapNav.navigate(this, lat, lng, who);
         } else {
-            Toast.makeText(this, R.string.sos_no_location, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.sos_no_location);
         }
     }
 
@@ -2447,7 +2441,7 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(
                         new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 100);
             } else {
-                Toast.makeText(this, R.string.toast_notification_granted, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.toast_notification_granted);
             }
         }
     }
@@ -2974,8 +2968,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onError(int code, String msg) {
                                 h.itemView.post(() -> {
                                     h.tvMediaHint.setText(R.string.media_download_hint);
-                                    Toast.makeText(MainActivity.this, R.string.media_download_failed,
-                                            Toast.LENGTH_SHORT).show();
+                                    com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.media_download_failed);
                                 });
                             }
                         });

@@ -378,11 +378,11 @@
 
             <ImageButton
                 android:id="@+id/btn_mic"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="@dimen/icon_44"
+                android:layout_height="@dimen/icon_44"
+                android:padding="4dp"
                 android:src="@drawable/ic_mic"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
                 android:tint="@color/text_secondary"
                 android:contentDescription="@string/voice_toggle"
                 android:layout_marginEnd="4dp" />
@@ -413,11 +413,11 @@
 
             <ImageButton
                 android:id="@+id/btn_emoji"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="@dimen/icon_44"
+                android:layout_height="@dimen/icon_44"
+                android:padding="4dp"
                 android:src="@drawable/ic_emoji"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
                 android:tint="@color/text_secondary"
                 android:contentDescription="@string/chat_tool_emoji"
                 android:layout_marginStart="4dp" />
@@ -436,8 +436,8 @@
             <!-- 更多（底部弹出菜单） -->
             <ImageButton
                 android:id="@+id/btn_chat_more"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="@dimen/icon_44"
+                android:layout_height="@dimen/icon_44"
                 android:src="@drawable/ic_more"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"

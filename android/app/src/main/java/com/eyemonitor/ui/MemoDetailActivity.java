@@ -49,7 +49,7 @@ public class MemoDetailActivity extends BaseActivity {
         findViewById(R.id.btn_memo_delete).setOnClickListener(v -> confirmDelete());
 
         if (memoId < 0) {
-            Toast.makeText(this, R.string.memo_err_empty, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.memo_err_empty);
             finish();
             return;
         }
@@ -70,7 +70,7 @@ public class MemoDetailActivity extends BaseActivity {
             List<MemoItemEntity> items = dao.getItems(memoId);
             runOnUiThread(() -> {
                 if (memo == null) {
-                    Toast.makeText(this, R.string.memo_err_empty, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.memo_err_empty);
                     finish();
                     return;
                 }

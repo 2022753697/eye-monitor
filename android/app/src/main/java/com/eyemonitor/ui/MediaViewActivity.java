@@ -32,7 +32,7 @@ public class MediaViewActivity extends AppCompatActivity {
 
         String path = getIntent().getStringExtra(EXTRA_PATH);
         if (path == null || !new File(path).exists()) {
-            Toast.makeText(this, R.string.media_file_missing, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_file_missing);
             finish();
             return;
         }

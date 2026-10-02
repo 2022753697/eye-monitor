@@ -166,11 +166,11 @@ public class AnniversaryActivity extends AppCompatActivity {
                     String name = etName.getText().toString().trim();
                     String date = etDate.getText().toString().trim();
                     if (TextUtils.isEmpty(name)) {
-                        Toast.makeText(this, R.string.anniversary_name_empty, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.anniversary_name_empty);
                         return;
                     }
                     if (TextUtils.isEmpty(date)) {
-                        Toast.makeText(this, R.string.anniversary_date_empty, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.anniversary_date_empty);
                         return;
                     }
                     if (!busy) save(existing, dialog, name, date, swRepeat.isChecked());
@@ -197,8 +197,7 @@ public class AnniversaryActivity extends AppCompatActivity {
                 SyncManager.syncAnniversaries(AnniversaryActivity.this);
                 runOnUiThread(() -> {
                     dialog.dismiss();
-                    Toast.makeText(AnniversaryActivity.this, R.string.anniversary_save_ok,
-                            Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(AnniversaryActivity.this, R.string.anniversary_save_ok);
                     reload();
                 });
             }
@@ -258,8 +257,7 @@ public class AnniversaryActivity extends AppCompatActivity {
                                                     .cacheDao().deleteAnniversary(entity.serverId));
                                     SyncManager.syncAnniversaries(AnniversaryActivity.this);
                                     runOnUiThread(() -> {
-                                        Toast.makeText(AnniversaryActivity.this,
-                                                R.string.anniversary_delete_ok, Toast.LENGTH_SHORT).show();
+                                        com.eyemonitor.util.Toasts.showRes(AnniversaryActivity.this, R.string.anniversary_delete_ok);
                                         reload();
                                     });
                                 }

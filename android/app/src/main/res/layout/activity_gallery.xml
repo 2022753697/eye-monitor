@@ -11,22 +11,10 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-    <!-- 渐变头栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient"
-        android:padding="@dimen/space_16"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
-            android:text="@string/gallery_title" />
-    </LinearLayout>
+    <!-- 渐变头栏（统一 HeaderBar：返回 + 标题） -->
+    <include
+        layout="@layout/component_header_bar"
+        android:id="@+id/header_gallery_bar" />
 
     <!-- 分类条移除：全部视图 = 文件夹卡片上下列表（每行一个文件夹），见 item_media_folder.xml -->
 
@@ -39,16 +27,13 @@
         android:padding="@dimen/space_4"
         android:clipToPadding="false" />
 
-    <!-- 空状态：占满剩余区域并居中 -->
-    <TextView
-        android:id="@+id/tv_gallery_empty"
+    <!-- 空状态（组件化） -->
+    <include
+        layout="@layout/component_empty_state"
+        android:id="@+id/es_gallery"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/gallery_empty"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_14"
         android:visibility="gone" />
 
     <!-- 批量操作栏（选择模式底部） -->

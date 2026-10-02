@@ -333,7 +333,7 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskRespond(this, e.taskId, "accept", null);
-                Toast.makeText(this, R.string.task_toast_accept, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_accept);
                 dlg.dismiss();
                 reloadSoon();
             });
@@ -348,7 +348,7 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskComplete(this, e.taskId);
-                Toast.makeText(this, R.string.task_toast_complete, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_complete);
                 dlg.dismiss();
                 reloadSoon();
             });
@@ -357,7 +357,7 @@ public class TaskActivity extends BaseActivity {
             btnPrimary.setVisibility(View.VISIBLE);
             btnPrimary.setOnClickListener(v -> {
                 MonitorService.sendTaskReward(this, e.taskId);
-                Toast.makeText(this, R.string.task_toast_reward, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_reward);
                 dlg.dismiss();
                 reloadSoon();
             });
@@ -415,11 +415,11 @@ public class TaskActivity extends BaseActivity {
                 .setOnClickListener(v -> {
                     String reason = etReason.getText().toString().trim();
                     if (reason.isEmpty()) {
-                        Toast.makeText(this, R.string.task_reject_need_reason, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.task_reject_need_reason);
                         return; // 不关闭
                     }
                     MonitorService.sendTaskRespond(this, e.taskId, "reject", reason);
-                    Toast.makeText(this, R.string.task_toast_reject, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_reject);
                     reloadSoon();
                     dlg.dismiss();
                 }));
@@ -453,7 +453,7 @@ public class TaskActivity extends BaseActivity {
             if (!pendingPhotoFileIds.isEmpty()) {
                 pendingPhotoFileIds.clear();
                 renderPhotoStrip();
-                Toast.makeText(this, R.string.task_remove_photo, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.task_remove_photo);
             } else {
                 startPhotoPick();
             }
@@ -470,7 +470,7 @@ public class TaskActivity extends BaseActivity {
                 .setOnClickListener(v -> {
                     String content = etContent.getText().toString().trim();
                     if (content.isEmpty()) {
-                        Toast.makeText(this, R.string.task_publish_empty, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.task_publish_empty);
                         return; // 不关闭
                     }
                     // 奖励：预置选中（ChipGroup）或 自定义非空，二选一
@@ -484,7 +484,7 @@ public class TaskActivity extends BaseActivity {
                     }
                     String custom = etRewardCustom.getText().toString().trim();
                     if (preset == null && custom.isEmpty()) {
-                        Toast.makeText(this, R.string.task_reward_empty, Toast.LENGTH_SHORT).show();
+                        com.eyemonitor.util.Toasts.showRes(this, R.string.task_reward_empty);
                         return; // 不关闭
                     }
                     String taskId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
@@ -492,7 +492,7 @@ public class TaskActivity extends BaseActivity {
                     MonitorService.sendTaskPublish(this, taskId, content,
                             ids.isEmpty() ? null : ids, preset, custom.isEmpty() ? preset : custom);
                     pendingPhotoFileIds.clear();
-                    Toast.makeText(this, R.string.task_toast_sent, Toast.LENGTH_SHORT).show();
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.task_toast_sent);
                     reloadSoon();
                     publishDialog.dismiss();
                 }));
@@ -593,8 +593,7 @@ public class TaskActivity extends BaseActivity {
 
                 @Override
                 public void onError(int code, String msg) {
-                    runOnUiThread(() -> Toast.makeText(TaskActivity.this,
-                            R.string.media_download_failed, Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(TaskActivity.this, R.string.media_download_failed));
                 }
             });
         }
@@ -634,7 +633,7 @@ public class TaskActivity extends BaseActivity {
             String mime = getContentResolver().getType(uri);
             if (mime == null) mime = "image/jpeg";
             if (mime.startsWith("video")) {
-                Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.media_pick_failed);
                 uploadNextPhoto();
                 return;
             }
@@ -644,13 +643,13 @@ public class TaskActivity extends BaseActivity {
             else if (mime.contains("webp")) ext = "webp";
             File tmp = new File(getCacheDir(), "task_photo_" + System.currentTimeMillis() + "." + ext);
             if (!MediaUtils.copyUriToFile(this, uri, tmp)) {
-                Toast.makeText(this, R.string.media_pick_failed, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.media_pick_failed);
                 uploadNextPhoto();
                 return;
             }
             if (!uploadToastShown) {
                 uploadToastShown = true;
-                Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.media_uploading);
             }
             String pairCode = new PrefsManager(this).getPairCode();
             // 任务专用通道：taskOnly → 服务器标记，不进共享图库/不广播媒体气泡
@@ -660,8 +659,7 @@ public class TaskActivity extends BaseActivity {
                     final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
                     if (fileId == null || fileId.isEmpty()) {
                         tmp.delete();
-                        runOnUiThread(() -> Toast.makeText(TaskActivity.this,
-                                R.string.media_upload_failed, Toast.LENGTH_SHORT).show());
+                        runOnUiThread(() -> com.eyemonitor.util.Toasts.showRes(TaskActivity.this, R.string.media_upload_failed));
                         uploadNextPhoto();
                         return;
                     }
@@ -690,7 +688,7 @@ public class TaskActivity extends BaseActivity {
                 }
             });
         } catch (Exception ex) {
-            Toast.makeText(this, R.string.media_upload_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_upload_failed);
             uploadNextPhoto();
         }
     }

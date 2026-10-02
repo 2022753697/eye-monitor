@@ -147,7 +147,7 @@ public class MediaPickerActivity extends BaseActivity {
             if (granted) {
                 loadMediaAndAlbums();
             } else {
-                Toast.makeText(this, R.string.picker_need_storage, Toast.LENGTH_SHORT).show();
+                com.eyemonitor.util.Toasts.showRes(this, R.string.picker_need_storage);
             }
         }
     }

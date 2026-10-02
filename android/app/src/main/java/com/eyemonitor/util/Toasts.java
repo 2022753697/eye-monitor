@@ -22,25 +22,35 @@ public final class Toasts {
 
     /** 普通提示 */
     public static void show(Context ctx, CharSequence text) {
-        show(ctx, text, 0);
+        show(ctx, text, 0, Toast.LENGTH_SHORT);
+    }
+
+    /** 字符串资源版（保持 SHORT） */
+    public static void showRes(Context ctx, int resId) {
+        show(ctx, ctx.getString(resId), 0, Toast.LENGTH_SHORT);
+    }
+
+    /** 长时长版（保持原 LONG 语义） */
+    public static void showLong(Context ctx, CharSequence text) {
+        show(ctx, text, 0, Toast.LENGTH_LONG);
     }
 
     /** 成功态 ✅ */
     public static void showOk(Context ctx, CharSequence text) {
-        show(ctx, text, R.drawable.ic_toast_ok);
+        show(ctx, text, R.drawable.ic_toast_ok, Toast.LENGTH_SHORT);
     }
 
     /** 警示态 ⚠ */
     public static void showWarn(Context ctx, CharSequence text) {
-        show(ctx, text, R.drawable.ic_toast_warn);
+        show(ctx, text, R.drawable.ic_toast_warn, Toast.LENGTH_SHORT);
     }
 
     /** 错误态 ✕ */
     public static void showError(Context ctx, CharSequence text) {
-        show(ctx, text, R.drawable.ic_toast_error);
+        show(ctx, text, R.drawable.ic_toast_error, Toast.LENGTH_SHORT);
     }
 
-    private static void show(Context ctx, CharSequence text, int iconRes) {
+    private static void show(Context ctx, CharSequence text, int iconRes, int duration) {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -61,7 +71,7 @@ public final class Toasts {
         tv.setTextColor(Color.WHITE);
         tv.setTextSize(14);
         row.addView(tv);
-        Toast t = Toast.makeText(ctx, text, Toast.LENGTH_SHORT);
+        Toast t = Toast.makeText(ctx, text, duration);
         t.setView(row);
         t.setGravity(Gravity.CENTER, 0, 0);
         t.show();

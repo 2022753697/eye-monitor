@@ -42,14 +42,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         String path = getIntent().getStringExtra(EXTRA_PATH);
         if (path == null || !new File(path).exists()) {
-            Toast.makeText(this, R.string.media_file_missing, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_file_missing);
             finish();
             return;
         }
         videoView.setVideoPath(path);
         videoView.setOnPreparedListener(MediaPlayer::start);
         videoView.setOnErrorListener((mp, what, extra) -> {
-            Toast.makeText(this, R.string.media_play_failed, Toast.LENGTH_SHORT).show();
+            com.eyemonitor.util.Toasts.showRes(this, R.string.media_play_failed);
             return true;
         });
     }
