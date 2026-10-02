@@ -2603,7 +2603,7 @@ public class MainActivity extends AppCompatActivity {
             View vTaskDivider1;
             View vTaskDivider2;
             TextView tvTaskContent;
-            ImageView ivTaskPhoto;
+            LinearLayout llTaskPhotos;
             TextView tvTaskReward;
             TextView tvTaskStatus;
             TextView tvTaskHint;
@@ -2656,7 +2656,7 @@ public class MainActivity extends AppCompatActivity {
                         vTaskDivider1 = view.findViewById(R.id.v_task_divider1);
                         vTaskDivider2 = view.findViewById(R.id.v_task_divider2);
                         tvTaskContent = view.findViewById(R.id.tv_task_content);
-                        ivTaskPhoto = view.findViewById(R.id.iv_task_photo);
+                        llTaskPhotos = view.findViewById(R.id.ll_bubble_photos);
                         tvTaskReward = view.findViewById(R.id.tv_task_reward);
                         tvTaskStatus = view.findViewById(R.id.tv_task_status);
                         tvTaskHint = view.findViewById(R.id.tv_task_hint);
@@ -2820,7 +2820,8 @@ public class MainActivity extends AppCompatActivity {
         h.tvTaskContent.setTextColor(getResources().getColor(
                 self ? R.color.white : R.color.text_primary));
         h.tvTaskContent.setText(item.taskContent);
-        MediaUtils.loadTaskPhoto(MainActivity.this, h.ivTaskPhoto, item.taskMediaIds, true);
+        MediaUtils.loadTaskPhotos(MainActivity.this, h.llTaskPhotos, item.taskMediaIds, 80,
+                fid -> MediaUtils.openPhotoPreview(MainActivity.this, fid));
         h.tvTaskReward.setText(item.taskReward);
         h.tvTaskReward.setTextColor(getResources().getColor(
                 self ? R.color.text_on_primary_muted : R.color.accent));

@@ -191,7 +191,7 @@ public class TaskActivity extends BaseActivity {
 
         class Holder extends RecyclerView.ViewHolder {
             final TextView tvDate, tvStatus, tvContent, tvReward;
-            final ImageView ivPhoto;
+            final LinearLayout llPhotos;
 
             Holder(View itemView) {
                 super(itemView);
@@ -199,7 +199,7 @@ public class TaskActivity extends BaseActivity {
                 tvStatus = itemView.findViewById(R.id.tv_task_card_status);
                 tvContent = itemView.findViewById(R.id.tv_task_card_content);
                 tvReward = itemView.findViewById(R.id.tv_task_card_reward);
-                ivPhoto = itemView.findViewById(R.id.iv_task_card_photo);
+                llPhotos = itemView.findViewById(R.id.ll_card_photos);
                 itemView.setOnClickListener(v -> showDetailDialog(data.get(getBindingAdapterPosition())));
             }
 
@@ -209,8 +209,8 @@ public class TaskActivity extends BaseActivity {
                 String reward = rewardDisplay(e);
                 tvReward.setText(reward != null && !reward.isEmpty()
                         ? "🎁 " + getString(R.string.task_reward_of, reward) : "");
-                MediaUtils.loadTaskPhoto(TaskActivity.this, ivPhoto, e.mediaFileIds, true);
-                ivPhoto.setOnClickListener(v -> showPhotoPreview(firstId(e.mediaFileIds)));
+                MediaUtils.loadTaskPhotos(TaskActivity.this, llPhotos, e.mediaFileIds, 120,
+                        fid -> showPhotoPreview(fid));
                 tvStatus.setText(statusDisplay(e));
                 int pillBg = R.drawable.bg_pill_gray;
                 int pillColor = R.color.text_secondary;
@@ -245,13 +245,9 @@ public class TaskActivity extends BaseActivity {
                 .setText(getString(R.string.task_publisher_of, who) + " · " + fmtTime(e.ts));
         ((TextView) body.findViewById(R.id.tv_detail_content))
                 .setText(e.content != null ? e.content : "");
-        // 配图（点击放大预览）
-        final ImageView ivDetailPhoto = body.findViewById(R.id.iv_detail_photo);
-        MediaUtils.loadTaskPhoto(this, ivDetailPhoto, e.mediaFileIds, false);
-        ivDetailPhoto.setOnClickListener(v -> {
-            String fid = firstId(e.mediaFileIds);
-            if (fid != null) showPhotoPreview(fid);
-        });
+        // 配图条（多图全部显示，点击放大）
+        MediaUtils.loadTaskPhotos(this, body.findViewById(R.id.ll_detail_photos),
+                e.mediaFileIds, 140, fid -> showPhotoPreview(fid));
         String reward = rewardDisplay(e);
         ((TextView) body.findViewById(R.id.tv_detail_reward))
                 .setText(reward != null && !reward.isEmpty()

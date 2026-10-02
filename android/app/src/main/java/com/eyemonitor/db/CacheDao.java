@@ -81,6 +81,10 @@ public interface CacheDao {
     @Query("DELETE FROM media_cache WHERE fileId = :fileId")
     void deleteMedia(String fileId);
 
+    /** 删除不在服务端列表中的陈旧缓存行（同步对账：服务端已删的本地行必须清掉，防图库幽灵图） */
+    @Query("DELETE FROM media_cache WHERE fileId NOT IN (:ids)")
+    void deleteMediaNotIn(java.util.List<String> ids);
+
     @Query("DELETE FROM media_cache")
     void clearMedia();
 

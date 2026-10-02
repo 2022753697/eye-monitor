@@ -69,15 +69,19 @@
             android:textColor="@color/text_primary"
             android:maxWidth="240dp" />
 
-        <!-- 配图（多图取第一张） -->
-        <ImageView
-            android:id="@+id/iv_task_photo"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+        <!-- 配图条（多图全部显示，横滑；点击放大） -->
+        <HorizontalScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:scaleType="centerCrop"
-            android:background="@drawable/bg_media_placeholder"
-            android:visibility="gone" />
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/ll_bubble_photos"
+                android:layout_width="wrap_content"
+                android:layout_height="80dp"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
         <!-- 奖励 -->
         <TextView

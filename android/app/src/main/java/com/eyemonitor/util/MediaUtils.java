@@ -3,6 +3,7 @@ package com.eyemonitor.util;
 import android.content.Context;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import com.bumptech.glide.Glide;
 import android.content.Intent;
@@ -224,8 +225,13 @@ public final class MediaUtils {
             iv.setVisibility(View.GONE);
             return;
         }
-        final String fileId = mediaFileIds.split(",")[0].trim();
-        if (fileId.isEmpty()) {
+        loadTaskPhotoInto(context, iv, mediaFileIds.split(",")[0].trim(), centerCrop);
+    }
+
+    /** 单张任务配图加载（本地缺失时下载，不写 media_cache） */
+    public static void loadTaskPhotoInto(Context context, final ImageView iv,
+                                         final String fileId, final boolean centerCrop) {
+        if (fileId == null || fileId.isEmpty()) {
             iv.setVisibility(View.GONE);
             return;
         }
@@ -251,6 +257,71 @@ public final class MediaUtils {
             }
         });
     }
+
+    /** 多图条：把 mediaFileIds 全部渲染为 thumbDp 缩略图（横向排布，点击回调 fileId） */
+    public static void loadTaskPhotos(Context context, LinearLayout container,
+                                      String mediaFileIds, int thumbDp,
+                                      java.util.function.Consumer<String> onClick) {
+        container.removeAllViews();
+        if (mediaFileIds == null || mediaFileIds.isEmpty()) {
+            container.setVisibility(View.GONE);
+            return;
+        }
+        float density = context.getResources().getDisplayMetrics().density;
+        int size = (int) (thumbDp * density);
+        String[] ids = mediaFileIds.split(",");
+        int added = 0;
+        for (String s : ids) {
+            final String fid = s.trim();
+            if (fid.isEmpty()) continue;
+            ImageView iv = new ImageView(context);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.rightMargin = (int) (4 * density);
+            iv.setLayoutParams(lp);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setBackgroundResource(R.drawable.bg_media_placeholder);
+            iv.setOnClickListener(v -> {
+                if (onClick != null) onClick.accept(fid);
+            });
+            loadTaskPhotoInto(context, iv, fid, true);
+            container.addView(iv);
+            added++;
+        }
+        if (added == 0) {
+            container.setVisibility(View.GONE);
+        } else {
+            container.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** 全屏放大预览任务配图（黑底，点击关闭；本地缺失自动下载） */
+    public static void openPhotoPreview(final Context context, final String fileId) {
+        final ImageView big = new ImageView(context);
+        big.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        big.setBackgroundColor(0xFF000000);
+        big.setClickable(true);
+        final android.app.Dialog dlg = new android.app.Dialog(context,
+                android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dlg.setContentView(big);
+        big.setOnClickListener(v -> dlg.dismiss());
+        File f = localMediaFile(context, fileId);
+        if (f != null && f.exists()) {
+            Glide.with(big).load(f).into(big);
+        } else {
+            ensureTaskMedia(context, fileId, null, new MediaCb() {
+                @Override
+                public void onReady(String localPath) {
+                    big.post(() -> Glide.with(big).load(new File(localPath)).into(big));
+                }
+
+                @Override
+                public void onError(int code, String msg) {
+                }
+            });
+        }
+        dlg.show();
+    }
+
 
     /** 确保已下载后打开全屏查看（图片 / 视频播放页） */
     public static void openMedia(Context context, String fileId, String mime, long duration,

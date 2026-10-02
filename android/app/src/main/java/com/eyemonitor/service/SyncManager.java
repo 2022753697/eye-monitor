@@ -62,11 +62,13 @@ public final class SyncManager {
                         if (data == null || !data.isJsonArray()) return;
                         JsonArray arr = data.getAsJsonArray();
                         AppDatabase.dbExecutor.execute(() -> {
+                            java.util.Set<String> serverIds = new java.util.HashSet<>();
                             int n = 0;
                             for (int i = 0; i < arr.size(); i++) {
                                 JsonObject o = arr.get(i).getAsJsonObject();
                                 String fileId = o.has("fileId") ? o.get("fileId").getAsString() : null;
                                 if (fileId == null || fileId.isEmpty()) continue;
+                                serverIds.add(fileId);
                                 com.eyemonitor.db.MediaCacheEntity m = new com.eyemonitor.db.MediaCacheEntity();
                                 m.fileId = fileId;
                                 String mime = o.has("mime") && !o.get("mime").isJsonNull()
@@ -86,6 +88,12 @@ public final class SyncManager {
                                 n++;
                             }
                             Log.i(TAG, "媒体元数据同步: " + n + " 条");
+                            // 对账清理：服务端已不存在的本地缓存行删掉（防图库幽灵图）
+                            if (serverIds.isEmpty()) {
+                                db.cacheDao().clearMedia();
+                            } else {
+                                db.cacheDao().deleteMediaNotIn(new java.util.ArrayList<>(serverIds));
+                            }
                             if (n > 0) {
                                 broadcastChatReload(context);
                             }
