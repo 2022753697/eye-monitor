@@ -260,6 +260,12 @@ public class AuthManager {
     /** 上传媒体（聊天气泡/共享图库），multipart: file + pairCode（folderId 可空 = 未分类）
      *  按文件名推断真实 Content-Type（否则服务器存 octet-stream，mime 全丢，语音/视频识别失败） */
     public void uploadMedia(Context ctx, File file, String pairCode, Long folderId, Callback cb) {
+        uploadMedia(ctx, file, pairCode, folderId, false, cb);
+    }
+
+    /** 底层实现：taskOnly 标记任务专用媒体 */
+    private void uploadMedia(Context ctx, File file, String pairCode, Long folderId,
+                             boolean taskOnly, Callback cb) {
         String mime = com.eyemonitor.util.MediaUtils.inferMime(null, file.getName());
         RequestBody fileBody = RequestBody.create(file,
                 mime != null ? MediaType.parse(mime) : OCTET);
@@ -270,12 +276,20 @@ public class AuthManager {
         if (folderId != null) {
             mb.addFormDataPart("folderId", String.valueOf(folderId));
         }
+        if (taskOnly) {
+            mb.addFormDataPart("taskOnly", "1");
+        }
         execAuthed(ctx, "POST", "/api/media/upload", mb.build(), cb);
     }
 
     /** 兼容旧调用（聊天页上传，无文件夹） */
     public void uploadMedia(Context ctx, File file, String pairCode, Callback cb) {
-        uploadMedia(ctx, file, pairCode, null, cb);
+        uploadMedia(ctx, file, pairCode, null, false, cb);
+    }
+
+    /** 任务配图上传：taskOnly=true → 服务器标记任务专用（不进共享图库/不广播媒体气泡） */
+    public void uploadTaskMedia(Context ctx, File file, String pairCode, Callback cb) {
+        uploadMedia(ctx, file, pairCode, null, true, cb);
     }
 
     /** 下载媒体到本地缓存文件（GET /api/media/{fileId}，Range 由 OkHttp 透明处理） */

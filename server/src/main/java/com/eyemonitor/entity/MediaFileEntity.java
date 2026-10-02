@@ -44,6 +44,10 @@ public class MediaFileEntity {
     @Column(nullable = false)
     private boolean deleted;
 
+    /** 任务专用媒体（发布任务配图）：true=不进共享图库列表、不广播媒体气泡（仅任务气泡渲染用） */
+    @Column(name = "task_only", nullable = false)
+    private boolean taskOnly;
+
     public String getFileId() { return fileId; }
     public void setFileId(String fileId) { this.fileId = fileId; }
 
@@ -76,4 +80,7 @@ public class MediaFileEntity {
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
+
+    public boolean isTaskOnly() { return taskOnly; }
+    public void setTaskOnly(boolean taskOnly) { this.taskOnly = taskOnly; }
 }

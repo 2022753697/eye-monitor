@@ -64,6 +64,7 @@ public class MediaController {
     public ApiResponse<Map<String, Object>> upload(@RequestParam("file") MultipartFile file,
                                                    @RequestParam("pairCode") String pairCode,
                                                    @RequestParam(value = "folderId", required = false) Long folderId,
+                                                   @RequestParam(value = "taskOnly", required = false) Boolean taskOnly,
                                                    HttpServletRequest request) throws IOException {
         long userId = AuthUtil.currentUserId(request);
         if (!pairService.belongsToPair(userId, pairCode)) {
@@ -95,7 +96,13 @@ public class MediaController {
         e.setCreatedAt(System.currentTimeMillis());
         e.setDeleted(false);
         e.setFolderId(folderId);
+        e.setTaskOnly(taskOnly != null && taskOnly);
         mediaFileRepo.save(e);
+
+        if (e.isTaskOnly()) {
+            // 任务配图：不进共享图库/不广播媒体气泡（仅随 task_publish 的 mediaFileId 由任务气泡渲染）
+            return ApiResponse.ok(view(e));
+        }
 
         // 广播 media 元数据给配对对端（通知仅转发）
         UserEntity u = userRepo.findById(userId).orElse(null);
@@ -119,6 +126,7 @@ public class MediaController {
         List<Map<String, Object>> out = new ArrayList<>();
         for (MediaFileEntity e : files) {
             if (e.isDeleted()) continue;
+            if (e.isTaskOnly()) continue; // 任务配图不进共享图库
             out.add(view(e));
         }
         return ApiResponse.ok(out);

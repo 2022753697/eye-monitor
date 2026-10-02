@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,7 +22,6 @@ import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
-import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.db.TaskEntity;
 import com.eyemonitor.service.MonitorService;
 import com.eyemonitor.util.MediaUtils;
@@ -41,6 +41,8 @@ import java.util.Locale;
  */
 public class TaskActivity extends BaseActivity {
 
+    private static final String TAG = "TaskActivity";
+
     private static final int REQ_PICK_PHOTO = 1001;
 
     private RecyclerView rvTasks;
@@ -53,6 +55,7 @@ public class TaskActivity extends BaseActivity {
     /** 发布弹窗状态：选中的配图 fileId（上传成功后就地更新弹窗缩略图，不重开弹窗） */
     private String pendingPhotoFileId;
     private androidx.appcompat.app.AlertDialog publishDialog;
+    private View publishBody;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -363,7 +366,8 @@ public class TaskActivity extends BaseActivity {
     // --- 发布弹窗（文字 + 奖励预置 ChipGroup/自定义 + 可选配图） ---
 
     private void showPublishDialog() {
-        View body = getLayoutInflater().inflate(R.layout.dialog_task_publish, null);
+        publishBody = getLayoutInflater().inflate(R.layout.dialog_task_publish, null);
+        final View body = publishBody;
         final EditText etContent = body.findViewById(R.id.et_task_content);
         final EditText etRewardCustom = body.findViewById(R.id.et_task_reward_custom);
         final TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
@@ -429,9 +433,19 @@ public class TaskActivity extends BaseActivity {
 
     /** 发布弹窗配图视图刷新：有图=显示缩略图+「更换配图」，无图=隐藏缩略图+「添加配图」 */
     private void refreshPublishPhotoView() {
-        if (publishDialog == null || !publishDialog.isShowing()) return;
-        View body = publishDialog.findViewById(android.R.id.custom);
-        if (body == null) return;
+        if (publishDialog == null || !publishDialog.isShowing()) {
+            Log.w(TAG, "发布弹窗未在显示，跳过配图刷新");
+            return;
+        }
+        View body = publishBody;
+        if (body == null) {
+            body = publishDialog.findViewById(android.R.id.custom);
+            publishBody = body;
+        }
+        if (body == null) {
+            Log.w(TAG, "发布弹窗 body 为空，无法刷新配图");
+            return;
+        }
         ImageView ivThumb = body.findViewById(R.id.iv_task_photo_thumb);
         TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
         if (pendingPhotoFileId != null) {
@@ -443,9 +457,11 @@ public class TaskActivity extends BaseActivity {
                         .into(ivThumb);
                 ivThumb.setVisibility(View.VISIBLE);
                 tvPhoto.setText(R.string.task_change_photo);
+                Log.i(TAG, "任务配图缩略图已显示: " + pendingPhotoFileId);
             } else {
                 ivThumb.setVisibility(View.GONE);
                 tvPhoto.setText(R.string.task_remove_photo);
+                Log.w(TAG, "任务配图本地文件缺失: " + pendingPhotoFileId);
             }
         } else {
             ivThumb.setVisibility(View.GONE);
@@ -493,7 +509,8 @@ public class TaskActivity extends BaseActivity {
             }
             Toast.makeText(this, R.string.media_uploading, Toast.LENGTH_SHORT).show();
             String pairCode = new PrefsManager(this).getPairCode();
-            AuthManager.i(this).uploadMedia(this, tmp, pairCode, new AuthManager.Callback() {
+            // 任务专用通道：taskOnly → 服务器标记，不进共享图库/不广播媒体气泡
+            AuthManager.i(this).uploadTaskMedia(this, tmp, pairCode, new AuthManager.Callback() {
                 @Override
                 public void onSuccess(com.google.gson.JsonObject data) {
                     final String fileId = data.has("fileId") ? data.get("fileId").getAsString() : null;
@@ -503,22 +520,11 @@ public class TaskActivity extends BaseActivity {
                                 R.string.media_upload_failed, Toast.LENGTH_SHORT).show());
                         return;
                     }
-                    // 本地归档（图库/气泡渲染数据源）
+                    // 本地归档（任务气泡/弹窗缩略图渲染数据源；不进 media_cache，避免出现在共享图库）
                     File dst = MediaUtils.localMediaFile(TaskActivity.this, fileId);
                     boolean archived = dst.exists() && dst.length() > 0
                             || MediaUtils.copyUriToFile(TaskActivity.this, uri, dst);
                     if (!archived) archived = tmp.renameTo(dst);
-                    if (archived) {
-                        MediaCacheEntity e = new MediaCacheEntity();
-                        e.fileId = fileId;
-                        e.mime = mimeFinal;
-                        e.size = tmp.length();
-                        e.ts = System.currentTimeMillis();
-                        e.localPath = dst.getAbsolutePath();
-                        AppDatabase.getInstance(TaskActivity.this).dbExecutor.execute(
-                                () -> AppDatabase.getInstance(TaskActivity.this)
-                                        .cacheDao().upsertMedia(e));
-                    }
                     tmp.delete();
                     // 就地更新发布弹窗缩略图（不重开弹窗，避免对话框叠加）
                     runOnUiThread(() -> {
