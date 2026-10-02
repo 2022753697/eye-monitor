@@ -2164,10 +2164,6 @@ public class MainActivity extends AppCompatActivity {
                         hideMorePanel();
                         openPermissionSettings();
                     });
-                    v.findViewById(R.id.grid_diagnose).setOnClickListener(x -> {
-                        hideMorePanel();
-                        runAccessibilityTest();
-                    });
                     v.findViewById(R.id.grid_unpair).setOnClickListener(x -> {
                         hideMorePanel();
                         showUnpairDialog();
@@ -2537,21 +2533,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** 测试无障碍服务是否工作 */
-    private void runAccessibilityTest() {
-        boolean isEnabled = AccessibilityDiagnostic.isAccessibilityEnabled(this);
-        boolean instanceAvailable = AccessibilityDiagnostic.isServiceInstanceAvailable();
-        String diagInfo = AccessibilityDiagnostic.getDiagnosticInfo(this);
-        String suggestion = AccessibilityDiagnostic.getFixSuggestion(this);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_diag_title)
-                .setMessage(getString(R.string.dialog_diag_message, diagInfo, suggestion))
-                .setPositiveButton(R.string.go_settings, (dialog, which) ->
-                        AccessibilityDiagnostic.openAccessibilitySettings(MainActivity.this))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
-    }
-
     // --- 数据类与适配器 ---
 
     private static final int TYPE_SELF = 0;

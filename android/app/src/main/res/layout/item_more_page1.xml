@@ -93,33 +93,6 @@
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/grid_diagnose"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_debug"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="11dp"
-                android:tint="@color/primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/menu_diagnose"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
     </LinearLayout>
 
     <!-- 第 2 行：解除配对 / 清空聊天 / 历史轨迹 / 我的主页 -->

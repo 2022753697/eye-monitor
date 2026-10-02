@@ -31,15 +31,13 @@
     <string name="btn_pair_manage">配对管理</string>
     <string name="btn_location_map">位置地图</string>
     <string name="btn_permission_settings">权限设置</string>
-    <string name="btn_accessibility_test">无障碍诊断</string>
+
     <string name="toast_monitor_started">监控已自动启动</string>
     <string name="toast_monitor_stopped">监控已停止</string>
     <string name="toast_notification_granted">通知权限已开启</string>
     <string name="toast_peer_opened">对方打开了 %1$s</string>
     <string name="dialog_permission_title">需要权限</string>
     <string name="dialog_permission_message">恋视需要以下权限才能正常工作：\n\n1. 「使用情况访问权限」或「无障碍服务」- 用于检测 App 切换\n2. 「通知权限」- 用于接收对方 App 切换提醒\n\n请点击「去设置」依次开启这些权限。\n\n诊断信息：\n%1$s</string>
-    <string name="dialog_diag_title">无障碍服务诊断</string>
-    <string name="dialog_diag_message">诊断结果：\n\n%1$s\n\n修复建议：\n%2$s</string>
 
     <!-- 监控页 -->
     <string name="monitor_title">实时监控</string>
@@ -140,7 +138,7 @@
     <string name="chat_peer_opened_prefix">对方打开了 </string>
     <string name="menu_map">位置地图</string>
     <string name="menu_permissions">权限设置</string>
-    <string name="menu_diagnose">无障碍诊断</string>
+
     <string name="menu_nickname">设置昵称</string>
     <string name="menu_unpair">解除配对</string>
     <string name="dialog_nickname_title">设置昵称</string>
