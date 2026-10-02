@@ -38,10 +38,15 @@
             android:id="@+id/btn_task_publish"
             style="@style/Widget.EyeMonitor.Button.Primary"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:minHeight="0dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:gravity="center"
             android:text="@string/task_publish" />
     </LinearLayout>
 

@@ -43,9 +43,6 @@ public class TaskActivity extends BaseActivity {
 
     private static final int REQ_PICK_PHOTO = 1001;
 
-    private static final String[] PRESET_REWARDS = {"拥抱", "亲亲", "捏肩 10 分钟", "奶茶券", "愿望券", "请客一顿"};
-    private static final String[] PRESET_REASONS = {"今天有点累", "想留到周末", "求放过", "下次一定"};
-
     private RecyclerView rvTasks;
     private TextView tvEmpty;
     private LinearLayout llFilters;
@@ -290,31 +287,20 @@ public class TaskActivity extends BaseActivity {
         dlg.show();
     }
 
-    /** 拒绝：预置理由 chips + 自定义输入（必填；XML 布局 dialog_task_reject） */
+    /** 拒绝：预置理由 chips（Material ChipGroup）+ 自定义输入（必填） */
     private void showRejectDialog(final TaskEntity e) {
         View body = getLayoutInflater().inflate(R.layout.dialog_task_reject, null);
         final EditText etReason = body.findViewById(R.id.et_task_reject_reason);
-        LinearLayout chips = body.findViewById(R.id.ll_reject_chips);
-
-        // 预置理由 chips
-        for (final String r : PRESET_REASONS) {
-            TextView c = new TextView(this);
-            c.setText(r);
-            c.setTextSize(12);
-            c.setPadding(dp(12), dp(6), dp(12), dp(6));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(6);
-            lp.topMargin = dp(6);
-            c.setLayoutParams(lp);
-            c.setBackgroundResource(R.drawable.bg_btn_round_white);
-            c.setTextColor(getResources().getColor(R.color.text_primary));
-            c.setOnClickListener(v -> {
-                etReason.setText(r);
-                etReason.setSelection(r.length());
-            });
-            chips.addView(c);
-        }
+        com.google.android.material.chip.ChipGroup cg = body.findViewById(R.id.cg_reject);
+        cg.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (group.getCheckedChipId() != View.NO_ID) {
+                com.google.android.material.chip.Chip chip = group.findViewById(group.getCheckedChipId());
+                if (chip != null) {
+                    etReason.setText(chip.getText());
+                    etReason.setSelection(etReason.length());
+                }
+            }
+        });
 
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle(R.string.task_reject_reason_title)
@@ -334,49 +320,25 @@ public class TaskActivity extends BaseActivity {
         dlg.show();
     }
 
-    // --- 发布弹窗（文字 + 奖励预置/自定义 + 可选配图；XML 布局 dialog_task_publish） ---
+    // --- 发布弹窗（文字 + 奖励预置 ChipGroup/自定义 + 可选配图） ---
 
     private void showPublishDialog() {
         View body = getLayoutInflater().inflate(R.layout.dialog_task_publish, null);
         final EditText etContent = body.findViewById(R.id.et_task_content);
         final EditText etRewardCustom = body.findViewById(R.id.et_task_reward_custom);
         final TextView tvPhoto = body.findViewById(R.id.tv_task_photo_state);
-        LinearLayout chips = body.findViewById(R.id.ll_reward_chips);
+        final com.google.android.material.chip.ChipGroup cgReward = body.findViewById(R.id.cg_reward);
 
-        // 奖励预置 chips（单选高亮）
-        final boolean[] presetSelected = new boolean[PRESET_REWARDS.length];
-        final TextView[] chipViews = new TextView[PRESET_REWARDS.length];
-        for (int i = 0; i < PRESET_REWARDS.length; i++) {
-            final int idx = i;
-            TextView c = new TextView(this);
-            c.setText(PRESET_REWARDS[i]);
-            c.setTextSize(12);
-            c.setPadding(dp(12), dp(6), dp(12), dp(6));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(6);
-            lp.topMargin = dp(6);
-            c.setLayoutParams(lp);
-            c.setBackgroundResource(R.drawable.bg_btn_round_white);
-            c.setTextColor(getResources().getColor(R.color.text_primary));
-            c.setOnClickListener(v -> {
-                // 单选：清掉其他高亮
-                for (int j = 0; j < chipViews.length; j++) {
-                    presetSelected[j] = false;
-                    TextView cc = chipViews[j];
-                    if (cc != null) {
-                        cc.setBackgroundResource(R.drawable.bg_btn_round_white);
-                        cc.setTextColor(getResources().getColor(R.color.text_primary));
-                    }
+        // 自定义奖励输入时取消预置选中（单选互斥）
+        etRewardCustom.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                if (s != null && s.length() > 0) {
+                    cgReward.clearCheck();
                 }
-                presetSelected[idx] = true;
-                c.setBackgroundResource(R.drawable.bg_btn_white_rect);
-                c.setTextColor(getResources().getColor(R.color.primary));
-                etRewardCustom.setText("");
-            });
-            chipViews[idx] = c;
-            chips.addView(c);
-        }
+            }
+        });
 
         // 配图行（pendingPhotoFileId 非空 = 已选，点击移除）
         if (pendingPhotoFileId != null) {
@@ -393,7 +355,7 @@ public class TaskActivity extends BaseActivity {
             }
         });
 
-        AlertDialog dlg = new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.task_publish_title)
                 .setView(body)
                 .setPositiveButton(R.string.task_publish_send, (d, w) -> {
@@ -402,10 +364,14 @@ public class TaskActivity extends BaseActivity {
                         Toast.makeText(this, R.string.task_publish_empty, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    // 奖励：预置选中 或 自定义非空（二选一）
+                    // 奖励：预置选中（ChipGroup）或 自定义非空，二选一
                     String preset = null;
-                    for (int i = 0; i < chipViews.length; i++) {
-                        if (presetSelected[i]) preset = PRESET_REWARDS[i];
+                    if (cgReward.getCheckedChipId() != View.NO_ID) {
+                        com.google.android.material.chip.Chip chip =
+                                cgReward.findViewById(cgReward.getCheckedChipId());
+                        if (chip != null && chip.getText() != null) {
+                            preset = chip.getText().toString();
+                        }
                     }
                     String custom = etRewardCustom.getText().toString().trim();
                     if (preset == null && custom.isEmpty()) {
@@ -420,8 +386,7 @@ public class TaskActivity extends BaseActivity {
                     reload();
                 })
                 .setNegativeButton(R.string.cancel, null)
-                .create();
-        dlg.show();
+                .show();
     }
 
     /** 选图器回程：取第 1 张 → 拷贝 → 上传 → 拿 fileId 重新打开发布弹窗 */

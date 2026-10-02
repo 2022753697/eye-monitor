@@ -449,6 +449,16 @@
     <!-- 情侣任务（发布任务功能） -->
     <string name="chat_self_name">我</string>
     <string name="menu_task">任务</string>
+    <string name="task_reward_0">拥抱</string>
+    <string name="task_reward_1">亲亲</string>
+    <string name="task_reward_2">捏肩 10 分钟</string>
+    <string name="task_reward_3">奶茶券</string>
+    <string name="task_reward_4">愿望券</string>
+    <string name="task_reward_5">请客一顿</string>
+    <string name="task_reason_0">今天有点累</string>
+    <string name="task_reason_1">想留到周末</string>
+    <string name="task_reason_2">求放过</string>
+    <string name="task_reason_3">下次一定</string>
     <string name="task_publish">发布任务</string>
     <string name="task_publish_title">发布任务</string>
     <string name="task_publish_hint">写下想让他/她做的事…</string>
