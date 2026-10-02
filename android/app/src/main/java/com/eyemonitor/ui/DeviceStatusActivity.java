@@ -120,7 +120,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         boolean online = prefs.getPeerOnline();
         tvOnline.setText(getString(online ? R.string.status_online : R.string.status_offline));
-        tvOnline.setTextColor(online ? getColor(R.color.status_ok) : getColor(R.color.text_secondary));
+        tvOnline.setTextColor(online ? getColor(R.color.status_ok_text) : getColor(R.color.text_secondary));
 
         int battery = prefs.getPeerBattery();
         tvBattery.setText(battery >= 0
@@ -147,7 +147,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         boolean exempt = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
         tvBatteryOpt.setText(getString(exempt ? R.string.battery_opt_exempt : R.string.battery_opt_not_exempt));
-        tvBatteryOpt.setTextColor(getColor(exempt ? R.color.status_ok : R.color.status_warn));
+        tvBatteryOpt.setTextColor(getColor(exempt ? R.color.status_ok_text : R.color.status_warn_text));
 
         // 备注（未设置=次级灰提示编辑；已设置=主色展示）
         String remark = prefs.getPeerRemark();

@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:textColor="@color/text_secondary"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_12"
         android:visibility="gone" />
 
     <!-- 微信式引用条：灰底圆角 + 左侧色条 + [发送者名] + 内容（点击定位原消息） -->
@@ -52,7 +52,7 @@
                 android:id="@+id/tv_ref_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
+                android:textSize="@dimen/text_11"
                 android:textColor="@color/primary"
                 android:maxLines="1"
                 android:ellipsize="end" />
@@ -61,7 +61,7 @@
                 android:id="@+id/tv_ref_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
+                android:textSize="@dimen/text_12"
                 android:textColor="@color/text_secondary"
                 android:maxWidth="180dp"
                 android:maxLines="1"
@@ -75,7 +75,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_bubble_self"
         android:textColor="@color/text_on_primary"
-        android:textSize="15sp"
+        android:textSize="@dimen/text_15"
         android:lineSpacingExtra="2dp"
         android:padding="12dp" />
 
@@ -93,7 +93,7 @@
             android:layout_height="wrap_content"
             android:text="@string/chat_read_label"
             android:textColor="@color/text_secondary"
-            android:textSize="10sp"
+            android:textSize="@dimen/text_11"
             android:layout_marginEnd="2dp"
             android:visibility="gone" />
 
@@ -104,7 +104,7 @@
             android:layout_height="wrap_content"
             android:text="@string/chat_send_failed"
             android:textColor="@color/status_error"
-            android:textSize="10sp"
+            android:textSize="@dimen/text_11"
             android:layout_marginEnd="2dp"
             android:visibility="gone" />
 
@@ -113,6 +113,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/text_secondary"
-            android:textSize="10sp" />
+            android:textSize="@dimen/text_11" />
     </LinearLayout>
 </LinearLayout>
