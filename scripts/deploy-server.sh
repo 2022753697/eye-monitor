@@ -3,6 +3,10 @@
 # 用法: bash scripts/deploy-server.sh <ECS公网IP> [部署目录] [ssh用户]
 # 流程: 本地打包 → scp → 解包到 ECS → docker compose up -d --build → 简单验收
 # 安全: 不覆盖 ECS 上的 server/.env（密钥保留在服务器）；排除 target/日志/数据；volumes 不动 → 数据零丢失
+#
+# 备选：用 xterminal 手动上传（SFTP 文件管理器）时，把本地 server/ 的 src|pom.xml|Dockerfile|
+#      docker-compose.yml|nginx 拖进 ECS ~/eye-deploy/（勿拖 .env/target/日志），终端执行:
+#      cd ~/eye-deploy && docker compose up -d --build && docker compose ps
 set -euo pipefail
 
 IP="${1:?用法: bash deploy-server.sh <ECS公网IP> [部署目录] [ssh用户]}"
