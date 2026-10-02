@@ -341,7 +341,9 @@ public final class SyncManager {
     private static void syncChats(Context context) {
         AppDatabase db = AppDatabase.getInstance(context);
         AppDatabase.dbExecutor.execute(() -> {
-            long afterTs = db.cacheDao().getMaxChatTs();
+            // 修复：增量游标用「对方消息」最大 ts——自己的消息不推进游标，
+            // 否则离线补发被“对端不在线跳过转发”后，游标被自己的新消息推过，漏掉未收到的那条
+            long afterTs = db.cacheDao().getMaxPeerChatTs();
             final String pairCode = new PrefsManager(context).getPairCode();
             if (pairCode == null) return;
             // 注意：/api/chats 返回 {code,data:[...]}（data 为数组），必须用 getElement（Callback 只接受对象型 data）

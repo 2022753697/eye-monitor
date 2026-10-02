@@ -117,6 +117,10 @@ public interface CacheDao {
     @Query("SELECT MAX(timestamp) FROM chat")
     long getMaxChatTs();
 
+    /** 对方消息最大时间戳（增量同步安全游标：自己的消息不推进游标，防离线补发漏收） */
+    @Query("SELECT MAX(timestamp) FROM chat WHERE is_self = 0")
+    long getMaxPeerChatTs();
+
     // --- 应用名映射 ---
 
     @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
