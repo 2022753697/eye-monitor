@@ -55,6 +55,12 @@ public class PairService {
             info.userB = e.getUserB();
             info.complete = PairEntity.STATUS_COMPLETE.equals(e.getStatus());
             info.setCreatedAt(e.getCreatedAt());
+            if (info.isExpiredPending()) {
+                // ⑦ 启动时清理：过期 PENDING（30 分钟未完成）不加载、直接删行（复用 removePairRow）
+                log.info("启动清理过期 PENDING: code={}", maskCode(e.getPairCode()));
+                removePairRow(e.getPairCode());
+                continue;
+            }
             pairRegistry.put(e.getPairCode(), info);
             if (info.userA != null) userToPair.put(info.userA, e.getPairCode());
             if (info.userB != null) userToPair.put(info.userB, e.getPairCode());
