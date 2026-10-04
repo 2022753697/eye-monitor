@@ -500,6 +500,15 @@ public class MonitorService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand, action=" + (intent != null ? intent.getAction() : "null"));
 
+        // 兜底（KICKED 重建场景）：服务被业务 action 单独拉起但主初始化（action=null 路径）被跳过，
+        // 且 onResume 的 isServiceRunning() 误判服务已在运行不再补发主启动 → wsClient 永远为 null。
+        // 仅业务 action 补建；action=null 主启动自走下文初始化，避免重复 connect。
+        if (intent != null && intent.getAction() != null
+                && wsClient == null && prefs.getPairCode() != null && !wsInitialized) {
+            Log.w(TAG, "onStartCommand: WS 未初始化但已配对（可能 KICKED 重建）——补建 WebSocket");
+            initWebSocket();
+        }
+
         if (intent != null && ACTION_REQUEST_PEER_LOCATION.equals(intent.getAction())) {
             Log.i(TAG, "收到请求对方位置请求");
             requestPeerLocation();

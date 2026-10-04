@@ -2,7 +2,7 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <!-- 充电中：闪电（彩色珊瑚） -->
-    <path android:fillColor="#FFA26B"
+    <!-- 充电中：闪电（绿色，2025-11 由暖橙改） -->
+    <path android:fillColor="@color/status_ok"
         android:pathData="M13.5,2 L6,13 h4.6 L8.8,22 L17.4,10.6 l-4.9,0.2 z" />
 </vector>
