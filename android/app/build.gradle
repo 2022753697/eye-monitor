@@ -41,6 +41,9 @@ android {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
 
+        // ⑨ 仪器测试 runner（MuMu / AS AVD 本地跑）
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
         // 高德 Key 占位符：构建时注入（local.properties amap.key → gradle 属性 amapKey → 环境变量 AMAP_KEY）
         manifestPlaceholders = [AMAP_KEY: loadAmapKey()]
     }
@@ -93,6 +96,13 @@ dependencies {
 
     // 单元测试（纯 JVM，无 Robolectric）
     testImplementation 'junit:junit:4.13.2'
+
+    // 仪器测试（⑨ 仅本地跑：MuMu / AS AVD，UI 主链路）
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.5.1'
 
     // WorkManager（P1 轻量保活：周期自检拉起监控服务）
     implementation 'androidx.work:work-runtime:2.9.0'
