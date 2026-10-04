@@ -68,8 +68,18 @@ import com.eyemonitor.db.TaskEntity;
 import com.eyemonitor.db.MediaCacheEntity;
 import com.eyemonitor.db.AffectionStateHolder;
 import com.eyemonitor.model.WsMessage;
+import com.eyemonitor.ui.chat.ChatAdapter;
+import com.eyemonitor.ui.chat.ChatItem;
 import com.eyemonitor.ui.theme.ChatTheme;
 import com.eyemonitor.ui.theme.ThemeManager;
+
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_MEDIA_PEER;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_MEDIA_SELF;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_PEER;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_SELF;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_SYSTEM;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_TASK_PEER;
+import static com.eyemonitor.ui.chat.ChatItem.TYPE_TASK_SELF;
 import com.eyemonitor.util.AffectionUtils;
 import com.eyemonitor.service.AppUsageTracker;
 import com.eyemonitor.service.DeviceStatusTracker;
@@ -99,7 +109,7 @@ import java.util.Map;
  * 未配对：显示配对面板（输入配对码 / 创建配对码）
  * 已配对：显示 QQ 风格聊天界面，对方 App 切换以居中系统提示展示
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ChatAdapter.Host {
 
     private static final String TAG = "MainActivity";
     private static final SimpleDateFormat TIME_FORMAT =
@@ -128,19 +138,12 @@ public class MainActivity extends AppCompatActivity {
     private View viewPairPanel;
     private View viewChatPanel;
     private TextView tvChatTitle;
-    private View peerStatusBar;
     // 好感度/等级：头栏徽章行 + 主题切换入口（点击进 ProfileActivity 等级详情）
     private View chatHeader;
     private ImageView ivHeaderDecor;
     private View affectionBadgeBar;
     private TextView tvAffectionTitle;
     private ImageView ivChatEmptyState;
-    private ImageView ivPeerBattery;
-    private TextView tvPeerBatteryPct;
-    private ImageView ivPeerCharging;
-    private TextView tvPeerNetwork;
-    private ImageView ivPeerBluetooth;
-    private TextView tvPeerOnline;
     private View btnChatMap;
     private View btnChatGallery;
     private ImageButton btnChatMore;
@@ -157,19 +160,13 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvChat;
     private ChatAdapter chatAdapter;
     private View bottomBar;
-    private View morePanel;
     private View emojiPanel;
     private GridView emojiGrid;
 
-    // 纪念日：爱心图标固定，左右滑动切换数字与名称
-    private View viewAnniversaryHeart;
-    private View ivAnniversaryHeart;
-    private TextView tvAnniversaryHeartCount;
-    private TextView tvAnniversaryHeartLabel;
-    private android.animation.ValueAnimator heartBeatAnim;
-    private final java.util.List<AnniversaryCacheEntity> anniversaryList = new java.util.ArrayList<>();
-    private int anniversaryIndex = 0;
-    private android.view.GestureDetector anniversaryGesture;
+    // ⑧ 切片重构：控制器（头栏状态 / 纪念日爱心 / 更多面板）
+    private com.eyemonitor.ui.chat.PeerStatusHeaderController peerStatusHeader;
+    private com.eyemonitor.ui.chat.AnniversaryHeartController anniversaryHeart;
+    private com.eyemonitor.ui.chat.ChatMorePanelController morePanelController;
     /** fileId -> 媒体缓存元数据（聊天气泡渲染/下载状态用，随 loadChatHistory 刷新） */
     private final java.util.Map<String, MediaCacheEntity> mediaByFileId = new java.util.HashMap<>();
     /** taskId -> 任务实体（聊天气泡状态徽标数据源，随 loadChatHistory 刷新） */
@@ -316,13 +313,6 @@ public class MainActivity extends AppCompatActivity {
         // 聊天面板
         viewChatPanel = findViewById(R.id.view_chat_panel);
         tvChatTitle = findViewById(R.id.tv_chat_title);
-        peerStatusBar = findViewById(R.id.peer_status_bar);
-        ivPeerBattery = findViewById(R.id.iv_peer_battery);
-        tvPeerBatteryPct = findViewById(R.id.tv_peer_battery_pct);
-        ivPeerCharging = findViewById(R.id.iv_peer_charging);
-        tvPeerNetwork = findViewById(R.id.tv_peer_network);
-        ivPeerBluetooth = findViewById(R.id.iv_peer_bluetooth);
-        tvPeerOnline = findViewById(R.id.tv_peer_online);
         btnChatMap = findViewById(R.id.btn_chat_map);
         btnChatGallery = findViewById(R.id.btn_chat_gallery);
         btnChatMore = findViewById(R.id.btn_chat_more);
@@ -344,6 +334,8 @@ public class MainActivity extends AppCompatActivity {
         tvAffectionTitle = findViewById(R.id.tv_affection_title);
         ivChatEmptyState = findViewById(R.id.iv_chat_empty_state);
 
+        // 顶栏状态行控制器（⑧ 切片：电量/充电/网络/蓝牙/在线 + 点击进详情页）
+        peerStatusHeader = new com.eyemonitor.ui.chat.PeerStatusHeaderController(this, viewChatPanel, prefs);
         // 注册事件广播（兼容 API 24+）
         IntentFilter filter = new IntentFilter(MonitorService.ACTION_EVENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -370,16 +362,11 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, GalleryActivity.class));
             Transitions.push(this);
         });
-        btnChatMore.setOnClickListener(v -> toggleMorePanel());
+        btnChatMore.setOnClickListener(v -> morePanelController.toggle());
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 好感度：头栏徽章行点击进资料页等级详情
         affectionBadgeBar.setOnClickListener(v -> {
             startActivity(new Intent(this, ProfileActivity.class));
-            Transitions.push(this);
-        });
-        // 顶栏状态行：单击进对方设备状态详情页（恢复原行为）
-        peerStatusBar.setOnClickListener(v -> {
-            startActivity(new Intent(this, DeviceStatusActivity.class));
             Transitions.push(this);
         });
         // 标题（对方名称）：双击弹备注编辑（微信式）
@@ -444,23 +431,43 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 更多面板：ViewPager2 分页（第 1 页 = 现 8 入口；第 2 页 = 任务 + 预留位，左滑可见）
-        bottomBar = findViewById(R.id.bottom_bar);
-        morePanel = findViewById(R.id.more_panel);
+        // 更多面板控制器（⑧ 切片：分页网格/指示点/显隐动画/清空聊天）
+        morePanelController = new com.eyemonitor.ui.chat.ChatMorePanelController(this, viewChatPanel,
+                new com.eyemonitor.ui.chat.ChatMorePanelController.Actions() {
+                    @Override public void onPickMedia() { pickMedia(); }
+                    @Override public void onShowSos() { showSosPanel(); }
+                    @Override public void onOpenPermissions() { openPermissionSettings(); }
+                    @Override public void onOpenTask() {
+                        startActivity(new Intent(MainActivity.this, TaskActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
+                    @Override public void onOpenMemo() {
+                        startActivity(new Intent(MainActivity.this, MemoListActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
+                    @Override public void onShowUnpairDialog() { showUnpairDialog(); }
+                    @Override public void onOpenProfile() {
+                        startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
+                    @Override public void onOpenTrack() {
+                        startActivity(new Intent(MainActivity.this, TrackReplayActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
+                    @Override public void onClearChat() { clearChatHistory(); }
+                    @Override public void onCheckIn() { doCheckIn(); }
+                    @Override public void onOpenAnniversary() {
+                        startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
+                    @Override public void onScrollToBottom() { scrollToBottom(); }
+                    @Override public void onHideEmojiPanelInstant() { hideEmojiPanelInstant(); }
+                    @Override public void onHideKeyboard() { hideKeyboard(); }
+                });
+        // emoji 面板（微信式底部上滑）：初始化 8 列网格
         emojiPanel = findViewById(R.id.emoji_panel);
         emojiGrid = findViewById(R.id.grid_emoji);
         initEmojiGrid();
-        ViewPager2 vpMore = morePanel.findViewById(R.id.vp_more);
-        vpMore.setAdapter(new MorePageAdapter());
-        vpMore.setOffscreenPageLimit(2);
-        vpMore.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                updateMoreDots(position);
-            }
-        });
-        updateMoreDots(0);
-
         // 发送按钮状态色：无输入灰 / 有输入粉
         updateSendButtonState();
         etChatInput.addTextChangedListener(new TextWatcher() {
@@ -477,67 +484,20 @@ public class MainActivity extends AppCompatActivity {
         });
         // 输入法与更多菜单互斥：点击输入框时收起更多面板
         etChatInput.setOnClickListener(v -> {
-            hideMorePanel();
+            morePanelController.hide();
             hideEmojiPanel();
         });
         etChatInput.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) hideMorePanel();
+            if (hasFocus) morePanelController.hide();
         });
 
         // 聊天列表
-        chatAdapter = new ChatAdapter();
+        chatAdapter = new ChatAdapter(this);
         rvChat.setLayoutManager(new LinearLayoutManager(this));
         rvChat.setAdapter(chatAdapter);
 
-        // 纪念日：静态爱心 + 左右滑动切换（点击进纪念日页）
-        viewAnniversaryHeart = findViewById(R.id.view_anniversary_heart);
-        tvAnniversaryHeartCount = findViewById(R.id.tv_anniversary_heart_count);
-        tvAnniversaryHeartLabel = findViewById(R.id.tv_anniversary_heart_label);
-        anniversaryGesture = new android.view.GestureDetector(this,
-                new android.view.GestureDetector.SimpleOnGestureListener() {
-                    @Override
-                    public boolean onDown(android.view.MotionEvent e) {
-                        return true; // 接收滑动事件
-                    }
-                    @Override
-
-                    public boolean onSingleTapUp(android.view.MotionEvent e) {
-                        // OnTouchListener 拦截了 click，这里手动触发跳转纪念日页
-                        startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
-                        Transitions.push(MainActivity.this);
-                        return true;
-                    }
-                    @Override
-                    public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2,
-                                           float velocityX, float velocityY) {
-                        if (Math.abs(velocityX) > Math.abs(velocityY) && Math.abs(velocityX) > 300) {
-                            if (velocityX < 0) {
-                                cycleAnniversary(1);      // 左滑：下一个
-                            } else {
-                                cycleAnniversary(-1);     // 右滑：上一个
-                            }
-                            return true;
-                        }
-                        return false;
-                    }
-                });
-        viewAnniversaryHeart.setOnTouchListener((v, event) -> {
-            // M1 点缀：按下微缩、松开回弹（触控热区不变）
-            switch (event.getActionMasked()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(120).start();
-                    break;
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL:
-                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(180)
-                            .withEndAction(() -> v.animate()
-                                    .scaleX(1f).scaleY(1f).setDuration(120).start()).start();
-                    break;
-            }
-            // 滑动手势切换纪念日
-            return anniversaryGesture.onTouchEvent(event);
-        });
-        ivAnniversaryHeart = findViewById(R.id.iv_anniversary_heart);
+        // 纪念日爱心控制器（⑧ 切片：轮播/心跳/手势/点击进纪念日页）
+        anniversaryHeart = new com.eyemonitor.ui.chat.AnniversaryHeartController(this, viewChatPanel);
 
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
         // 主题即时生效（头栏/背景/输入区/发送键/空态）
@@ -584,14 +544,14 @@ public class MainActivity extends AppCompatActivity {
         // 已配对则刷新标题与状态
         if (prefs.isPaired()) {
             updateChatHeader();
-            refreshPeerStatus();
+            peerStatusHeader.refresh();
             loadChatHistory();
             // 好感度：进聊天页兜底拉取 + 头栏徽章刷新
             fetchAffection();
             refreshAffectionHeader();
             applyTheme();
         }
-        refreshAnniversaryCard();
+        anniversaryHeart.refresh();
     }
 
     @Override
@@ -726,8 +686,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** dp→px（主题尺寸/悬浮旋钮通用） */
-    private int dp(float v) {
+    public int dp(float v) {
         return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    // ===== ChatAdapter.Host 实现 =====
+    /** 当前主题（聊天气泡渲染：背景/文字/装饰） */
+    @Override
+    public ChatTheme theme() {
+        return ThemeManager.getCurrent(this);
+    }
+
+    @Override
+    public PrefsManager getPrefs() {
+        return prefs;
     }
 
     /** 图标按主题应用：PNG 自带配色清 tint；矢量主题重套 tint（切换主题时 tint 会被前一个清掉，必须补回） */
@@ -805,8 +777,8 @@ public class MainActivity extends AppCompatActivity {
         ChatTheme t = ThemeManager.getCurrent(this);
         boolean listEmpty = chatAdapter == null || chatAdapter.getItemCount() == 0;
         if (chatAdapter != null && chatAdapter.getItemCount() == 1
-                && chatAdapter.items.get(0).type == TYPE_SYSTEM
-                && chatAdapter.items.get(0).ts == 0) {
+                && chatAdapter.getItems().get(0).type == TYPE_SYSTEM
+                && chatAdapter.getItems().get(0).ts == 0) {
             listEmpty = true;
         }
         if (listEmpty && t.emptyStateRes != 0) {
@@ -864,46 +836,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }));
-    }
-
-    /** 刷新聊天头栏状态行：电量% · 充电 · 网络 · 蓝牙 · 在线（离线置灰） */
-    private void refreshPeerStatus() {
-        int battery = prefs.getPeerBattery();
-        tvPeerBatteryPct.setText(battery >= 0
-                ? getString(R.string.percent_format, battery) : getString(R.string.status_unknown));
-        ivPeerBattery.setImageResource(batteryIconRes(battery));
-        ivPeerCharging.setImageResource(prefs.getPeerCharging()
-                ? R.drawable.ic_charging_on : R.drawable.ic_charging_off);
-        ivPeerBluetooth.setImageResource(prefs.getPeerBluetooth()
-                ? R.drawable.ic_bluetooth_on : R.drawable.ic_bluetooth_off);
-
-        String network = prefs.getPeerNetwork();
-        String networkText;
-        if (DeviceStatusTracker.NETWORK_WIFI.equals(network)) {
-            networkText = getString(R.string.status_network_wifi);
-        } else if (DeviceStatusTracker.NETWORK_MOBILE.equals(network)) {
-            networkText = getString(R.string.status_network_mobile);
-        } else if (DeviceStatusTracker.NETWORK_NONE.equals(network)) {
-            networkText = getString(R.string.status_network_none);
-        } else {
-            networkText = getString(R.string.status_unknown);
-        }
-        tvPeerNetwork.setText(networkText);
-
-        boolean online = prefs.getPeerOnline();
-        tvPeerOnline.setText(online ? R.string.status_online : R.string.status_offline);
-        tvPeerOnline.setTextColor(online
-                ? getColor(R.color.status_success)
-                : getColor(R.color.text_on_primary_muted));
-    }
-
-    /** 按电量选择 5 级电池图标 */
-    private int batteryIconRes(int battery) {
-        if (battery < 20) return R.drawable.ic_battery_lv0;
-        if (battery < 40) return R.drawable.ic_battery_lv1;
-        if (battery < 60) return R.drawable.ic_battery_lv2;
-        if (battery < 80) return R.drawable.ic_battery_lv3;
-        return R.drawable.ic_battery_lv4;
     }
 
     // --- 监控权限引导 ---
@@ -1118,7 +1050,7 @@ public class MainActivity extends AppCompatActivity {
         clearPendingQuote();
 
         etChatInput.setText("");
-        hideMorePanel();
+        morePanelController.hide();
         hideEmojiPanel();
         scrollToBottom();
         // M2 点缀：发送钮小爆发 + 新气泡弹入（位置一次性动画，防 onBindViewHolder 重复触发）
@@ -1146,7 +1078,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** 打开微信式媒体选择器（照片/视频多选 ≤9，返回所选 Uri 列表） */
     private void pickMedia() {
-        hideMorePanel();
+        morePanelController.hide();
         hideKeyboard();
         if (!prefs.isPaired()) {
             com.eyemonitor.util.Toasts.showRes(this, R.string.media_not_paired);
@@ -1438,7 +1370,7 @@ public class MainActivity extends AppCompatActivity {
             hideEmojiPanel();
         } else {
             hideKeyboard();
-            hideMorePanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
+            morePanelController.hideInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
             emojiPanel.setVisibility(View.VISIBLE);
             bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
             scrollToBottom();
@@ -1745,7 +1677,7 @@ public class MainActivity extends AppCompatActivity {
                 AppDatabase.getInstance(MainActivity.this).chatDao().markOwnRead(upToTs));
         List<Integer> changed = new ArrayList<>();
         for (int i = 0; i < chatAdapter.getItemCount(); i++) {
-            ChatItem it = chatAdapter.items.get(i);
+            ChatItem it = chatAdapter.getItems().get(i);
             if (it.type == TYPE_SELF && !it.peerRead && it.ts <= upToTs) {
                 it.peerRead = true;
                 changed.add(i);
@@ -1769,7 +1701,7 @@ public class MainActivity extends AppCompatActivity {
         AppDatabase.dbExecutor.execute(() ->
                 AppDatabase.getInstance(MainActivity.this).chatDao().markDeletedByTs(msgTs));
         for (int i = 0; i < chatAdapter.getItemCount(); i++) {
-            ChatItem it = chatAdapter.items.get(i);
+            ChatItem it = chatAdapter.getItems().get(i);
             if (it.ts == msgTs && !it.deleted) {
                 it.deleted = true;
                 chatAdapter.notifyItemChanged(i);
@@ -1788,7 +1720,7 @@ public class MainActivity extends AppCompatActivity {
         if (ok || msgTs == 0) return;
         failedMsgTs.add(msgTs);
         for (int i = 0; i < chatAdapter.getItemCount(); i++) {
-            ChatItem it = chatAdapter.items.get(i);
+            ChatItem it = chatAdapter.getItems().get(i);
             if (it.type == TYPE_SELF && it.ts == msgTs) {
                 if (!it.failed) {
                     it.failed = true;
@@ -1806,7 +1738,7 @@ public class MainActivity extends AppCompatActivity {
         final long msgTs = ((Number) tsObj).longValue();
         failedMsgTs.remove(msgTs);
         for (int i = 0; i < chatAdapter.getItemCount(); i++) {
-            ChatItem it = chatAdapter.items.get(i);
+            ChatItem it = chatAdapter.getItems().get(i);
             if (it.type == TYPE_SELF && it.ts == msgTs && it.failed) {
                 it.failed = false;
                 chatAdapter.notifyItemChanged(i);
@@ -1816,12 +1748,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** 点击「未送达」重发：复用原 ts（保持排序与回执匹配），成功由 ack 清除标记 */
-    private void resendChat(ChatItem item) {
+    public void resendChat(ChatItem item) {
         if (item.type != TYPE_SELF || item.deleted || item.text == null) return;
         String from = prefs.getNickname();
         item.failed = false;
         failedMsgTs.remove(item.ts);
-        int p = chatAdapter.items.indexOf(item);
+        int p = chatAdapter.getItems().indexOf(item);
         if (p >= 0) chatAdapter.notifyItemChanged(p);
         MonitorService.sendChat(this, item.text,
                 from != null ? from : "", item.refMsgId, item.refText, item.ts);
@@ -1830,8 +1762,8 @@ public class MainActivity extends AppCompatActivity {
     /** 当前正在闪的引用消息 ts（防连点重复闪）；-1 = 无 */
     private long flashingRefTs = -1;
 
-    private void scrollToRef(long refMsgId) {
-        List<ChatItem> items = chatAdapter.items;
+    public void scrollToRef(long refMsgId) {
+        List<ChatItem> items = chatAdapter.getItems();
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).ts == refMsgId) {
                 rvChat.smoothScrollToPosition(i);
@@ -1868,12 +1800,12 @@ public class MainActivity extends AppCompatActivity {
             RecyclerView.ViewHolder vh = idx2 >= 0
                     ? rvChat.findViewHolderForAdapterPosition(idx2) : null;
             if (vh != null && vh.itemView.isAttachedToWindow()) {
-                flashRow(vh.itemView, chatAdapter.items.get(idx2));
+                flashRow(vh.itemView, chatAdapter.getItems().get(idx2));
             } else {
                 flashingRefTs = -1; // 闪不了（理论罕见），解锁以便下次点击
                 if (idx2 >= 0) {
                     // 兜底：置标记走 bind（虽可能 pre-attach skip，聊胜于无）
-                    chatAdapter.items.get(idx2).flash = true;
+                    chatAdapter.getItems().get(idx2).flash = true;
                     chatAdapter.notifyItemChanged(idx2);
                 }
             }
@@ -1881,8 +1813,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int indexOfTs(long ts) {
-        for (int i = 0; i < chatAdapter.items.size(); i++) {
-            if (chatAdapter.items.get(i).ts == ts) return i;
+        for (int i = 0; i < chatAdapter.getItems().size(); i++) {
+            if (chatAdapter.getItems().get(i).ts == ts) return i;
         }
         return -1;
     }
@@ -1892,7 +1824,7 @@ public class MainActivity extends AppCompatActivity {
      * 覆盖在目标行上并向上探 overhang——完全不影响消息行布局（不挤内容）。
      * 明暗两轮后移除。文本/语音/图片/视频统一。
      */
-    private void flashRow(android.view.View row, ChatItem item) {
+    public void flashRow(android.view.View row, ChatItem item) {
         if (row == null || viewChatPanel == null) {
             return;
         }
@@ -1935,7 +1867,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     /** 长按文本消息：紧贴气泡上方弹出 QQ/微信式小菜单（引用 / 撤回，撤回仅自己且 2 分钟内） */
-    private void showChatItemActions(ChatItem item, View bubble) {
+    public void showChatItemActions(ChatItem item, View bubble) {
         dismissChatMenu();
         if (bubble == null) return;
         boolean canRecall = (item.type == TYPE_SELF || item.type == TYPE_MEDIA_SELF)
@@ -1956,7 +1888,7 @@ public class MainActivity extends AppCompatActivity {
                 AppDatabase.dbExecutor.execute(() ->
                         AppDatabase.getInstance(MainActivity.this)
                                 .chatDao().markDeletedByTs(item.ts));
-                int p = chatAdapter.items.indexOf(item);
+                int p = chatAdapter.getItems().indexOf(item);
                 if (p >= 0) chatAdapter.notifyItemChanged(p);
             });
         } else {
@@ -2017,7 +1949,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 boolean showChat = prefs.isPaired() && !isPairAwaitingPeer();
                 switchView(showChat);
-                refreshPeerStatus();
+                peerStatusHeader.refresh();
                 if (showChat) {
                     // 配对完成：好感度兜底拉取 + 头栏徽章/主题生效
                     fetchAffection();
@@ -2026,7 +1958,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case "device_status":
-                refreshPeerStatus();
+                peerStatusHeader.refresh();
                 break;
             case "chat":
                 handleChatMessage(message);
@@ -2065,7 +1997,7 @@ public class MainActivity extends AppCompatActivity {
                 appendSystemItem(appName);
                 break;
             case "anniversary_sync":
-                refreshAnniversaryCard();
+                anniversaryHeart.refresh();
                 break;
             case "system_tip":
                 handleSystemTip(message);
@@ -2200,109 +2132,6 @@ public class MainActivity extends AppCompatActivity {
         scrollToBottom();
     }
 
-    /** 刷新首页纪念日倒计时卡片：读 Room 缓存找最近一个，无数据隐藏卡片 */
-    /** 刷新头栏爱心：优先显示「在一起第 N 天」（起始纪念日已过天数+1）；无起始则显示最近倒计时；再无数据显「+」 */
-    /** 刷新头栏爱心轮播：每个纪念日一颗爱心（数字=已在一起天数 / 距离天数），无数据显示单颗“+” */
-    private void refreshAnniversaryCard() {
-        AppDatabase.dbExecutor.execute(() -> {
-            List<AnniversaryCacheEntity> list = AppDatabase.getInstance(MainActivity.this)
-                    .cacheDao().getAnniversaries();
-            final List<AnniversaryCacheEntity> snapshot = new java.util.ArrayList<>();
-            if (list != null) snapshot.addAll(list);
-            runOnUiThread(() -> {
-                anniversaryList.clear();
-                anniversaryList.addAll(snapshot);
-                anniversaryIndex = 0;
-                renderAnniversaryHeart();
-            });
-        });
-    }
-
-    /** 爱心内容切换：只换数字与名称（爱心图标不动），带淡入淡出 */
-    private void cycleAnniversary(int delta) {
-        if (anniversaryList.isEmpty()) return;
-        int size = anniversaryList.size() + 1; // 含末尾空态「+」
-        anniversaryIndex = ((anniversaryIndex + delta) % size + size) % size;
-        renderAnniversaryHeart();
-    }
-
-    /** 渲染当前爱心：空态「+/添加」；否则数字（已在一起/距离）+ 名称 */
-    private void renderAnniversaryHeart() {
-        if (tvAnniversaryHeartCount == null || tvAnniversaryHeartLabel == null) return;
-        String countText;
-        String labelText;
-        if (anniversaryList.isEmpty()) {
-            countText = "+";
-            labelText = getString(R.string.anniversary_add);
-            stopHeartbeat();
-        } else if (anniversaryIndex < anniversaryList.size()) {
-            AnniversaryCacheEntity e = anniversaryList.get(anniversaryIndex);
-            Calendar today = AnniversaryUtils.today();
-            long since = AnniversaryUtils.daysSinceStart(e, today);
-            long next = AnniversaryUtils.daysUntilNext(e, today);
-            countText = since >= 0 ? String.valueOf(since)
-                    : next >= 0 ? String.valueOf(next) : "+";
-            // E1 点缀：当天即纪念日 → 高光文案
-            boolean isToday = next == 0;
-            labelText = e.name != null && !isToday ? e.name
-                    : e.name != null ? getString(R.string.anniversary_today, e.name)
-                    : getString(R.string.anniversary_add);
-            startHeartbeat();
-        } else {
-            countText = "+";
-            labelText = getString(R.string.anniversary_add);
-            stopHeartbeat();
-        }
-        // 淡入淡出切换（爱心图标本身不动）
-        android.view.animation.AlphaAnimation out = new android.view.animation.AlphaAnimation(1f, 0f);
-        out.setDuration(120L);
-        final String fCount = countText;
-        final String fLabel = labelText;
-        out.setAnimationListener(new android.view.animation.Animation.AnimationListener() {
-            @Override public void onAnimationStart(android.view.animation.Animation a) {}
-            @Override public void onAnimationEnd(android.view.animation.Animation a) {
-                tvAnniversaryHeartCount.setText(fCount);
-                tvAnniversaryHeartLabel.setText(fLabel);
-                android.view.animation.AlphaAnimation in = new android.view.animation.AlphaAnimation(0f, 1f);
-                in.setDuration(120L);
-                tvAnniversaryHeartCount.startAnimation(in);
-                tvAnniversaryHeartLabel.startAnimation(in);
-            }
-            @Override public void onAnimationRepeat(android.view.animation.Animation a) {}
-        });
-        tvAnniversaryHeartCount.startAnimation(out);
-        tvAnniversaryHeartLabel.startAnimation(out);
-    }
-
-    /** M1 点缀：爱心心跳呼吸（1.5s 周期，幅度 ≤6%，动画缩放=0 时跳过） */
-    private void startHeartbeat() {
-        stopHeartbeat();
-        if (ivAnniversaryHeart == null) return;
-        try {
-            if (android.provider.Settings.Global.getFloat(getContentResolver(),
-                    android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return;
-        } catch (Exception ignored) {}
-        heartBeatAnim = android.animation.ObjectAnimator.ofPropertyValuesHolder(
-                ivAnniversaryHeart,
-                android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f, 1.06f),
-                android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f, 1.06f));
-        heartBeatAnim.setDuration(900);
-        heartBeatAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-        heartBeatAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-        heartBeatAnim.start();
-    }
-
-    private void stopHeartbeat() {
-        if (heartBeatAnim != null) {
-            heartBeatAnim.cancel();
-            heartBeatAnim = null;
-        }
-        if (ivAnniversaryHeart != null) {
-            ivAnniversaryHeart.setScaleX(1f);
-            ivAnniversaryHeart.setScaleY(1f);
-        }
-    }
-
     /** 纪念日到期系统提示（服务层已入库 Room，这里只渲染） */
     private void handleSystemTip(WsMessage message) {
         Object text = message.getPayload() != null ? message.getPayload().get("text") : null;
@@ -2331,7 +2160,7 @@ public class MainActivity extends AppCompatActivity {
     /** 围栏系统提示分段分隔符（控制符，用户输入打不出来，昵称/围栏名随便取都不会破坏分段） */
     private static final String SYS_SEG_SEP = "\u001F";
 
-    private CharSequence styleSystemText(ChatItem item) {
+    public CharSequence styleSystemText(ChatItem item) {
         String text = item.text;
         // 围栏富文本系统提示：\u001F 分隔 [时间, 昵称, 动作, 围栏名] → 分段配色
         if (text != null && text.startsWith(SYS_SEG_SEP)) {
@@ -2406,145 +2235,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --- 更多面板（QQ 风格网格，弹出时顶起输入栏，与输入法互斥） ---
-
-    /** 更多面板分页适配器：第 1 页 = 图片/SOS/权限/任务/备忘录/解除/轨迹/我的；第 2 页 = 清空聊天 + 预留位 */
-    private class MorePageAdapter extends RecyclerView.Adapter<MorePageAdapter.Holder> {
-        @Override
-        public int getItemViewType(int position) {
-            return position;
-        }
-
-        @Override
-        public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(
-                    viewType == 0 ? R.layout.item_more_page1 : R.layout.item_more_page2,
-                    parent, false);
-            return new Holder(v, viewType);
-        }
-
-        @Override
-        public void onBindViewHolder(Holder h, int position) {}
-
-        @Override
-        public int getItemCount() {
-            return 2;
-        }
-
-        class Holder extends RecyclerView.ViewHolder {
-            Holder(View v, int page) {
-                super(v);
-                if (page == 0) {
-                    v.findViewById(R.id.grid_image).setOnClickListener(x -> pickMedia());
-                    v.findViewById(R.id.grid_sos).setOnClickListener(x -> {
-                        hideMorePanel();
-                        showSosPanel();
-                    });
-                    v.findViewById(R.id.grid_permissions).setOnClickListener(x -> {
-                        hideMorePanel();
-                        openPermissionSettings();
-                    });
-                    v.findViewById(R.id.grid_task).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, TaskActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                    v.findViewById(R.id.grid_memo).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, MemoListActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                    v.findViewById(R.id.grid_unpair).setOnClickListener(x -> {
-                        hideMorePanel();
-                        showUnpairDialog();
-                    });
-                    v.findViewById(R.id.grid_profile).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                    v.findViewById(R.id.grid_track).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, TrackReplayActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                } else {
-                    v.findViewById(R.id.grid_clear).setOnClickListener(x -> {
-                        hideMorePanel();
-                        clearChatHistory();
-                    });
-                    // 打卡（三入口之一：更多面板）
-                    v.findViewById(R.id.grid_checkin).setOnClickListener(x -> {
-                        hideMorePanel();
-                        doCheckIn();
-                    });
-                    // v2 §2.3 补位：纪念日入口（纯 UI 接线，不触业务）
-                    v.findViewById(R.id.grid_anniversary).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, AnniversaryActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                    // v2 §2.3 补位：亲密度入口（复用资料页等级详情）
-                    v.findViewById(R.id.grid_affection).setOnClickListener(x -> {
-                        hideMorePanel();
-                        startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-                        Transitions.push(MainActivity.this);
-                    });
-                }
-            }
-        }
-    }
-
-    /** 页码指示点刷新（当前页高亮） */
-    private void updateMoreDots(int position) {
-        View d0 = morePanel.findViewById(R.id.more_dot_0);
-        View d1 = morePanel.findViewById(R.id.more_dot_1);
-        d0.setAlpha(position == 0 ? 1f : 0.25f);
-        d1.setAlpha(position == 1 ? 1f : 0.25f);
-    }
-
-    /** 切换更多面板：输入栏+面板整个底部块一起滑入/滑出，显示时收起输入法并滚到最新消息 */
-    private void toggleMorePanel() {
-        if (morePanel.getVisibility() == View.VISIBLE) {
-            hideMorePanel();
-        } else {
-            hideKeyboard();
-            hideEmojiPanelInstant(); // 互斥：另一面板立即消失（不走动画，避免叠加）
-            morePanel.setVisibility(View.VISIBLE);
-            bottomBar.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_bottom));
-            // 最新消息滚到面板上方，不被面板遮挡
-            scrollToBottom();
-        }
-    }
-
-    /** E3 点缀：双击聊天空白区 → 5-7 颗爱心上飘淡出（纯展示，自清除） */
-    /** 互斥用：立即隐藏更多面板（不走动画，仅用于切到另一面板时） */
-    private void hideMorePanelInstant() {
-        morePanel.clearAnimation();
-        morePanel.setVisibility(View.GONE);
-    }
+    // ⑧ 切片重构：面板/分页/动画已迁至 ChatMorePanelController，动作经 Actions 回调回来
 
     /** 互斥用：立即隐藏表情面板（不走动画，仅用于切到另一面板时） */
     private void hideEmojiPanelInstant() {
         emojiPanel.clearAnimation();
         emojiPanel.setVisibility(View.GONE);
-    }
-
-    private void hideMorePanel() {
-        if (morePanel.getVisibility() == View.GONE) return;
-        Animation out = AnimationUtils.loadAnimation(this, R.anim.slide_out_bottom);
-        out.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation a) {}
-
-            @Override
-            public void onAnimationEnd(Animation a) {
-                morePanel.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation a) {}
-        });
-        bottomBar.startAnimation(out);
     }
 
     /** 清空本地聊天记录 */
@@ -2831,436 +2527,12 @@ public class MainActivity extends AppCompatActivity {
     /** 测试无障碍服务是否工作 */
     // --- 数据类与适配器 ---
 
-    private static final int TYPE_SELF = 0;
-    private static final int TYPE_PEER = 1;
-    private static final int TYPE_SYSTEM = 2;
-    private static final int TYPE_MEDIA_SELF = 3;
-    private static final int TYPE_MEDIA_PEER = 4;
-    private static final int TYPE_TASK_SELF = 5;
-    private static final int TYPE_TASK_PEER = 6;
-
-    public static class ChatItem {
-        public final int type;
-        public final String text;
-        public final String from;
-        public final String time;
-        public final long ts;
-        /** P2：对方已读（自己消息） / 已撤回 / 引用 */
-        public boolean peerRead;
-        public boolean deleted;
-        public long refMsgId;
-        public String refText;
-        /** 送达状态：发送失败（断网/未连接）时标红「未送达」，可点击重发 */
-        public boolean failed;
-        /** 引用跳转定位闪烁（瞬态 UI 标记：bind 时脉动高亮） */
-        public boolean flash;
-        /** 任务气泡（TYPE_TASK_*）：从 TaskEntity 拷贝的展示字段 */
-        public String taskContent;
-        public String taskReward;
-        public String taskStatusText;
-        public int taskStatusColor;
-        public boolean taskMine;
-        /** 任务配图（逗号串，取第一张渲染） */
-        public String taskMediaIds;
-
-        public ChatItem(int type, String text, String from, String time, long ts) {
-            this(type, text, from, time, ts, 0, null);
-        }
-
-        public ChatItem(int type, String text, String from, String time, long ts,
-                        long refMsgId, String refText) {
-            this.type = type;
-            this.text = text;
-            this.from = from;
-            this.time = time;
-            this.ts = ts;
-            this.refMsgId = refMsgId;
-            this.refText = refText;
-        }
-    }
-
-    private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
-        private final List<ChatItem> items = new ArrayList<>();
-
-        void addItem(ChatItem item) {
-            items.add(item);
-            notifyItemInserted(items.size() - 1);
-        }
-
-        void clear() {
-            items.clear();
-            notifyDataSetChanged();
-        }
-
-        int getCount() {
-            return items.size();
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return items.get(position).type;
-        }
-
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-            View view;
-            switch (viewType) {
-                case TYPE_SELF:
-                    view = inflater.inflate(R.layout.item_chat_self, parent, false);
-                    break;
-                case TYPE_PEER:
-                    view = inflater.inflate(R.layout.item_chat_peer, parent, false);
-                    break;
-                case TYPE_MEDIA_SELF:
-                case TYPE_MEDIA_PEER:
-                    view = inflater.inflate(R.layout.item_chat_media, parent, false);
-                    break;
-                case TYPE_TASK_SELF:
-                case TYPE_TASK_PEER:
-                    view = inflater.inflate(R.layout.item_task, parent, false);
-                    break;
-                default:
-                    view = inflater.inflate(R.layout.item_chat_system, parent, false);
-                    break;
-            }
-            return new ViewHolder(view, viewType);
-        }
-
-        @Override
-        public void onBindViewHolder(ViewHolder holder, int position) {
-            ChatItem item = items.get(position);
-            holder.bind(item, position);
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            final int viewType;
-            TextView tvText;
-            android.widget.FrameLayout llBubbleDecor;
-            android.widget.FrameLayout llBubbleBox;
-            android.widget.ImageView ivBubbleEar;
-            android.widget.ImageView ivBubblePaw;
-            TextView tvTime;
-            TextView tvFrom;
-            TextView tvRead;
-            TextView tvRefName;
-            TextView tvRefText;
-            LinearLayout llChatRef;
-            TextView tvRecalled;
-            TextView tvSendStatus;
-            // 媒体气泡视图
-            LinearLayout llMediaBubble;
-            FrameLayout flMediaContainer;
-            ImageView ivMediaThumb;
-            ImageView ivMediaPlaceholderIcon;
-            LinearLayout llMediaPlaceholder;
-            TextView tvMediaHint;
-            LinearLayout llVoiceBubble;
-            ImageView ivVoiceWifi;
-            WaveformView waveformView;
-            TextView tvVoiceDuration;
-            FrameLayout flVideoBadge;
-            // 任务气泡视图
-            LinearLayout llTaskCard;
-            ImageView ivTaskBubbleIcon;
-            TextView tvTaskTitle;
-            TextView tvTaskTime;
-            View vTaskDivider1;
-            View vTaskDivider2;
-            TextView tvTaskContent;
-            LinearLayout llTaskPhotos;
-            TextView tvTaskReward;
-            TextView tvTaskStatus;
-            TextView tvTaskHint;
-
-            ViewHolder(View view, int viewType) {
-                super(view);
-                this.viewType = viewType;
-                switch (viewType) {
-                    case TYPE_SELF:
-                        tvText = view.findViewById(R.id.tv_chat_text);
-                        llBubbleDecor = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_decor);
-                        llBubbleBox = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_box);
-                        ivBubbleEar = view.findViewById(R.id.iv_bubble_ear);
-                        ivBubblePaw = view.findViewById(R.id.iv_bubble_paw);
-                        tvTime = view.findViewById(R.id.tv_chat_time);
-                        tvRead = view.findViewById(R.id.tv_chat_read);
-                        llChatRef = view.findViewById(R.id.ll_chat_ref);
-                        tvRefName = view.findViewById(R.id.tv_ref_name);
-                        tvRefText = view.findViewById(R.id.tv_ref_text);
-                        tvRecalled = view.findViewById(R.id.tv_recalled);
-                        tvSendStatus = view.findViewById(R.id.tv_send_status);
-                        break;
-                    case TYPE_PEER:
-                        tvText = view.findViewById(R.id.tv_chat_text);
-                        llBubbleDecor = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_decor);
-                        llBubbleBox = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_box);
-                        ivBubbleEar = view.findViewById(R.id.iv_bubble_ear);
-                        ivBubblePaw = view.findViewById(R.id.iv_bubble_paw);
-                        tvTime = view.findViewById(R.id.tv_chat_time);
-                        tvFrom = view.findViewById(R.id.tv_chat_from);
-                        llChatRef = view.findViewById(R.id.ll_chat_ref);
-                        tvRefName = view.findViewById(R.id.tv_ref_name);
-                        tvRefText = view.findViewById(R.id.tv_ref_text);
-                        tvRecalled = view.findViewById(R.id.tv_recalled);
-                        break;
-                    case TYPE_MEDIA_SELF:
-                    case TYPE_MEDIA_PEER:
-                        llMediaBubble = view.findViewById(R.id.ll_media_bubble);
-                        llBubbleDecor = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_decor);
-                        llBubbleBox = (android.widget.FrameLayout) view.findViewById(R.id.ll_bubble_box);
-                        ivBubbleEar = view.findViewById(R.id.iv_bubble_ear);
-                        ivBubblePaw = view.findViewById(R.id.iv_bubble_paw);
-                        flMediaContainer = view.findViewById(R.id.fl_media_container);
-                        ivMediaThumb = view.findViewById(R.id.iv_media_thumb);
-                        ivMediaPlaceholderIcon = view.findViewById(R.id.iv_media_placeholder_icon);
-                        llMediaPlaceholder = view.findViewById(R.id.ll_media_placeholder);
-                        llVoiceBubble = view.findViewById(R.id.ll_voice_bubble);
-                        ivVoiceWifi = view.findViewById(R.id.iv_voice_wifi);
-                        waveformView = view.findViewById(R.id.waveform_view);
-                        tvVoiceDuration = view.findViewById(R.id.tv_voice_duration);
-                        tvMediaHint = view.findViewById(R.id.tv_media_hint);
-                        flVideoBadge = view.findViewById(R.id.fl_video_badge);
-                        tvTime = view.findViewById(R.id.tv_chat_time);
-                        tvFrom = view.findViewById(R.id.tv_chat_from);
-                        break;
-                    case TYPE_TASK_SELF:
-                    case TYPE_TASK_PEER:
-                        llTaskCard = view.findViewById(R.id.ll_task_card);
-                        ivTaskBubbleIcon = view.findViewById(R.id.iv_task_bubble_icon);
-                        tvTaskTitle = view.findViewById(R.id.tv_task_title);
-                        tvTaskTime = view.findViewById(R.id.tv_task_time);
-                        vTaskDivider1 = view.findViewById(R.id.v_task_divider1);
-                        vTaskDivider2 = view.findViewById(R.id.v_task_divider2);
-                        tvTaskContent = view.findViewById(R.id.tv_task_content);
-                        llTaskPhotos = view.findViewById(R.id.ll_bubble_photos);
-                        tvTaskReward = view.findViewById(R.id.tv_task_reward);
-                        tvTaskStatus = view.findViewById(R.id.tv_task_status);
-                        tvTaskHint = view.findViewById(R.id.tv_task_hint);
-                        break;
-                    default:
-                        tvText = view.findViewById(R.id.tv_system_text);
-                        break;
-                }
-            }
-
-            void bind(ChatItem item) {
-                bind(item, getBindingAdapterPosition());
-            }
-
-            /** 撤回态：气泡/引用/已读/时间隐藏，居中系统提示“X 撤回了一条消息” */
-            void boxHiddenForRecalled(boolean recalled, boolean peer) {
-                tvText.setVisibility(recalled ? View.GONE : View.VISIBLE);
-                llChatRef.setVisibility(View.GONE);
-                int density = (int) getResources().getDisplayMetrics().density;
-                if (peer) {
-                    tvFrom.setVisibility(recalled ? View.GONE : View.VISIBLE);
-                    tvTime.setVisibility(recalled ? View.GONE : View.VISIBLE);
-                } else {
-                    tvRead.setVisibility(View.GONE);
-                    View timeRow = (View) tvTime.getParent();
-                    if (timeRow != null) timeRow.setVisibility(recalled ? View.GONE : View.VISIBLE);
-                }
-                int pad = (int) (4 * density);
-                if (recalled) {
-                    // 系统提示居中：两侧内边距对称
-                    itemView.setPadding(12 * density, pad, 12 * density, pad);
-                } else {
-                    final int outer = 60 * density, near = 12 * density;
-                    itemView.setPadding(peer ? near : outer, pad, peer ? outer : near, pad);
-                }
-            }
-
-            void bindQuote(ChatItem item) {
-                if (item.refMsgId > 0 && item.refText != null) {
-                    llChatRef.setVisibility(View.VISIBLE);
-                    tvRefName.setText(refSenderName(item));
-                    tvRefText.setText(item.refText);
-                    llChatRef.setOnClickListener(v -> scrollToRef(item.refMsgId));
-                } else {
-                    llChatRef.setVisibility(View.GONE);
-                }
-            }
-
-            /** 被引用消息的发送者名：自己→「我」；对方→其昵称/备注；找不到→「引用」 */
-            String refSenderName(ChatItem item) {
-                for (ChatItem it : ChatAdapter.this.items) {
-                    if (it.ts == item.refMsgId) {
-                        if (it.type == TYPE_SELF || it.type == TYPE_MEDIA_SELF) {
-                            return getString(R.string.quote_sender_me);
-                        }
-                        String display = prefs.getPeerDisplayName();
-                        String from = display != null ? display
-                                : (it.from != null && !it.from.isEmpty()
-                                ? it.from : prefs.getPeerNickname());
-                        return from != null && !from.isEmpty()
-                                ? from : getString(R.string.quote_sender_unknown);
-                    }
-                }
-                return getString(R.string.quote_sender_unknown);
-            }
-
-            String whoSent(ChatItem item) {
-                String display = prefs.getPeerDisplayName();
-                String from = display != null ? display
-                        : (item.from != null && !item.from.isEmpty()
-                        ? item.from : prefs.getPeerNickname());
-                return from != null && !from.isEmpty()
-                        ? from : getString(R.string.chat_title_default);
-            }
-
-
-            /** 气泡悬浮装饰（耳朵/狗爪）：仅狗狗主题显示；顶部留耳高悬浮区，数值=你的调节旋钮 */
-            /** 气泡装饰：耳=根级悬浮（浮出气泡顶），爪=包气泡容器底角；仅狗狗主题显示 */
-            /** 气泡装饰：耳=包气泡容器顶角浮出（self 左上 / peer 右上），爪=容器底角 */
-            void bindBubbleDecor(boolean self) {
-                if (llBubbleDecor == null || llBubbleBox == null) return;
-                com.eyemonitor.ui.theme.ChatTheme t = com.eyemonitor.ui.theme.ThemeManager.getCurrent(MainActivity.this);
-                if (com.eyemonitor.ui.theme.ChatTheme.ID_DOG.equals(t.id)) {
-                    // 悬浮头房区设在包气泡容器上（锚定气泡本体）；裁剪双关，否则 padding 起点裁掉耳朵
-                    int headroom = dp(14);
-                    llBubbleBox.setPadding(0, headroom, 0, 0);
-                    llBubbleBox.setClipChildren(false);
-                    llBubbleBox.setClipToPadding(false);
-                    // 根容器与 RecyclerView 的裁剪链也关掉（耳浮出条目标界时兜底）
-                    llBubbleDecor.setClipChildren(false);
-                    llBubbleDecor.setClipToPadding(false);
-                    llBubbleDecor.setPadding(0, 0, 0, 0);
-                    android.view.ViewParent vp = llBubbleDecor.getParent();
-                    while (vp != null && !(vp instanceof androidx.recyclerview.widget.RecyclerView)) {
-                        if (vp instanceof android.view.ViewGroup) ((android.view.ViewGroup) vp).setClipChildren(false);
-                        vp = vp.getParent();
-                    }
-                    if (vp instanceof androidx.recyclerview.widget.RecyclerView) {
-                        ((androidx.recyclerview.widget.RecyclerView) vp).setClipChildren(false);
-                        ((androidx.recyclerview.widget.RecyclerView) vp).setClipToPadding(false);
-                    }
-                    // 耳：self=气泡左上 / peer=气泡右上，负 margin 浮过气泡顶
-                    if (ivBubbleEar != null) {
-                        ivBubbleEar.setVisibility(View.VISIBLE);
-                        ivBubbleEar.setImageResource(self
-                                ? R.drawable.bubble_ear_self : R.drawable.bubble_ear_peer);
-                        android.widget.FrameLayout.LayoutParams lp = (android.widget.FrameLayout.LayoutParams)
-                                ivBubbleEar.getLayoutParams();
-                        lp.gravity = self
-                                ? (android.view.Gravity.TOP | android.view.Gravity.START)
-                                : (android.view.Gravity.TOP | android.view.Gravity.END);
-                        // 垂直：margin（已验证在带 padding 容器内可靠）；水平：translationX（负 margin 会被测量吃掉，禁用）
-                        lp.setMargins(0, -dp(14), 0, 0);   // 上移1（-13→-14）
-                        ivBubbleEar.setTranslationX(self ? -dp(3) : dp(3));   // 对面耳右移1（+2→+3）
-                        ivBubbleEar.setLayoutParams(lp);
-                    }
-                    // 爪：self=右下 / peer=左下
-                    if (ivBubblePaw != null) {
-                        ivBubblePaw.setVisibility(View.VISIBLE);
-                        ivBubblePaw.setImageResource(self
-                                ? R.drawable.bubble_paw_self : R.drawable.bubble_paw_peer);
-                        android.widget.FrameLayout.LayoutParams lp = (android.widget.FrameLayout.LayoutParams)
-                                ivBubblePaw.getLayoutParams();
-                        lp.gravity = self
-                                ? (android.view.Gravity.BOTTOM | android.view.Gravity.END)
-                                : (android.view.Gravity.BOTTOM | android.view.Gravity.START);
-                        ivBubblePaw.setLayoutParams(lp);
-                        ivBubblePaw.setTranslationX(self ? -dp(3) : dp(3));   // 爪左移3（peer 镜像右移）
-                        ivBubblePaw.setTranslationY(-dp(3));                   // 爪上移3
-                    }
-                } else {
-                    llBubbleDecor.setPadding(0, 0, 0, 0);
-                    if (llBubbleBox != null) llBubbleBox.setPadding(0, 0, 0, 0);
-                    if (ivBubbleEar != null) ivBubbleEar.setVisibility(View.GONE);
-                    if (ivBubblePaw != null) ivBubblePaw.setVisibility(View.GONE);
-                }
-            }
-
-            void bindItemLongPress(ChatItem item) {
-                itemView.setOnLongClickListener(v -> {
-                    if (item.deleted) return true;
-                    showChatItemActions(item, tvText);
-                    return true;
-                });
-            }
-
-            void bind(ChatItem item, int position) {
-                if (item.flash) {
-                    flashRow(itemView, item);
-                }
-                switch (viewType) {
-                    case TYPE_SELF:
-                        if (item.deleted) {
-                            tvRecalled.setVisibility(View.VISIBLE);
-                            tvRecalled.setText(R.string.chat_recalled_self);
-                            boxHiddenForRecalled(true, false);
-                        } else {
-                            tvRecalled.setVisibility(View.GONE);
-                            boxHiddenForRecalled(false, false);
-                            // 主题：气泡背景运行时切换（一套布局不复制）
-                            tvText.setBackgroundResource(
-                                    ThemeManager.getCurrent(MainActivity.this).bubbleSelfRes);
-                            // 主题：self 文字色（PNG 浅底气泡用深字，默认珊瑚底白字）
-                            tvText.setTextColor(getColor(
-                                    ThemeManager.getCurrent(MainActivity.this).selfTextColorRes));
-                            bindBubbleDecor(true);
-                            tvText.setText(item.text);
-                            tvTime.setText(item.time);
-                            // 送达状态：失败标红「未送达」可点击重发；成功则隐藏
-                            if (item.failed) {
-                                tvSendStatus.setVisibility(View.VISIBLE);
-                                tvRead.setVisibility(View.GONE);
-                                tvSendStatus.setOnClickListener(v -> resendChat(item));
-                            } else {
-                                tvSendStatus.setVisibility(View.GONE);
-                                tvRead.setVisibility(item.peerRead ? View.VISIBLE : View.GONE);
-                            }
-                            bindQuote(item);
-                        }
-                        bindItemLongPress(item);
-                        break;
-                    case TYPE_PEER:
-                        if (item.deleted) {
-                            tvRecalled.setVisibility(View.VISIBLE);
-                            tvRecalled.setText(getString(R.string.chat_recalled_peer,
-                                    whoSent(item)));
-                            boxHiddenForRecalled(true, true);
-                        } else {
-                            tvRecalled.setVisibility(View.GONE);
-                            boxHiddenForRecalled(false, true);
-                            // 主题：气泡背景运行时切换（一套布局不复制）
-                            tvText.setBackgroundResource(
-                                    ThemeManager.getCurrent(MainActivity.this).bubblePeerRes);
-                            bindBubbleDecor(false);
-                            tvText.setText(item.text);
-                            tvTime.setText(item.time);
-                            tvFrom.setText(whoSent(item));
-                            bindQuote(item);
-                        }
-                        bindItemLongPress(item);
-                        break;
-                    case TYPE_MEDIA_SELF:
-                    case TYPE_MEDIA_PEER:
-                        bindMedia(this, item, position);
-                        break;
-                    case TYPE_TASK_SELF:
-                    case TYPE_TASK_PEER:
-                        bindTask(this, item);
-                        break;
-                    default:
-                        tvText.setText(MainActivity.this.styleSystemText(item));
-                        break;
-                }
-            }
-        }
-    }
 
     // --- 媒体气泡渲染 ---
 
     /** 媒体气泡：已下载显示缩略图（视频带播放角标），未下载显示点击下载占位 */
     /** 任务气泡绑定（票券式卡片）：自己=右侧珊瑚渐变卡白字，对方=左侧白卡粉描边；点击进任务详情 */
-    private void bindTask(ChatAdapter.ViewHolder h, ChatItem item) {
+    public void bindTask(ChatAdapter.ViewHolder h, ChatItem item) {
         final boolean self = item.type == TYPE_TASK_SELF;
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) h.llTaskCard.getLayoutParams();
         lp.gravity = self ? Gravity.END : Gravity.START;
@@ -3296,14 +2568,14 @@ public class MainActivity extends AppCompatActivity {
     /** 打开任务详情（聊天气泡点击 → TaskActivity，带 taskId） */
     private void openTaskDetail(String taskId) {
         if (taskId == null || taskId.isEmpty()) return;
-        hideMorePanel();
+        morePanelController.hide();
         Intent intent = new Intent(this, TaskActivity.class);
         intent.putExtra(MonitorService.EXTRA_TASK_ID, taskId);
         startActivity(intent);
         Transitions.push(this);
     }
 
-    private void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
+    public void bindMedia(ChatAdapter.ViewHolder h, ChatItem item, int position) {
         final boolean self = item.type == TYPE_MEDIA_SELF;
         h.bindBubbleDecor(self);   // 媒体/语音气泡同样套主题装饰（耳/爪）
         // 已撤回：隐藏媒体内容，占位区显示「已撤回」（媒体 ViewHolder 无 tv_recalled，复用 tv_media_hint）
