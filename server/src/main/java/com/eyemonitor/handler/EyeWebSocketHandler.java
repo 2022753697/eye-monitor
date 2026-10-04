@@ -4,6 +4,7 @@ import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.security.AuthUtil;
 import com.eyemonitor.security.WsSessionManager;
 import com.eyemonitor.repository.MediaFileRepo;
+import com.eyemonitor.service.AffectionService;
 import com.eyemonitor.service.MessageStore;
 import com.eyemonitor.service.PairService;
 import com.eyemonitor.service.TaskService;
@@ -34,16 +35,19 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
     private final WsSessionManager wsSessionManager;
     private final MediaFileRepo mediaFileRepo;
     private final TaskService taskService;
+    private final AffectionService affectionService;
 
     public EyeWebSocketHandler(PairService pairService, MessageStore messageStore,
                                WsSessionManager wsSessionManager,
                                MediaFileRepo mediaFileRepo,
-                               TaskService taskService) {
+                               TaskService taskService,
+                               AffectionService affectionService) {
         this.pairService = pairService;
         this.messageStore = messageStore;
         this.wsSessionManager = wsSessionManager;
         this.mediaFileRepo = mediaFileRepo;
         this.taskService = taskService;
+        this.affectionService = affectionService;
     }
 
     @Override
@@ -94,8 +98,10 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "chat_read" -> handleChatRead(session, msg, userId);
             case "chat_recall" -> handleChatRecall(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
+            case "sos_ack" -> handleSosAck(session, msg, userId);
             case "media" -> handleMedia(session, msg, userId);
             case "task_publish", "task_respond", "task_complete", "task_reward" -> handleTaskMessage(session, msg, userId);
+            case "check_in" -> handleCheckIn(session, msg, userId);
             default -> handleForward(session, msg, userId);
         }
     }
@@ -182,6 +188,49 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
     }
 
+    /**
+     * sos_ack：回执 +5（好感度钩子，内部容错），再转发给对端。
+     * 回执与 SOS 本身一样按消息时间戳幂等，不影响原转发链路。
+     */
+    private void handleSosAck(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        if (pairCode == null) return;
+        try {
+            affectionService.onSosAck(pairCode, msg.getTimestamp());
+        } catch (Exception ex) {
+            log.warn("SOS 回执好感度钩子异常", ex);
+        }
+        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
+    }
+
+    /**
+     * check_in：客户端打卡上报（window=morning|evening），鉴权后计分 +3（同 (pair,日期,时段,user) 幂等），
+     * 回推 affection_sync 快照（幂等跳过时也回当前状态，客户端可刷新）；推送策略见 AffectionService。
+     */
+    private void handleCheckIn(WebSocketSession session, WsMessage msg, long userId) {
+        if (userId <= 0) {
+            pairService.sendMessage(session, WsMessage.createError(msg.getDeviceId(), null, "未鉴权"));
+            return;
+        }
+        String pairCode = resolvePairCode(msg, userId);
+        if (pairCode == null) {
+            pairService.sendMessage(session, WsMessage.createError(msg.getDeviceId(), null, "未配对"));
+            return;
+        }
+        Map<String, Object> payload = msg.getPayload();
+        String window = payload != null && payload.get("window") instanceof String
+                ? (String) payload.get("window") : null;
+        if (!"morning".equals(window) && !"evening".equals(window)) {
+            pairService.sendMessage(session, new WsMessage("system_tip", msg.getDeviceId(), pairCode,
+                    Map.of("text", "打卡时段无效（morning/evening）"), System.currentTimeMillis()));
+            return;
+        }
+        AffectionService.LevelInfo info = affectionService.onCheckIn(pairCode, userId, window);
+        // 回推快照（请求方立即可见；双端广播由 onCheckIn 内的推送策略负责：升级必推/非升级 60 秒节流）
+        pairService.sendMessage(session, WsMessage.createAffectionSync(
+                pairCode, info.points, info.level, info.progress, info.title));
+    }
+
     /** 媒体消息：落库聊天行（text=fileId, kind=media）保证离线补收，再转发给对方 */
     private void handleMedia(WebSocketSession session, WsMessage msg, long userId) {        String pairCode = resolvePairCode(msg, userId);
         Map<String, Object> payload = msg.getPayload();
@@ -222,7 +271,7 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
 
     private void handleForward(WebSocketSession session, WsMessage msg, long userId) {
         // app_switch / request_peer_location / anniversary_sync / fence_sync /
-        // user_profile / sos_ack / device_status / media_deleted
+        // user_profile / device_status / media_deleted
         log.debug("handleForward: type={}, deviceId={}, pairCode={}",
                 msg.getType(), msg.getDeviceId(), msg.getPairCode());
         pairService.forwardToPeer(userId, msg.getDeviceId(), msg);

@@ -128,4 +128,12 @@ public interface CacheDao {
 
     @Query("SELECT * FROM app_name_cache")
     List<AppNameCacheEntity> getAppNames();
+
+    // --- 亲密度/等级缓存（affection_cache 单行，服务器为权威） ---
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    void upsertAffection(AffectionCacheEntity entity);
+
+    @Query("SELECT * FROM affection_cache LIMIT 1")
+    AffectionCacheEntity getAffection();
 }

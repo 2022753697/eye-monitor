@@ -5,30 +5,10 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 渐变头栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient"
-        android:padding="@dimen/space_16"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/tv_title"
-            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/device_status_title" />
-
-        <Button
-            android:id="@+id/btn_back"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/back" />
-    </LinearLayout>
+    <!-- 统一头栏（v2 §2.10：std 渐变 + icon 返回 + 标题「对方设备状态」20sp 居中） -->
+    <include
+        layout="@layout/component_header_bar"
+        android:id="@+id/header_device_status_bar" />
 
     <!-- 五件套状态卡片 -->
     <LinearLayout
@@ -62,7 +42,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/status_offline"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/text_tertiary"
                 android:textSize="@dimen/text_15"
                 android:textStyle="bold" />
         </LinearLayout>

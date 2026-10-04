@@ -27,8 +27,24 @@ import java.util.concurrent.Executors;
         FolderCacheEntity.class,
         TaskEntity.class,
         MemoEntity.class,
-        MemoItemEntity.class}, version = 10, exportSchema = false)
+        MemoItemEntity.class,
+        AffectionCacheEntity.class}, version = 11, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /** v10 -> v11：亲密度/等级缓存（affection_cache，单行）——只建新表，不动既有数据 */
+    public static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `affection_cache` (" +
+                    "`id` INTEGER NOT NULL, " +
+                    "`points` INTEGER NOT NULL, " +
+                    "`level` INTEGER NOT NULL, " +
+                    "`progress` REAL NOT NULL, " +
+                    "`title` TEXT, " +
+                    "`updatedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`id`))");
+        }
+    };
 
     /** v9 -> v10：备忘录（个人私密，纯本地）——只建新表，不动既有数据 */
     public static final Migration MIGRATION_9_10 = new Migration(9, 10) {
@@ -160,7 +176,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class, "eye_monitor.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                                    MIGRATION_8_9, MIGRATION_9_10)
+                                    MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                             // 没有可用 Migration 时（极端情况）才落到破坏性重建
                             .fallbackToDestructiveMigration()
                             .build();

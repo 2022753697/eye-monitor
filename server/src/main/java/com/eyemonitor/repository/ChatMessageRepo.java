@@ -28,6 +28,14 @@ public interface ChatMessageRepo extends JpaRepository<ChatMessageEntity, Long> 
 
     void deleteByPairCode(String pairCode);
 
+    /** 周对比统计：某用户某时间点后的文本聊天条数（非系统消息，kind=chat） */
+    @Query("SELECT COUNT(e) FROM ChatMessageEntity e "
+            + "WHERE e.pairCode = :pairCode AND e.fromUser = :fromUser "
+            + "AND e.isSystem = false AND e.kind = 'chat' AND e.ts >= :since")
+    long countChatsByUserSince(@Param("pairCode") String pairCode,
+                               @Param("fromUser") long fromUser,
+                               @Param("since") long since);
+
     /** 删除 ts 早于 cutoff 的记录（30 天保留清理） */
     long deleteByTsBefore(long cutoff);
 }

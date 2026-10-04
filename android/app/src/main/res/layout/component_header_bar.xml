@@ -9,6 +9,8 @@
      <include layout="@layout/component_header_bar" />
      findViewById(R.id.header_back).setOnClickListener(...);
      findViewById(R.id.header_title).setText(...);
+     变体：聊天头（vivid 渐变 + 状态行 + 44dp 双图标钮）、Hero（Login/Main 未配对）为例外，
+     不入本组件；其余标准页一律 include 本组件。
      ============================================================ -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

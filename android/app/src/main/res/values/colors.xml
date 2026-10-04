@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 头栏文字阴影（图片底图可读性） -->
+    <color name="shadow_title">#73000000</color>
+    <color name="shadow_status">#66000000</color>
+
     <!-- 品牌主色：珊瑚粉 / 暖橙 -->
     <color name="primary">#FF6B6B</color>
     <color name="primary_dark">#E05555</color>
@@ -72,4 +76,25 @@
 
     <!-- 媒体：时间角标覆盖层（10% 透明度珊瑚，承接原 #59FF6B6B） -->
     <color name="media_overlay_tint">#59FF6B6B</color>
+
+    <!-- ============ 好感度/等级系统（狗狗乐园主题·珊瑚粉系） ============ -->
+    <!-- 头栏渐变变体（更柔和的粉→暖橙） -->
+    <color name="dog_grad_start">#F48FA8</color>
+    <color name="dog_grad_end">#FFA26B</color>
+    <!-- 聊天背景淡粉 -->
+    <color name="dog_bg">#FFF3F5</color>
+    <!-- 爪印/装饰色 -->
+    <color name="dog_paw">#F7B2C0</color>
+    <!-- 气泡：自己=珊瑚粉 / 对方=白粉描边（装饰色，白字对比与品牌珊瑚同档） -->
+    <color name="dog_bubble_self">#F26E8D</color>
+    <color name="dog_bubble_peer">#FFF7F9</color>
+    <color name="dog_bubble_stroke">#F4C2CD</color>
+    <!-- 输入区 -->
+    <color name="dog_input_stroke">#F4C2CD</color>
+    <!-- 升级动画粒子：珊瑚粉/暖橙 -->
+    <color name="particle_coral">#FF6B6B</color>
+    <color name="particle_pink">#FF8FA3</color>
+    <color name="particle_orange">#FFA26B</color>
+    <color name="particle_rose">#E05555</color>
+    <color name="particle_paw">#F7B2C0</color>
 </resources>

@@ -53,4 +53,17 @@ class WsMessageTest {
     void invalidJsonReturnsNull() {
         assertNull(WsMessage.fromJson("{broken json"));
     }
+
+    @Test
+    void affectionSyncRoundTrip() {
+        WsMessage m = WsMessage.createAffectionSync("123456", 620L, 3, 0.05, "热恋");
+        WsMessage r = WsMessage.fromJson(m.toJson());
+        assertNotNull(r);
+        assertEquals("affection_sync", r.getType());
+        assertEquals("123456", r.getPairCode());
+        assertEquals(620L, ((Number) r.getPayload().get("points")).longValue());
+        assertEquals(3, ((Number) r.getPayload().get("level")).intValue());
+        assertEquals(0.05, ((Number) r.getPayload().get("progress")).doubleValue(), 1e-6);
+        assertEquals("热恋", r.getPayload().get("title"));
+    }
 }

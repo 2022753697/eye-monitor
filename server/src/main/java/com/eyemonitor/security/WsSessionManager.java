@@ -34,6 +34,13 @@ public class WsSessionManager {
         sessions.remove(userId, session);
     }
 
+    /** 在线判定：该 userId 当前是否有存活 WS 会话（好感度「同时在线」检测用） */
+    public boolean isOnline(Long userId) {
+        if (userId == null) return false;
+        WebSocketSession s = sessions.get(userId);
+        return s != null && s.isOpen();
+    }
+
     /** 踢下线：通知 KICKED 并关闭旧会话 */
     public boolean kick(Long userId) {
         WebSocketSession session = sessions.get(userId);

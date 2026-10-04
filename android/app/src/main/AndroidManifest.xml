@@ -158,5 +158,10 @@
             android:name=".service.MemoReminderReceiver"
             android:exported="false" />
 
+        <!-- 打卡时段提醒触发（早安/晚安，AlarmManager.setWindow） -->
+        <receiver
+            android:name=".service.CheckInReminderReceiver"
+            android:exported="false" />
+
     </application>
 </manifest>

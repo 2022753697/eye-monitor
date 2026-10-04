@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋视 · 聊天页（改造后）原型</title>
+<style>
+/* ============================================================
+   恋视（眼互）UI v2 原型 · 聊天页
+   手机视口 390×844 逻辑像素，1px = 1dp（CSS 模拟）
+   设计令牌对齐 docs/ui-guide.md v2
+   ============================================================
+   字号令牌：text_10=10 / text_11=11 / text_12=12 / text_13=13
+             text_14=14 / text_15=15 / text_16=16 / text_20=20
+   间距令牌：space_4=4 / space_8=8 / space_12=12 / space_16=16 / space_24=24
+   圆角令牌：radius_sm=8 / radius_md=12 / radius_lg=16 / radius_xl=24 / radius_full=999
+   触控令牌：touch_target=44
+   ============================================================ */
+:root {
+  /* 品牌色（装饰/渐变/图标） */
+  --c-primary: #FF6B6B;
+  --c-primary-fill: #D13F47;   /* 实心按钮底 白字4.67:1 AA */
+  --c-primary-text: #C03D3D;   /* 描边/链接文字 5.28:1 AA */
+  --c-accent: #FFA26B;
+  --c-accent-text: #C97A3D;
+  /* 头栏渐变 */
+  --c-hg-start: #EE5F68;
+  --c-hg-end: #D96F52;
+  --c-vivid-start: #FF6B6B;    /* 聊天头 vivid 变体（产品特例） */
+  --c-vivid-end: #FFA26B;
+  /* 背景/表面 */
+  --c-bg: #FFF9F7;
+  --c-surface: #FFFFFF;
+  --c-surface-alt: #FFF0EC;
+  --c-surface-variant: #F6EFEC;
+  /* 文本层级 */
+  --c-text-1: #4A3B3D;         /* 主文本 8.6:1 */
+  --c-text-2: #7A696C;         /* 次文本 5.16:1 */
+  --c-text-3: #A99A9C;         /* 图注/时间戳（非关键，豁免AA） */
+  --c-on-primary: #FFFFFF;
+  --c-on-primary-muted: rgba(255,255,255,.9);  /* 头栏次要文字 */
+  /* 状态 */
+  --c-ok-text: #2E7D63;
+  --c-warn-text: #9A6217;
+  --c-err-text: #B33A2C;
+  --c-surface-ok: #E3F3EB;
+  --c-surface-err: #FBEAE6;
+  --c-divider: #F0E0DC;
+  --c-scrim: rgba(0,0,0,.10);  /* 头栏底部微压暗带 */
+  --c-header-btn: rgba(255,255,255,.30); /* 头栏 icon 钮底 */
+  /* 尺寸令牌 */
+  --t-44: 44px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-full: 999px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #2B2B2B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 40px;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.phone {
+  width: 390px; height: 844px;
+  background: var(--c-bg);
+  border-radius: 36px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  position: relative;
+}
+/* ---- 模拟系统状态栏（沉浸：透明字白） ---- */
+.sysbar {
+  height: 24px;
+  background: linear-gradient(180deg, var(--c-vivid-start), var(--c-vivid-start));
+  color: rgba(255,255,255,.92);
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+/* ============================================================
+   聊天头栏 v2 —— 两行结构（原三行+双文字钮 → 两行+纯图标钮）
+   行A：标题 20sp 粗 + 好感度徽章 | 右：纯图标钮 44dp ×2
+   行B：状态行紧凑单行 11sp（图标 8-10dp + · 分隔）+ scrim 压暗带
+   头栏总高 ≈ 76px（44 + 32）
+   ============================================================ */
+.chat-header {
+  background: linear-gradient(135deg, var(--c-vivid-start), var(--c-vivid-end));
+  flex-shrink: 0;
+  position: relative;
+  padding: 10px 12px 6px;
+}
+/* scrim 微压暗带：覆盖头栏底部 ~26px，改善 11sp 微文本对比（残差记录 ~2.6:1 依赖图标冗余） */
+.chat-header::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
+  background: linear-gradient(180deg, rgba(0,0,0,0), var(--c-scrim));
+  pointer-events: none;
+}
+.hdr-rowA {
+  display: flex; align-items: center;
+  position: relative; z-index: 1;
+}
+.hdr-title-box { display: flex; align-items: center; flex: 1; min-width: 0; }
+.hdr-title {
+  font-size: 20px; font-weight: 700; color: var(--c-on-primary);
+  letter-spacing: .5px; white-space: nowrap;
+}
+.hdr-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: rgba(255,255,255,.22);
+  border-radius: var(--r-full);
+  padding: 1px 6px 1px 3px;
+  margin-left: 8px;
+}
+.hdr-badge .heart { font-size: 10px; }
+.hdr-badge .lv { font-size: 10px; font-weight: 700; color: var(--c-on-primary-muted); }
+/* 纯图标钮：44dp 热区 + 20dp 图形，白 30% 圆底，圆角 12（radius_md，原14 整改） */
+.hdr-icon-btn {
+  width: var(--t-44); height: var(--t-44);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-header-btn);
+  border-radius: var(--r-md);
+  margin-left: 8px;
+  cursor: pointer;
+  position: relative; z-index: 1;
+}
+.hdr-icon-btn svg { width: 20px; height: 20px; }
+.hdr-icon-btn:active { background: rgba(255,255,255,.5); }
+/* 行B：状态行 —— 紧凑单行 11sp */
+.hdr-rowB {
+  display: flex; align-items: center; gap: 2px;
+  margin-top: 2px;
+  position: relative; z-index: 1;
+  color: var(--c-on-primary-muted);
+  font-size: 11px;
+  height: 22px; white-space: nowrap;
+}
+.hdr-rowB .ic { display: inline-flex; align-items: center; }
+.hdr-rowB svg { display: block; }
+.hdr-rowB .sep { margin: 0 2px; opacity: .65; }
+.hdr-typing { color: var(--c-on-primary); font-size: 12px; }
+/* ============================================================
+   消息列表
+   ============================================================ */
+.msg-list {
+  flex: 1; overflow-y: auto;
+  padding: 8px 0;
+  display: flex; flex-direction: column;
+}
+/* 系统提示（居中胶囊 12sp） */
+.sys-tip {
+  align-self: center;
+  background: var(--c-surface-variant);
+  border-radius: var(--r-full);
+  padding: 5px 14px;
+  font-size: 12px; color: var(--c-text-2);
+  margin: 8px 0;
+  max-width: 85%;
+  text-align: center;
+}
+/* ---- 对方气泡（左） ---- */
+.row-peer { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 60px 4px 12px; }
+.peer-name { font-size: 12px; color: var(--c-primary-text); margin: 0 0 2px 4px; }
+.bubble-peer {
+  background: var(--c-surface);
+  border: 1px solid #F4C2CD;          /* dog_bubble_stroke 粉描边 */
+  border-radius: 4px 16px 16px 16px;  /* 16/4 组合：右上角小圆 */
+  padding: 12px;
+  font-size: 15px; line-height: 1.5; color: var(--c-text-1);
+  max-width: 100%;
+}
+/* 时间行：图注级 = text_11 + text_tertiary（用户不满 #3 的整改落点） */
+.time-row {
+  display: flex; align-items: center; gap: 2px;
+  margin: 2px 0 0 4px;
+  font-size: 11px; color: var(--c-text-3);
+}
+/* ---- 自己气泡（右，珊瑚渐变） ---- */
+.row-self { display: flex; flex-direction: column; align-items: flex-end; padding: 4px 12px 4px 60px; }
+.bubble-self {
+  background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+  border-radius: 16px 4px 16px 16px;  /* 16/4 组合：左上角小圆 */
+  padding: 12px;
+  font-size: 15px; line-height: 1.5; color: var(--c-on-primary);
+  max-width: 100%;
+}
+.time-row.end { margin: 2px 4px 0 0; }
+.time-row .read { color: var(--c-text-3); }  /* 已读：图注级 */
+.time-row .fail { color: var(--c-err-text); font-size: 11px; } /* 未送达（状态error文字） */
+/* ---- 引用条（微信式） ---- */
+.ref-strip {
+  display: flex; align-items: center;
+  background: var(--c-surface-variant);
+  border-radius: var(--r-sm);
+  padding: 5px 10px 5px 4px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.ref-strip .bar { width: 3px; align-self: stretch; background: var(--c-accent); margin-right: 6px; border-radius: 2px; }
+.ref-strip .ref-name { font-size: 11px; color: var(--c-primary-text); }  /* 引用者名：primary_text AA */
+.ref-strip .ref-text { font-size: 12px; color: var(--c-text-2); margin-left: 6px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ---- 媒体气泡（图/语音） ---- */
+.media-bubble { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 12px 4px 60px; align-self: flex-end; }
+.media-box {
+  width: 180px; height: 180px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, #FFE3DE, #FFF0EC);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--c-text-2);
+}
+.media-box .ph-ic { font-size: 32px; }
+.media-box .ph-txt { font-size: 12px; margin-top: 6px; }
+/* 语音气泡 */
+.voice-bubble {
+  display: flex; align-items: center;
+  background: var(--c-surface);
+  border: 1px solid #F4C2CD;
+  border-radius: 16px 4px 16px 16px;
+  padding: 10px 16px;
+  min-height: 44px;
+}
+.voice-bubble .wifi { font-size: 22px; color: var(--c-primary); margin-right: 6px; }
+.waveform { width: 96px; height: 24px; }
+.waveform span { display: inline-block; width: 3px; background: var(--c-primary); border-radius: 2px; margin-right: 3px; vertical-align: bottom; }
+.voice-bubble .dur { font-size: 15px; color: var(--c-text-1); margin-left: 6px; }
+/* ============================================================
+   底部输入栏（44dp 热区体系）
+   ============================================================ */
+.input-bar {
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-divider);
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: var(--t-44); height: var(--t-44);
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  color: var(--c-text-2);
+}
+.icon-btn:active { background: var(--c-surface-alt); }
+.icon-btn svg { width: 24px; height: 24px; }  /* 图形 24dp，热区 44dp */
+.chat-input {
+  flex: 1; height: 44px;                     /* 输入高度 44dp（原46 收紧） */
+  background: var(--c-surface-alt);
+  border-radius: var(--r-full);
+  border: none;
+  padding: 0 16px;
+  font-size: 15px;
+  color: var(--c-text-1);
+  outline: none;
+}
+.chat-input::placeholder { color: var(--c-text-3); }
+.send-btn {
+  width: var(--t-44); height: var(--t-44);
+  border-radius: var(--r-full);
+  background: var(--c-primary);             /* 装饰：品牌珊瑚（发送钮） */
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.send-btn:active { background: var(--c-primary-fill); }
+.send-btn svg { width: 22px; height: 22px; }
+/* ============================================================
+   更多面板（200dp + 8dp 指示点；页2已补位：纪念日/亲密度）
+   ============================================================ */
+.more-panel {
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-divider);
+  flex-shrink: 0;
+  display: none;
+  flex-direction: column;
+}
+.more-panel.open { display: flex; }
+.more-grid {
+  height: 200px;                       /* panel_height_more 200dp */
+  display: flex; flex-direction: column;
+  padding: 14px 8px 8px;
+  gap: 0;
+}
+.more-row { display: flex; }
+.more-cell {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: var(--r-md);
+}
+.more-cell:active { background: var(--c-surface-alt); }
+.more-ic {
+  width: 44px; height: 44px;
+  border-radius: var(--r-full);
+  background: var(--c-surface-alt);
+  display: flex; align-items: center; justify-content: center;
+}
+.more-ic.sos { background: var(--c-surface-err); }
+.more-ic svg { width: 22px; height: 22px; }
+.more-cell .label { font-size: 12px; color: var(--c-text-1); margin-top: 6px; }  /* 旁注 11→12sp */
+.more-cell .label.sos { color: var(--c-err-text); }
+.more-dots {
+  display: flex; justify-content: center; gap: 8px;  /* 指示点 6→8dp，间距5→8 */
+  padding-bottom: 10px;
+}
+.dot { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--c-surface-variant); }
+.dot.on { background: var(--c-primary); }
+/* ============================================================
+   爱心悬浮（纪念日入口，44dp 体系）
+   ============================================================ */
+.heart-float {
+  position: absolute; top: 118px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  z-index: 5; cursor: pointer;
+}
+.heart-float .ring {
+  width: 44px; height: 44px; border-radius: var(--r-full);
+  background: var(--c-surface);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+.heart-float .lbl { font-size: 11px; color: var(--c-text-2); margin-top: 3px; white-space: nowrap; }
+/* ============================================================
+   页脚标注 & 交互开关
+   ============================================================ */
+.controls {
+  width: 390px; margin: 16px auto 0;
+  display: flex; gap: 12px;
+}
+.controls label {
+  color: #E8E8E8; font-size: 12px;
+  background: #3A3A3A; padding: 6px 12px; border-radius: 8px;
+  cursor: pointer; user-select: none;
+}
+.controls input { margin-right: 4px; accent-color: var(--c-primary); }
+.spec {
+  width: 390px; margin: 14px auto 0;
+  color: #E8E8E8; font-size: 12px;
+  background: #333; border-radius: 10px; padding: 12px 14px;
+}
+.spec summary { cursor: pointer; font-weight: 600; color: #FFB4B4; }
+.spec table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.spec td { padding: 3px 6px; border-bottom: 1px solid #444; }
+.spec td:first-child { color: #FFB4B4; width: 46%; }
+.before-after { width: 390px; margin: 14px auto 0; color: #E8E8E8; font-size: 12px; background: #333; border-radius: 10px; padding: 12px 14px; }
+.before-after summary { cursor: pointer; font-weight: 600; color: #FFB4B4; }
+.ba-row { display: flex; gap: 12px; margin-top: 10px; }
+.ba-box { flex: 1; }
+.ba-box .cap { text-align: center; margin-bottom: 4px; }
+.ba-box.before .cap { color: #9E9E9E; }
+.ba-box.after .cap { color: #8ED19A; }
+.mini-hdr { border-radius: 8px; padding: 6px; font-size: 9px; color: #fff; }
+.mini-hdr .rowA { display: flex; align-items: center; margin-bottom: 3px; }
+.mini-hdr .rowB { opacity: .8; }
+.mini-hdr .spacer { flex: 1; }
+.btn-mini { display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: rgba(255,255,255,.3); margin-left: 2px; text-align: center; line-height: 14px; font-size: 8px; }
+.btn-mini.wide { width: 40px; }
+.before .mini-hdr { background: linear-gradient(135deg,#FF6B6B,#FFA26B); }
+.after .mini-hdr { background: linear-gradient(135deg,#FF6B6B,#FFA26B); }
+.ba-note { margin-top: 8px; line-height: 1.6; color: #CCC; }
+.ba-note b { color: #FFB4B4; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <!-- 模拟系统状态栏 -->
+  <div class="sysbar"><span>9:41</span><span>📶 🔋</span></div>
+
+  <!-- ============ 聊天头栏 v2 ============ -->
+  <div class="chat-header">
+    <!-- 行A：标题 + 徽章 | 纯图标钮（地图/图库） -->
+    <div class="hdr-rowA">
+      <div class="hdr-title-box">
+        <span class="hdr-title">对方</span>
+        <span class="hdr-badge">
+          <span class="heart">💗</span><span class="lv">Lv.3</span>
+        </span>
+      </div>
+      <!-- 地图：44dp 热区纯图标（原「图标+文字」收窄） -->
+      <button class="hdr-icon-btn" aria-label="位置地图" title="位置地图">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6 3-6-3z"/><path d="M9 4v13M15 7v13"/></svg>
+      </button>
+      <!-- 图库：同上 -->
+      <button class="hdr-icon-btn" aria-label="共享图库" title="共享图库">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5-9 9"/></svg>
+      </button>
+    </div>
+    <!-- 行B：状态行 —— 紧凑单行 11sp + 小图标 + · 分隔（用户不满 #2 整改） -->
+    <div class="hdr-rowB">
+      <span class="ic"><svg width="10" height="13" viewBox="0 0 10 13"><rect x="1.5" y="0.5" width="7" height="11" rx="2" fill="none" stroke="rgba(255,255,255,.9)"/><rect x="4" y="9" width="2" height="3" fill="rgba(255,255,255,.9)"/><rect x="2.5" y="2" width="5" height="5" fill="rgba(255,255,255,.9)"/></svg></span>
+      <span>100%</span>
+      <span class="sep">·</span>
+      <span class="ic"><svg width="8" height="10" viewBox="0 0 8 10"><path d="M4 9V6M2 6h4M4 2C3 2 2 3 2 4M4 2c1 0 2 1 2 2" stroke="rgba(255,255,255,.9)" stroke-width="1.4" fill="none"/></svg></span>
+      <span>充电</span>
+      <span class="sep">·</span>
+      <span>4G</span>
+      <span class="sep">·</span>
+      <span class="ic"><svg width="8" height="10" viewBox="0 0 8 10"><path d="M2 1v8M6 1v8" stroke="rgba(255,255,255,.9)" stroke-width="1.4" stroke-linecap="round"/><path d="M3 3l2-2M3 6l2-2" stroke="rgba(255,255,255,.9)" stroke-width="1.2"/></svg></span>
+      <span>蓝牙开</span>
+      <span class="sep">·</span>
+      <span>在线</span>
+    </div>
+    <!-- typing 行（可选显示） -->
+    <div class="hdr-rowB" id="typingRow" style="display:none;">
+      <span class="hdr-typing">对方正在输入…</span>
+    </div>
+  </div>
+
+  <!-- ============ 消息列表 ============ -->
+  <div class="msg-list">
+
+    <!-- 系统：配对成功 -->
+    <div class="sys-tip">你们已经配对成功，接下来的路一起走 💗</div>
+
+    <!-- 对方文本气泡 -->
+    <div class="row-peer">
+      <div class="peer-name">对方</div>
+      <div class="bubble-peer">今天下班后要不要一起去吃那家新开的火锅？</div>
+      <div class="time-row">14:28</div>
+    </div>
+
+    <!-- 系统：App 切换提示（居中灰字） -->
+    <div class="sys-tip">对方打开了 抖音</div>
+
+    <!-- 自己文本气泡（含引用条示例 + 已读 + 时间） -->
+    <div class="row-self">
+      <div class="ref-strip">
+        <span class="bar"></span>
+        <span class="ref-name">对方</span>
+        <span class="ref-text">今天下班后要不要一起去吃那家新开的火锅？</span>
+      </div>
+      <div class="bubble-self">好呀！我 6 点半出发，地铁口等你～</div>
+      <div class="time-row end">
+        <span class="read">已读</span>
+        <span>· 14:33</span>
+      </div>
+    </div>
+
+    <!-- 媒体：图片占位（下载中） -->
+    <div class="media-bubble">
+      <div class="media-box">
+        <span class="ph-ic">🖼️</span>
+        <span class="ph-txt">点击下载</span>
+      </div>
+      <div class="time-row end" style="align-self:flex-end; margin-right:4px;">14:35</div>
+    </div>
+
+    <!-- 语音气泡 -->
+    <div class="row-self" style="align-items:flex-start; align-self:flex-end;">
+      <div class="voice-bubble">
+        <span class="wifi">📡</span>
+        <span class="waveform">
+          <span style="height:6px"></span><span style="height:12px"></span><span style="height:8px"></span><span style="height:16px"></span><span style="height:10px"></span><span style="height:18px"></span><span style="height:8px"></span><span style="height:12px"></span><span style="height:6px"></span>
+        </span>
+        <span class="dur">8″</span>
+      </div>
+      <div class="time-row end">14:36</div>
+    </div>
+
+    <!-- 未送达示例（点击重发） -->
+    <div class="row-self">
+      <div class="bubble-self">对了，晚上要不要叫上阿雪？</div>
+      <div class="time-row end">
+        <span class="fail">消息没飞出去，点一下重发</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 底部输入栏（44dp 体系） ============ -->
+  <div class="input-bar">
+    <button class="icon-btn" aria-label="语音"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <input class="chat-input" placeholder="输入消息…" value="">
+    <button class="icon-btn" aria-label="表情"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.2" fill="#7A696C"/><circle cx="15" cy="10" r="1.2" fill="#7A696C"/><path d="M8.5 14.5c1 1.2 2.5 1.8 3.5 1.8s2.5-.6 3.5-1.8"/></svg></button>
+    <button class="send-btn" aria-label="发送"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></button>
+    <button class="icon-btn" aria-label="更多" id="btnMore"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="#7A696C"/><circle cx="12" cy="12" r="1.6" fill="#7A696C"/><circle cx="19" cy="12" r="1.6" fill="#7A696C"/></svg></button>
+  </div>
+
+  <!-- ============ 更多面板（页1：8 入口） ============ -->
+  <div class="more-panel" id="morePanel">
+    <div class="more-grid">
+      <div class="more-row">
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg></div><span class="label">图片</span></div>
+        <div class="more-cell"><div class="more-ic sos"><svg viewBox="0 0 24 24" fill="none" stroke="#B33A2C" stroke-width="2"><path d="M12 3l9 18H3z" stroke-linejoin="round"/></svg></div><span class="label sos">SOS 紧急求助</span></div>
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.7l2-1.6-2-3.4-2.3 1a7 7 0 0 0-2.9-1.7L11 2H7l-.6 2.6a7 7 0 0 0-2.9 1.7l-2.3-1-2 3.4 2 1.6A7 7 0 0 0 1 12a7 7 0 0 0 .2 1.7l-2 1.6 2 3.4 2.3-1a7 7 0 0 0 2.9 1.7L7 22h4l.6-2.6a7 7 0 0 0 2.9-1.7l2.3 1 2-3.4-2-1.6A7 7 0 0 0 19 12z"/></svg></div><span class="label">权限设置</span></div>
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><path d="M12 3l7 5v9l-7 5-7-5V8z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4"/></svg></div><span class="label">任务</span></div>
+      </div>
+      <div class="more-row">
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div><span class="label">备忘录</span></div>
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 10l1 10h10l1-10M10 14v3M14 14v3"/></svg></div><span class="label">解除配对</span></div>
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></div><span class="label">轨迹回放</span></div>
+        <div class="more-cell"><div class="more-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><span class="label">我的主页</span></div>
+      </div>
+    </div>
+    <div class="more-dots"><span class="dot on"></span><span class="dot"></span></div>
+  </div>
+
+  <!-- 爱心悬浮（纪念日入口） -->
+  <div class="heart-float">
+    <div class="ring">💗</div>
+    <div class="lbl">还有 23 天 ❤</div>
+  </div>
+</div>
+
+<!-- 交互开关 -->
+<div class="controls">
+  <label><input type="checkbox" id="ckMore"> 更多面板（页1）</label>
+  <label><input type="checkbox" id="ckTyping"> 对方正在输入…</label>
+</div>
+
+<!-- 改造前后对照 -->
+<details class="before-after">
+  <summary>📐 改造前 vs 改造后（头栏密度对照）</summary>
+  <div class="ba-row">
+    <div class="ba-box before">
+      <div class="cap">改造前（≈180dp 双文字钮）</div>
+      <div class="mini-hdr">
+        <div class="rowA"><span>对方</span><span class="spacer"></span><span class="btn-mini wide">🗺 地图</span><span class="btn-mini wide">🖼 图库</span></div>
+        <div class="rowB">🔋 100% · ⚡ · 4G · 📶 · 在线（11sp，无 scrim）</div>
+      </div>
+    </div>
+    <div class="ba-box after">
+      <div class="cap">改造后（≈96dp 纯图标钮）</div>
+      <div class="mini-hdr">
+        <div class="rowA"><span>对方</span><span class="spacer"></span><span class="btn-mini">🗺</span><span class="btn-mini">🖼</span></div>
+        <div class="rowB">🔋100%·⚡充电·4G·📶·在线（11sp 紧凑 + scrim）</div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-note">
+    <b>① 双文字钮 → 纯图标钮：</b>按钮宽度 90dp×2 → 44dp×2，头栏右区从 ~46% 屏宽降到 ~25%；<br>
+    <b>② 状态行 → 紧凑单行：</b>图标 12×16/10×12 → 10×13/8×10，margin 2-6dp → 2dp，段间加 ·；<br>
+    <b>③ 辅助文字 → 图注级：</b>气泡时间/已读 = text_11 + text_tertiary（浅灰，视觉收敛）；<br>
+    <b>④ scrim 压暗带：</b>头栏底部 26px 渐变暗带，兜底 11sp 微文本对比残差（~2.6:1，依赖图标冗余）。
+  </div>
+</details>
+
+<!-- 尺寸规格标注 -->
+<details class="spec">
+  <summary>📏 尺寸 / 字号规格标注（1px = 1dp）</summary>
+  <table>
+    <tr><td>手机视口</td><td>390 × 844 逻辑像素</td></tr>
+    <tr><td>聊天头总高</td><td>≈76dp（行A 44dp + 行B 22dp + padding 10/6）</td></tr>
+    <tr><td>头栏标题</td><td>text_20（20sp）粗，白字（HeaderTitle）</td></tr>
+    <tr><td>好感度徽章 / 等级</td><td>text_10 角标级（10sp）+ 90% 白</td></tr>
+    <tr><td>地图 / 图库钮</td><td>44dp 热区 × 2，图形 20dp，白 30% 圆底，圆角 radius_md 12</td></tr>
+    <tr><td>状态行</td><td>单行，text_11，90% 白；电量图标 10×13 / 充电·蓝牙 8×10</td></tr>
+    <tr><td>scrim 带</td><td>底部 26dp 渐变 rgba(0,0,0,0→0.10)</td></tr>
+    <tr><td>自己气泡</td><td>珊瑚渐变 #FF6B6B→#FFA26B，圆角 16/4，正文 text_15</td></tr>
+    <tr><td>对方气泡</td><td>白底 + 粉描边 #F4C2CD，圆角 4/16，正文 text_15</td></tr>
+    <tr><td>昵称（对方）</td><td>text_12 + primary_text #C03D3D（AA 5.28:1）</td></tr>
+    <tr><td>时间 / 已读</td><td>text_11 + text_tertiary #A99A9C（图注级收敛）</td></tr>
+    <tr><td>未送达</td><td>text_11 + status_error_text #B33A2C</td></tr>
+    <tr><td>系统提示</td><td>text_12 + text_secondary，surface_variant 胶囊</td></tr>
+    <tr><td>引用条</td><td>名字 text_11 primary_text；内容 text_12 text_secondary；色条 3dp accent</td></tr>
+    <tr><td>媒体气泡</td><td>180×180dp，占位 icon 32dp，提示 text_12</td></tr>
+    <tr><td>输入栏</td><td>总高 ≈56dp（padding 6/8）；输入框 44dp 胶囊；icon 24dp 图形 + 44dp 热区</td></tr>
+    <tr><td>更多面板</td><td>内容 200dp + 指示点 8dp（6→8 整改）；旁注 text_12（11→12 整改）</td></tr>
+    <tr><td>爱心悬浮</td><td>容器 44dp，图形 24dp，label text_11</td></tr>
+  </table>
+</details>
+
+<script>
+// 交互：更多面板 / typing 行 开关（仅原型演示，无业务逻辑）
+document.getElementById('ckMore').addEventListener('change', function(e){
+  document.getElementById('morePanel').classList.toggle('open', e.target.checked);
+  document.getElementById('btnMore').addEventListener('click', function(){
+    document.getElementById('morePanel').classList.add('open');
+    document.getElementById('ckMore').checked = true;
+  });
+});
+document.getElementById('ckTyping').addEventListener('change', function(e){
+  document.getElementById('typingRow').style.display = e.target.checked ? 'flex' : 'none';
+});
+</script>
+</body>
+</html>

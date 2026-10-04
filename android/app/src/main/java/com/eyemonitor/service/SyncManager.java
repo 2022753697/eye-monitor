@@ -8,6 +8,8 @@ import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AnniversaryCacheEntity;
 import com.eyemonitor.db.AppNameCacheEntity;
 import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.db.AffectionCacheEntity;
+import com.eyemonitor.db.AffectionStateHolder;
 import com.eyemonitor.db.ChatEntity;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.db.FolderCacheEntity;
@@ -258,9 +260,33 @@ public final class SyncManager {
             case "media_deleted":
                 handleMediaDelete(context, message);
                 break;
+            case "affection_sync":
+                // 亲密度/等级快照：更新缓存 + 内存镜像（广播由 MonitorService 统一发出）
+                handleAffectionSync(context, message);
+                break;
             default:
                 break;
         }
+    }
+
+    /** 亲密度快照落库（affection_cache 单行 upsert + 内存镜像刷新；Room 走 dbExecutor） */
+    private static void handleAffectionSync(Context context, WsMessage message) {
+        java.util.Map<String, Object> p = message.getPayload();
+        if (p == null) return;
+        final AffectionCacheEntity e = new AffectionCacheEntity();
+        e.points = p.get("points") instanceof Number ? ((Number) p.get("points")).intValue() : 0;
+        e.level = p.get("level") instanceof Number ? ((Number) p.get("level")).intValue() : 0;
+        e.progress = p.get("progress") instanceof Number
+                ? ((Number) p.get("progress")).doubleValue() : 0d;
+        e.title = p.get("title") instanceof String ? (String) p.get("title") : "";
+        e.updatedAt = p.get("updatedAt") instanceof Number
+                ? ((Number) p.get("updatedAt")).longValue() : System.currentTimeMillis();
+        AppDatabase db = AppDatabase.getInstance(context);
+        AppDatabase.dbExecutor.execute(() -> {
+            db.cacheDao().upsertAffection(e);
+            AffectionStateHolder.update(e);
+            Log.i(TAG, "亲密度缓存已更新: points=" + e.points + ", level=" + e.level);
+        });
     }
 
     /** 纪念日全量拉取到 Room 缓存（AnniversaryActivity 变更成功后主动刷新） */

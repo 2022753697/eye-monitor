@@ -4,11 +4,14 @@ import com.eyemonitor.entity.AnniversaryEntity;
 import com.eyemonitor.model.WsMessage;
 import com.eyemonitor.repository.AnniversaryRepo;
 import com.eyemonitor.security.AuthUtil;
+import com.eyemonitor.service.AffectionService;
 import com.eyemonitor.service.AuthService;
 import com.eyemonitor.service.PairService;
 import com.eyemonitor.web.ApiResponse;
 import com.eyemonitor.web.BizException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,12 +31,17 @@ import java.util.Map;
 @RequestMapping("/api/anniversaries")
 public class AnniversaryController {
 
+    private static final Logger log = LoggerFactory.getLogger(AnniversaryController.class);
+
     private final AnniversaryRepo anniversaryRepo;
     private final PairService pairService;
+    private final AffectionService affectionService;
 
-    public AnniversaryController(AnniversaryRepo anniversaryRepo, PairService pairService) {
+    public AnniversaryController(AnniversaryRepo anniversaryRepo, PairService pairService,
+                                 AffectionService affectionService) {
         this.anniversaryRepo = anniversaryRepo;
         this.pairService = pairService;
+        this.affectionService = affectionService;
     }
 
     @GetMapping
@@ -67,6 +75,13 @@ public class AnniversaryController {
         e.setRepeat(repeat);
         e.setUpdatedAt(System.currentTimeMillis());
         anniversaryRepo.save(e);
+
+        // 好感度钩子：纪念日新增 +10（内部容错，绝不影响创建/广播链路）
+        try {
+            affectionService.onAnniversaryCreated(pairCode, e.getId());
+        } catch (Exception ex) {
+            log.warn("纪念日好感度钩子异常 id={}", e.getId(), ex);
+        }
 
         pairService.broadcastToPair(pairCode, WsMessage.createAnniversarySync(
                 null, pairCode, "add", e.getId(), e.getName(), e.getDate().toString(),

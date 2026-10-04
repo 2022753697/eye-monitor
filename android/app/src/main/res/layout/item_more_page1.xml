@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingTop="14dp"
+        android:paddingTop="@dimen/space_14"
         android:paddingStart="8dp"
         android:paddingEnd="8dp">
 
@@ -20,7 +20,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -36,7 +36,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_image"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -47,7 +49,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -63,7 +65,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_sos"
                 android:textColor="@color/status_error"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -74,7 +78,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -90,7 +94,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_permissions"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -101,7 +107,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -117,7 +123,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_task"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
     </LinearLayout>
@@ -127,7 +135,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="16dp"
+        android:paddingBottom="@dimen/space_16"
         android:paddingStart="8dp"
         android:paddingEnd="8dp">
 
@@ -138,7 +146,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -154,7 +162,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_memo"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -165,7 +175,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -181,7 +191,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_unpair"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -192,7 +204,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -208,7 +220,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_track"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -219,7 +233,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -235,7 +249,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_profile"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
     </LinearLayout>

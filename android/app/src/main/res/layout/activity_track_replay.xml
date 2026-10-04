@@ -9,39 +9,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 顶部渐变头栏：返回 + 标题（统一视觉） -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient_std"
-        android:paddingStart="@dimen/space_12"
-        android:paddingEnd="@dimen/space_12"
-        android:paddingTop="@dimen/space_8"
-        android:paddingBottom="@dimen/space_8"
-        android:gravity="center_vertical"
-        android:layout_gravity="top">
-
-        <ImageButton
-            android:id="@+id/btn_back"
-            style="?attr/borderlessButtonStyle"
-            android:layout_width="@dimen/icon_44"
-            android:layout_height="@dimen/icon_44"
-            android:src="@drawable/ic_back"
-            android:background="@drawable/bg_header_icon"
-            android:padding="10dp"
-            android:tint="@color/text_on_primary"
-            android:contentDescription="@string/back" />
-
-        <TextView
-            android:id="@+id/tv_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/track_replay_title"
-            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
-            android:textColor="@color/text_on_primary"
-            android:layout_marginStart="@dimen/space_12" />
-    </LinearLayout>
+    <!-- 顶部渐变头栏（v2 §2.13：统一 HeaderBar include，浮层定位保留） -->
+    <include
+        layout="@layout/component_header_bar"
+        android:id="@+id/header_track_replay_bar"
+        android:layout_gravity="top" />
 
     <!-- 底部控制面板 -->
     <LinearLayout
@@ -49,8 +21,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_card"
-        android:elevation="4dp"
-        android:padding="12dp"
+        android:elevation="@dimen/shadow_2"
+        android:padding="@dimen/space_12"
         android:layout_gravity="bottom">
 
         <!-- 行1：时间段选择（今天 / 近7天 / 自定义） -->
@@ -66,9 +38,9 @@
                 android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="@string/track_range_today"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_13"
                 android:minWidth="0dp"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="@dimen/space_4" />
 
             <Button
                 android:id="@+id/btn_range_7d"
@@ -77,9 +49,9 @@
                 android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="@string/track_range_7d"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_13"
                 android:minWidth="0dp"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="@dimen/space_4" />
 
             <Button
                 android:id="@+id/btn_range_custom"
@@ -88,7 +60,7 @@
                 android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="@string/track_range_custom"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_13"
                 android:minWidth="0dp" />
         </LinearLayout>
 
@@ -97,25 +69,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/space_10"
             android:gravity="center_vertical">
 
             <Button
                 android:id="@+id/btn_play_pause"
                 style="@style/Widget.EyeMonitor.Button.Primary"
                 android:layout_width="0dp"
-                android:layout_height="46dp"
+                android:layout_height="@dimen/bar_height"
                 android:layout_weight="1"
                 android:text="@string/track_play"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/track_speed_label"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:layout_marginStart="12dp" />
+                android:textSize="@dimen/text_13"
+                android:layout_marginStart="@dimen/space_12" />
 
             <Button
                 android:id="@+id/btn_speed"
@@ -123,11 +95,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="44dp"
                 android:text="@string/track_speed_one"
-                android:textSize="14sp"
+                android:textSize="@dimen/text_14"
                 android:minWidth="0dp"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:layout_marginStart="8dp" />
+                android:paddingStart="@dimen/space_14"
+                android:paddingEnd="@dimen/space_14"
+                android:layout_marginStart="@dimen/space_8" />
 
             <TextView
                 android:id="@+id/tv_progress"
@@ -136,9 +108,18 @@
                 android:layout_weight="1"
                 android:text="@string/track_loading"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_13"
                 android:gravity="end"
-                android:layout_marginStart="12dp" />
+                android:layout_marginStart="@dimen/space_12" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- 空态浮层（v2 §2.13：地图中央；数据为空时替换 Toast 展示，点按可关闭） -->
+    <include
+        layout="@layout/component_empty_state"
+        android:id="@+id/es_track_replay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 </FrameLayout>

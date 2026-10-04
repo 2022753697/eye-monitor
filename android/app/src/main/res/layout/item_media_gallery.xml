@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="120dp"
-    android:padding="2dp">
+    android:padding="@dimen/space_2">
 
     <ImageView
         android:id="@+id/iv_gallery_thumb"
@@ -23,10 +23,10 @@
 
     <FrameLayout
         android:id="@+id/fl_batch_check"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:layout_gravity="top|end"
-        android:layout_margin="4dp"
+        android:layout_margin="@dimen/space_4"
         android:background="@drawable/bg_icon_circle"
         android:visibility="gone">
 
@@ -46,8 +46,8 @@
         android:background="@drawable/bg_media_placeholder">
 
         <ImageView
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_image"
             android:tint="@color/text_secondary" />
 
@@ -57,8 +57,8 @@
             android:layout_height="wrap_content"
             android:text="@string/media_download_hint"
             android:textColor="@color/text_secondary"
-            android:textSize="10sp"
-            android:layout_marginTop="4dp" />
+            android:textSize="@dimen/text_11"
+            android:layout_marginTop="@dimen/space_4" />
     </LinearLayout>
 
     <FrameLayout
@@ -66,17 +66,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:padding="4dp"
+        android:padding="@dimen/space_4"
         android:visibility="gone">
 
         <View
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_play_badge" />
 
         <ImageView
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_play"
             android:padding="6dp"
             android:contentDescription="@string/video" />

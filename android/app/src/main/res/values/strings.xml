@@ -156,7 +156,11 @@
     <string name="menu_gender">设置性别</string>
     <string name="menu_more_title">更多选项</string>
     <string name="menu_more">更多</string>
-    <string name="btn_share_map">共享地图</string>
+    <string name="btn_share_map">地图</string>
+    <string name="btn_header_gallery">图库</string>
+    <!-- v2：聊天头栏纯图标钮无障碍描述（44dp 热区，删按钮内文字后补 contentDescription） -->
+    <string name="cd_btn_map">共享位置地图</string>
+    <string name="cd_btn_gallery">共享图库</string>
     <string name="menu_image">图片</string>
     <string name="menu_clear_chat">清空聊天</string>
     <string name="toast_image_coming_soon">图片发送即将上线</string>
@@ -578,4 +582,55 @@
     <string name="gallery_day_weekend">周末</string>
 
     <!-- F1 节日占位（策略见 docs/ui-whimsy-plan.md §2.4）：不预置具体文案，待产品定档后由 SeasonalGreeting 只读映射 -->
+
+    <!-- ============ 好感度/等级系统（di-affection-level-202510，P3+P4） ============ -->
+    <!-- 头栏等级徽章 -->
+    <string name="affection_badge_title">Lv.%1$d · %2$s</string>
+    <string name="affection_badge_title_short">Lv.%1$d</string>
+    <string name="cd_affection_badge">亲密度等级，点击查看详情</string>
+    <string name="cd_check_in">打卡</string>
+    <string name="cd_header_decor">主题装饰</string>
+
+    <!-- 升级仪式（共同事件：你们的亲密度提升到 Lv.X） -->
+    <string name="affection_level_up_chat">你们的亲密度提升到 Lv.%1$d</string>
+    <string name="affection_level_up_notify_title">你们的亲密度提升到 Lv.%1$d ❤</string>
+    <string name="affection_level_up_notify_text">已解锁「%1$s」称号，继续积累亲密度吧</string>
+    <string name="affection_level_up_overlay_hint">点一下跳过</string>
+
+    <!-- 打卡（三入口：头栏按钮 / 更多面板 / 时段提醒通知） -->
+    <string name="affection_check_in">打卡</string>
+    <string name="affection_check_in_success">打卡成功，早安/晚安问候已发送 ❤</string>
+    <string name="affection_check_in_already">这个时段今天已经打过卡啦</string>
+    <string name="affection_check_in_outside">当前不在打卡时段（早安 5:00-11:00 / 晚安 19:00-24:00）</string>
+    <string name="checkin_greeting_morning">早上好呀</string>
+    <string name="checkin_greeting_evening">晚安啦</string>
+    <string name="affection_check_in_morning_title">早安打卡时间到啦</string>
+    <string name="affection_check_in_evening_title">晚安打卡时间到啦</string>
+    <string name="affection_check_in_morning_text">对 TA 说声「早上好」，亲密度 +3</string>
+    <string name="affection_check_in_evening_text">对 TA 说声「晚安」，亲密度 +3</string>
+    <string name="affection_check_in_action">一键打卡</string>
+
+    <!-- 资料页：等级详情 + 周互动对比 + 装扮区 -->
+    <string name="profile_affection_section">亲密度等级</string>
+    <string name="profile_affection_level">Lv.%1$d</string>
+    <string name="profile_affection_points">积分 %1$d</string>
+    <string name="profile_affection_progress_pct">进度 %1$d%%</string>
+    <string name="profile_affection_empty">还没有亲密度数据，多聊聊天就能解锁装扮哦</string>
+    <string name="profile_week_section">本周互动对比</string>
+    <string name="profile_week_me">我</string>
+    <string name="profile_week_peer">TA</string>
+    <string name="profile_week_chats">聊天回合</string>
+    <string name="profile_week_checkins">打卡次数</string>
+    <string name="profile_week_online">共同在线</string>
+    <string name="profile_week_value_pair">我 %1$d · TA %2$d</string>
+    <string name="profile_week_online_value">%1$d 分钟</string>
+    <string name="profile_week_empty">本周还没有互动数据</string>
+    <string name="profile_theme_section">装扮 · 主题</string>
+    <string name="profile_theme_hint">等级达到解锁条件后双方可用，装扮只存本机、互不影响</string>
+    <string name="profile_week_note">近 7 天互动统计</string>
+    <string name="profile_theme_locked">Lv.%1$d 解锁</string>
+    <string name="profile_theme_applied">主题已应用</string>
+    <string name="theme_default_name">珊瑚恋语（默认）</string>
+    <string name="theme_dog_name">狗狗乐园</string>
+    <string name="cd_theme_preview">主题预览</string>
 </resources>

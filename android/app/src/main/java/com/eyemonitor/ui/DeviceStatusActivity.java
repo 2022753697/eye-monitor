@@ -63,7 +63,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         prefs = new PrefsManager(this);
 
-        tvTitle = findViewById(R.id.tv_title);
+        tvTitle = findViewById(R.id.header_title);
         tvOnline = findViewById(R.id.tv_device_online);
         tvBattery = findViewById(R.id.tv_device_battery);
         tvCharging = findViewById(R.id.tv_device_charging);
@@ -72,7 +72,7 @@ public class DeviceStatusActivity extends AppCompatActivity {
         tvBatteryOpt = findViewById(R.id.tv_battery_opt);
         tvPeerRemark = findViewById(R.id.tv_peer_remark);
 
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        findViewById(R.id.header_back).setOnClickListener(v -> finish());
 
         // 电池优化白名单入口：点击跳系统设置（拒绝后可从此处后悔）
         tvBatteryOpt.setOnClickListener(v -> {
@@ -120,7 +120,8 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         boolean online = prefs.getPeerOnline();
         tvOnline.setText(getString(online ? R.string.status_online : R.string.status_offline));
-        tvOnline.setTextColor(online ? getColor(R.color.status_ok_text) : getColor(R.color.text_secondary));
+        // v2 §2.10：在线=status_ok_text、离线=text_tertiary
+        tvOnline.setTextColor(online ? getColor(R.color.status_ok_text) : getColor(R.color.text_tertiary));
 
         int battery = prefs.getPeerBattery();
         tvBattery.setText(battery >= 0
@@ -128,6 +129,9 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         tvCharging.setText(getString(prefs.getPeerCharging()
                 ? R.string.status_charging : R.string.status_not_charging));
+        // v2 §2.10：充电中=status_ok_text、未充电=text_secondary
+        tvCharging.setTextColor(getColor(prefs.getPeerCharging()
+                ? R.color.status_ok_text : R.color.text_secondary));
 
         String network = prefs.getPeerNetwork();
         if (DeviceStatusTracker.NETWORK_WIFI.equals(network)) {
@@ -142,6 +146,9 @@ public class DeviceStatusActivity extends AppCompatActivity {
 
         tvBluetooth.setText(getString(prefs.getPeerBluetooth()
                 ? R.string.status_on : R.string.status_off));
+        // v2 §2.10：蓝牙开=status_ok_text、关=text_tertiary
+        tvBluetooth.setTextColor(getColor(prefs.getPeerBluetooth()
+                ? R.color.status_ok_text : R.color.text_tertiary));
 
         // 电池优化白名单（本机豁免状态）
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);

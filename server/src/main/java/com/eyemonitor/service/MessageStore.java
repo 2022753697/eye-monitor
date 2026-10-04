@@ -15,6 +15,7 @@ import java.util.Map;
 /**
  * WS 消息落库（chat / location / sos）。
  * 所有写入包 try/catch，绝不让持久化失败影响 WS 转发链路。
+ * chat 落库后挂好感度钩子（回合交替 +1 / 首字自动打卡 +3，AffectionService 内部同样容错）。
  */
 @Component
 public class MessageStore {
@@ -24,11 +25,14 @@ public class MessageStore {
     private final ChatMessageRepo chatRepo;
     private final LocationPointRepo locRepo;
     private final SosLogRepo sosRepo;
+    private final AffectionService affectionService;
 
-    public MessageStore(ChatMessageRepo chatRepo, LocationPointRepo locRepo, SosLogRepo sosRepo) {
+    public MessageStore(ChatMessageRepo chatRepo, LocationPointRepo locRepo, SosLogRepo sosRepo,
+                        AffectionService affectionService) {
         this.chatRepo = chatRepo;
         this.locRepo = locRepo;
         this.sosRepo = sosRepo;
+        this.affectionService = affectionService;
     }
 
     /** 撤回允许窗口（毫秒）：与规格「撤回限 2 分钟」一致 */
@@ -57,6 +61,13 @@ public class MessageStore {
             e.setRefMsgId(refMsgId != null && refMsgId > 0 ? refMsgId : null);
             e.setRefText(refText);
             chatRepo.save(e);
+            // 好感度钩子：回合交替 +1 + 首字自动打卡 +3（独立 try/catch，绝不影响落库/转发链路）
+            try {
+                affectionService.onChatMessage(pairCode, fromUser, text, isSystem,
+                        kind == null ? "chat" : kind, ts > 0 ? ts : System.currentTimeMillis());
+            } catch (Exception ex) {
+                log.error("聊天好感度钩子异常", ex);
+            }
         } catch (Exception ex) {
             log.error("聊天消息落库失败", ex);
         }

@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -69,6 +70,7 @@ public class TrackReplayActivity extends AppCompatActivity {
     private Button btnPlayPause;
     private Button btnSpeed;
     private TextView tvProgress;
+    private View esEmpty; // v2 §2.13：地图中央空态浮层（替换 Toast 展示）
 
     private final List<TrackPoint> points = new ArrayList<>();
     private int currentIndex = 0;
@@ -181,12 +183,21 @@ public class TrackReplayActivity extends AppCompatActivity {
         btnSpeed = findViewById(R.id.btn_speed);
         tvProgress = findViewById(R.id.tv_progress);
 
+        // v2 §2.13：空态浮层（📍 + 暂无轨迹数据 + 副文案，点按可关闭）
+        esEmpty = findViewById(R.id.es_track_replay);
+        ((ImageView) esEmpty.findViewById(R.id.es_icon)).setImageResource(R.drawable.ic_track);
+        ((TextView) esEmpty.findViewById(R.id.es_title)).setText(R.string.track_no_data);
+        ((TextView) esEmpty.findViewById(R.id.es_subtitle)).setText(R.string.track_empty);
+        esEmpty.setVisibility(View.GONE);
+        esEmpty.setOnClickListener(v -> esEmpty.setVisibility(View.GONE));
+
         btnRangeToday.setOnClickListener(v -> selectRange(RANGE_TODAY));
         btnRange7d.setOnClickListener(v -> selectRange(RANGE_7D));
         btnRangeCustom.setOnClickListener(v -> selectRange(RANGE_CUSTOM));
         btnPlayPause.setOnClickListener(v -> togglePlayPause());
         btnSpeed.setOnClickListener(v -> cycleSpeed());
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        findViewById(R.id.header_back).setOnClickListener(v -> finish());
+        ((TextView) findViewById(R.id.header_title)).setText(R.string.track_replay_title);
 
         initMap();
         selectRange(RANGE_TODAY);
@@ -441,9 +452,11 @@ public class TrackReplayActivity extends AppCompatActivity {
 
         if (points.size() < 2) {
             tvProgress.setText(R.string.track_empty);
-            com.eyemonitor.util.Toasts.showRes(this, R.string.track_empty);
+            showEmptyState();
             return;
         }
+        // v2 §2.13：成功加载轨迹后隐藏空态浮层
+        esEmpty.setVisibility(View.GONE);
         fitCameraToTracks();
         // 进入页面即显示对方该时间段内最近位置（未播放也可见，提升体验）
         showInitialPosition();
@@ -471,7 +484,8 @@ public class TrackReplayActivity extends AppCompatActivity {
     private void showEmptyState() {
         runOnUiThread(() -> {
             tvProgress.setText(R.string.track_no_data);
-            com.eyemonitor.util.Toasts.showRes(TrackReplayActivity.this, R.string.track_no_data);
+            // v2 §2.13：地图中央空态浮层替换 Toast（视觉展示，查询逻辑不动）
+            esEmpty.setVisibility(View.VISIBLE);
         });
     }
 
@@ -496,7 +510,8 @@ public class TrackReplayActivity extends AppCompatActivity {
 
     private void startPlayback() {
         if (points.size() < 2) {
-            com.eyemonitor.util.Toasts.showRes(this, R.string.track_empty);
+            // v2 §2.13：点数不足时空态浮层已展示，不再弹 Toast
+            if (esEmpty.getVisibility() != View.VISIBLE) esEmpty.setVisibility(View.VISIBLE);
             return;
         }
         clearPolyline();

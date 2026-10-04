@@ -37,6 +37,7 @@ import com.eyemonitor.R;
 import com.eyemonitor.config.AuthManager;
 import com.eyemonitor.config.PrefsManager;
 import com.eyemonitor.db.AppDatabase;
+import com.eyemonitor.ui.theme.ThemeManager;
 import com.eyemonitor.util.GeoMath;
 import com.eyemonitor.db.FenceCacheEntity;
 import com.eyemonitor.model.WsMessage;
@@ -278,6 +279,17 @@ public class MapActivity extends AppCompatActivity {
             // 大头针 marker 图标（圆形头像 + 水滴尾巴，颜色随性别）
             selfAvatarIcon = createPinMarkerIcon(selfAvatarRes, selfColor, 26);
             peerAvatarIcon = createPinMarkerIcon(peerAvatarRes, peerColor, 26);
+            // 好感度 Lv.5 全局彩蛋：对方 marker 换主题爪印 pin（共享等级 >= 5 时）
+            if (ThemeManager.getCurrentLevel(this) >= 5) {
+                com.eyemonitor.ui.theme.ChatTheme t = ThemeManager.getCurrent(this);
+                if (t.markerPinRes != 0) {
+                    com.amap.api.maps.model.BitmapDescriptor paw = pawPinIcon(t.markerPinRes);
+                    if (paw != null) {
+                        peerAvatarIcon = paw;
+                        Log.i(TAG, "Lv.5 解锁：对方 marker 使用爪印 pin");
+                    }
+                }
+            }
             MyLocationStyle style = new MyLocationStyle();
             // 只显示定位点，不自动移动相机（默认 LOCATE 类型会在每次定位时把相机居中到当前位置，
             // 绕过 userDraggingMap 拦截导致滑动被拉回）
@@ -1023,6 +1035,26 @@ public class MapActivity extends AppCompatActivity {
         userDraggingMap = true;
         uiHandler.removeCallbacks(dragIdleResetRunnable);
         uiHandler.postDelayed(dragIdleResetRunnable, MAP_IDLE_FOCUS_MS);
+    }
+
+    /** 主题爪印 pin：把矢量 drawable 原样渲染为 BitmapDescriptor（Lv.5 对方 marker） */
+    private com.amap.api.maps.model.BitmapDescriptor pawPinIcon(int resId) {
+        try {
+            float density = getResources().getDisplayMetrics().density;
+            int size = (int) (44 * density);
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(
+                    size, size, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(bmp);
+            android.graphics.drawable.Drawable d =
+                    androidx.vectordrawable.graphics.drawable.VectorDrawableCompat.create(
+                            getResources(), resId, null);
+            d.setBounds(0, 0, size, size);
+            d.draw(c);
+            return com.amap.api.maps.model.BitmapDescriptorFactory.fromBitmap(bmp);
+        } catch (Exception e) {
+            Log.w(TAG, "爪印 pin 渲染失败，回退头像 pin", e);
+            return null;
+        }
     }
 
     /** 将头像 drawable（矢量）渲染为圆形 Bitmap（圆形裁剪） */

@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.AlarmManager;
 import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
@@ -66,6 +67,8 @@ public class MonitorService extends Service {
     private static final int NOTIFICATION_ID_EVENT = 2;
     private static final int NOTIFICATION_ID_SOS = 3;
     private static final int NOTIFICATION_ID_FENCE = 4;
+    private static final int NOTIFICATION_ID_CHECK_IN = 5;
+    private static final int NOTIFICATION_ID_AFFECTION = 6;
 
     public static final String ACTION_EVENT = "com.eyemonitor.EVENT";
     public static final String EXTRA_EVENT_JSON = "event_json";
@@ -121,6 +124,16 @@ public class MonitorService extends Service {
     public static final String EXTRA_TASK_REWARD_TEXT = "task_reward_text";
     public static final String EXTRA_TASK_ACTION = "task_action";
     public static final String EXTRA_TASK_REASON = "task_reason";
+    // 好感度/等级系统：打卡（头栏按钮 / 更多面板 / 时段提醒通知三入口共用）
+    public static final String ACTION_CHECK_IN = "com.eyemonitor.CHECK_IN";
+    public static final String EXTRA_CHECK_IN_WINDOW = "check_in_window";
+
+    // 打卡结果（performCheckIn）：0=成功 1=不在时段 2=本时段今天已打过
+    public static final int CHECK_IN_OK = 0;
+    public static final int CHECK_IN_NOT_IN_WINDOW = 1;
+    public static final int CHECK_IN_ALREADY = 2;
+    // 打卡时段提醒（AlarmManager.setWindow 非精确，免 SCHEDULE_EXACT_ALARM 权限）
+    public static final String ACTION_CHECK_IN_REMINDER = "com.eyemonitor.CHECK_IN_REMINDER";
 
     // 静态引用：PairActivity 配对成功后将 WSClient 交给 MonitorService
     private static WSClient sharedWSClient;
@@ -204,14 +217,59 @@ public class MonitorService extends Service {
         }
     };
 
-    /** 纪念日到期提醒：每次启动立即检查，之后每 24 小时复查 */
-    private final Runnable anniversaryCheckRunnable = new Runnable() {
-        @Override
-        public void run() {
-            checkAnniversaryReminders();
-            handler.postDelayed(this, DAY_MS);
+        // 纪念日到期提醒：每次启动立即检查，之后每 24 小时复查
+        private final Runnable anniversaryCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                checkAnniversaryReminders();
+                handler.postDelayed(this, DAY_MS);
+            }
+        };
+
+    /**
+     * 打卡 = 发送一条早安/晚安问候聊天消息（服务端「首字规则」自动计亲密度 +3 并幂等去重）。
+     * 每个时段（早安 5-11 / 晚安 19-24）每天仅一次：本地偏好记录 + 服务端 dedupKey 双重兜底。
+     *
+     * @return CHECK_IN_OK / CHECK_IN_NOT_IN_WINDOW / CHECK_IN_ALREADY
+     */
+    public static int performCheckIn(Context context, String window) {
+        if (context == null) return CHECK_IN_NOT_IN_WINDOW;
+        PrefsManager prefs = new PrefsManager(context);
+        if (window == null) {
+            window = com.eyemonitor.util.AffectionUtils.currentWindow(System.currentTimeMillis());
+            if (window == null) return CHECK_IN_NOT_IN_WINDOW;
         }
-    };
+        boolean morning = com.eyemonitor.util.AffectionUtils.WINDOW_MORNING.equals(window);
+        String today = com.eyemonitor.util.AffectionUtils.todayDate();
+        String done = morning ? prefs.getCheckInMorningDate() : prefs.getCheckInEveningDate();
+        if (today.equals(done)) return CHECK_IN_ALREADY;
+
+        String text = context.getString(morning
+                ? R.string.checkin_greeting_morning : R.string.checkin_greeting_evening);
+        String from = prefs.getNickname();
+        sendChat(context, text, from != null ? from : "");
+
+        // 本地落库（聊天页数据源）+ 广播 chat_refresh：UI 打开时按 is_self 重载渲染自我气泡；
+        // dbExecutor 单线程，广播触发的 getAll 一定排在 insert 之后，不会漏显。
+        final long now = System.currentTimeMillis();
+        final String fText = text;
+        final String fFrom = from != null ? from : "";
+        final String pairCode = prefs.getPairCode();
+        AppDatabase db = AppDatabase.getInstance(context);
+        AppDatabase.dbExecutor.execute(() -> {
+            ChatEntity entity = new ChatEntity("chat", fText, fFrom, true, now);
+            entity.sendState = "sent";
+            db.chatDao().insert(entity);
+        });
+        context.sendBroadcast(new Intent(ACTION_EVENT)
+                .putExtra(EXTRA_EVENT_JSON,
+                        new WsMessage("chat_refresh", "", pairCode,
+                                java.util.Map.of(), now).toJson()));
+
+        if (morning) prefs.setCheckInMorningDate(today);
+        else prefs.setCheckInEveningDate(today);
+        return CHECK_IN_OK;
+    }
 
     @Override
     public void onCreate() {
@@ -237,6 +295,8 @@ public class MonitorService extends Service {
         Log.i(TAG, "本机deviceId: " + prefs.getDeviceId() + ", pairCode: " + prefs.getPairCode());
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
+        // 打卡时段提醒（早安 5:00 / 晚安 19:00，setWindow 非精确）
+        scheduleCheckInReminders(this);
         accessibilityListenerSet = false;
         // 围栏翻转回调：跑在 dbExecutor 线程，发通知线程安全
         fenceTracker = new FenceEvaluator.Tracker((fence, nowInside, lat, lng) -> {
@@ -488,6 +548,20 @@ public class MonitorService extends Service {
             if (wsClient != null && prefs.getPairCode() != null) {
                 wsClient.send(WsMessage.createTyping(prefs.getDeviceId(), prefs.getPairCode()));
             }
+            return START_NOT_STICKY;
+        }
+
+        if (intent != null && ACTION_CHECK_IN.equals(intent.getAction())) {
+            // 打卡（更多面板/时段提醒通知）：发送早安/晚安问候消息（服务端首字规则计分 +3 并去重）
+            String window = intent.getStringExtra(EXTRA_CHECK_IN_WINDOW);
+            int result = performCheckIn(this, window);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("window", window != null ? window
+                    : com.eyemonitor.util.AffectionUtils.currentWindow(System.currentTimeMillis()));
+            payload.put("result", result);
+            WsMessage resultMsg = new WsMessage("check_in_result", prefs.getDeviceId(),
+                    prefs.getPairCode(), payload, System.currentTimeMillis());
+            broadcastEvent(resultMsg);
             return START_NOT_STICKY;
         }
 
@@ -986,6 +1060,14 @@ public class MonitorService extends Service {
                         if (remark != null && !remark.isEmpty()) {
                             prefs.setPeerRemark(remark);
                             Log.i(TAG, "备注已从服务器恢复: " + remark);
+                            // 通知聊天页即时刷新头栏/气泡/系统行（否则要等 onResume）
+                            try {
+                                broadcastEvent(new WsMessage("remark_synced", "",
+                                        prefs.getPairCode(), java.util.Map.of(),
+                                        System.currentTimeMillis()));
+                            } catch (Exception ex) {
+                                Log.w(TAG, "备注同步广播失败", ex);
+                            }
                         }
                     }
 
@@ -1222,6 +1304,10 @@ public class MonitorService extends Service {
                 SyncManager.handleWsMessage(this, message);
                 broadcastEvent(message);
                 break;
+            case "affection_sync":
+                // 服务器真源 -> 亲密度/等级缓存 + 升级检测（新 level > 旧 level = 共同升级事件）
+                handleAffectionSync(message);
+                break;
             case "media":
                 // 服务器真源 -> 更新媒体缓存 + 落一条媒体聊天气泡（按 fileId 去重）
                 SyncManager.handleWsMessage(this, message);
@@ -1249,6 +1335,92 @@ public class MonitorService extends Service {
             default:
                 Log.d(TAG, "未处理消息类型: " + message.getType());
         }
+    }
+
+    /** 亲密度快照处理：缓存（SyncManager 落库+内存镜像）→ 广播 UI → 升级检测（共同事件）
+     *  升级：聊天流插一条 system 行「你们的亲密度提升到 Lv.X」+ 广播 level_up（前台弹粒子动画）/ 后台高优先级通知 */
+    private void handleAffectionSync(WsMessage message) {
+        int oldLevel = com.eyemonitor.db.AffectionStateHolder.getLevel();
+        SyncManager.handleWsMessage(this, message);
+        int newLevel = message.affectionLevel();
+        if (newLevel <= 0) return;
+        broadcastEvent(message);
+        if (oldLevel > 0 && newLevel > oldLevel) {
+            Log.i(TAG, "亲密度升级: Lv." + oldLevel + " -> Lv." + newLevel + "（共同事件）");
+            levelUpCelebration(newLevel, message.affectionTitle(), message.affectionPoints());
+        }
+    }
+
+    /** 升级庆祝：聊天系统行（Room 持久化）+ level_up 广播 + 后台高优先级通知（仅后台时） */
+    private void levelUpCelebration(final int level, final String title, final int points) {
+        final long now = System.currentTimeMillis();
+        final String text = getString(R.string.affection_level_up_chat, level);
+        AppDatabase db = AppDatabase.getInstance(this);
+        db.dbExecutor.execute(() -> db.chatDao().insert(
+                new ChatEntity("system", text, null, false, now)));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("level", level);
+        if (title != null && !title.isEmpty()) payload.put("title", title);
+        payload.put("points", points);
+        payload.put("text", text);
+        WsMessage ev = new WsMessage("level_up", prefs.getDeviceId(),
+                prefs.getPairCode(), payload, now);
+        broadcastEvent(ev);
+        if (!isAppInForeground()) {
+            showLevelUpNotification(level, title);
+        }
+    }
+
+    /** 升级系统通知（高优先级，复用 event 渠道；点通知回聊天页） */
+    private void showLevelUpNotification(int level, String title) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "缺少 POST_NOTIFICATIONS 权限，无法发送升级通知");
+                return;
+            }
+        }
+        ensureEventChannel(this);
+        Intent open = new Intent(this, MainActivity.class);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pi = PendingIntent.getActivity(
+                this, (int) System.currentTimeMillis(), open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String text = (title != null && !title.isEmpty())
+                ? getString(R.string.affection_level_up_notify_text, title)
+                : getString(R.string.affection_level_up_chat, level);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID + "_event")
+                .setContentTitle(getString(R.string.affection_level_up_notify_title, level))
+                .setContentText(text)
+                .setSmallIcon(com.eyemonitor.ui.theme.ThemeManager.getCurrent(this).notificationIconRes)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build();
+        notificationManager.notify(NOTIFICATION_ID_AFFECTION, notification);
+        Log.i(TAG, "升级通知已发送: Lv." + level);
+    }
+
+    /** 进程是否前台（升级仪式分前台动画/后台通知两档；异常时按前台从宽） */
+    private boolean isAppInForeground() {
+        try {
+            android.app.ActivityManager am =
+                    (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am == null) return true;
+            for (android.app.ActivityManager.RunningAppProcessInfo info
+                    : am.getRunningAppProcesses()) {
+                if (info.pid == android.os.Process.myPid()
+                        && info.importance
+                        == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "前台判定异常，按前台处理", e);
+            return true;
+        }
+        return false;
     }
 
     /** 被顶替下线：断开 WS、广播 KICKED、停服务（UI 收到后清登录态回登录页） */
@@ -1522,8 +1694,11 @@ public class MonitorService extends Service {
         broadcastEvent(message);
     }
 
-    /** 收到的媒体消息落一条聊天气泡（kind=media, text=fileId；上传后服务器与发送端可能双份广播，按 fileId 去重） */
+    /** 收到的媒体消息落一条聊天气泡（kind=media, text=fileId；上传后服务器与发送端可能双份广播，按 fileId 去重 + 跳过自己回显） */
     private void saveMediaChat(WsMessage message) {
+        // 自己发送的回显：本地 uploadVoice 已落 self 气泡；闪崩时序下若先到会误存成对方消息（幽灵重复），直接跳过
+        String myDevice = prefs != null ? prefs.getDeviceId() : null;
+        if (myDevice != null && myDevice.equals(message.getDeviceId())) return;
         java.util.Map<String, Object> payload = message.getPayload();
         Object fileId = payload != null ? payload.get("fileId") : null;
         if (!(fileId instanceof String) || ((String) fileId).isEmpty()) return;
@@ -1689,6 +1864,8 @@ public class MonitorService extends Service {
 
     /** media_deleted：清理本地媒体聊天气泡与缓存文件（Room 缓存行由 SyncManager 清理） */
     private void removeMediaLocal(WsMessage message) {
+        String myDevice = prefs != null ? prefs.getDeviceId() : null;
+        if (myDevice != null && myDevice.equals(message.getDeviceId())) return;
         java.util.Map<String, Object> payload = message.getPayload();
         Object fileId = payload != null ? payload.get("fileId") : null;
         if (!(fileId instanceof String) || ((String) fileId).isEmpty()) return;
@@ -1779,6 +1956,122 @@ public class MonitorService extends Service {
     }
 
     // --- 通知 ---
+
+    /** 打卡时段提醒（早安 5:00 / 晚安 19:00）：AlarmManager.setWindow 非精确触发，免 SCHEDULE_EXACT_ALARM 权限 */
+    public static void scheduleCheckInReminders(Context context) {
+        PrefsManager p = new PrefsManager(context);
+        if (!p.isPaired()) return;
+        AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        if (am == null) return;
+        long now = System.currentTimeMillis();
+        scheduleWindow(context, am, com.eyemonitor.util.AffectionUtils.WINDOW_MORNING,
+                nextAt(now, 5, 0), 5001);
+        scheduleWindow(context, am, com.eyemonitor.util.AffectionUtils.WINDOW_EVENING,
+                nextAt(now, 19, 0), 5002);
+    }
+
+    /** 单窗口排程：setWindow（非精确，允许 10 分钟窗口内触发） */
+    private static void scheduleWindow(Context context, AlarmManager am, String window,
+                                       long when, int requestCode) {
+        Intent i = new Intent(context, CheckInReminderReceiver.class);
+        i.setAction(ACTION_CHECK_IN_REMINDER);
+        i.putExtra(EXTRA_CHECK_IN_WINDOW, window);
+        PendingIntent pi = PendingIntent.getBroadcast(context, requestCode, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        try {
+            am.setWindow(AlarmManager.RTC_WAKEUP, when, 10 * 60 * 1000L, pi);
+        } catch (Exception e) {
+            // 兜底：极端情况下退化为普通 set
+            try {
+                am.set(AlarmManager.RTC_WAKEUP, when, pi);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /** 下一个指定时刻（已过则顺延到明天） */
+    private static long nextAt(long now, int hour, int minute) {
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, hour);
+        c.set(Calendar.MINUTE, minute);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        if (c.getTimeInMillis() <= now) {
+            c.add(Calendar.DAY_OF_YEAR, 1);
+        }
+        return c.getTimeInMillis();
+    }
+
+    /** 打卡提醒通知：标题/文案按窗口，通知内一键打卡 PendingIntent → ACTION_CHECK_IN（复用 event 渠道） */
+    public static void showCheckInReminderNotification(Context context, String window) {
+        if (window == null) {
+            window = com.eyemonitor.util.AffectionUtils.currentWindow(System.currentTimeMillis());
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "缺少 POST_NOTIFICATIONS 权限，无法发送打卡提醒");
+                return;
+            }
+        }
+        ensureEventChannel(context);
+        boolean morning = com.eyemonitor.util.AffectionUtils.WINDOW_MORNING.equals(window);
+
+        Intent open = new Intent(context, MainActivity.class);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent openPi = PendingIntent.getActivity(context,
+                morning ? 5101 : 5102, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // 通知内一键打卡（三入口之一：时段提醒通知）
+        Intent check = new Intent(context, MonitorService.class);
+        check.setAction(ACTION_CHECK_IN);
+        check.putExtra(EXTRA_CHECK_IN_WINDOW, window);
+        PendingIntent checkPi = PendingIntent.getService(context,
+                morning ? 5201 : 5202, check,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID + "_event")
+                .setSmallIcon(R.drawable.ic_check_in)
+                .setContentTitle(context.getString(morning
+                        ? R.string.affection_check_in_morning_title
+                        : R.string.affection_check_in_evening_title))
+                .setContentText(context.getString(morning
+                        ? R.string.affection_check_in_morning_text
+                        : R.string.affection_check_in_evening_text))
+                .setContentIntent(openPi)
+                .addAction(R.drawable.ic_check_in,
+                        context.getString(R.string.affection_check_in_action), checkPi)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build();
+        NotificationManager nm =
+                (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null) {
+            nm.notify(NOTIFICATION_ID_CHECK_IN, notification);
+            Log.i(TAG, "打卡提醒通知已发送: " + window);
+        }
+    }
+
+    /** 幂等创建事件渠道（活动渠道 + 静态方法共用，防服务未启动时通知不可见） */
+    static void ensureEventChannel(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                NotificationManager nm =
+                        (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+                if (nm == null) return;
+                if (nm.getNotificationChannel(CHANNEL_ID + "_event") == null) {
+                    NotificationChannel channel = new NotificationChannel(
+                            CHANNEL_ID + "_event", "恋视事件",
+                            NotificationManager.IMPORTANCE_HIGH);
+                    channel.setDescription("对方消息/升级/打卡提醒");
+                    nm.createNotificationChannel(channel);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "事件渠道创建失败", e);
+            }
+        }
+    }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

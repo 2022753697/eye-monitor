@@ -42,5 +42,9 @@ public class BootReceiver extends BroadcastReceiver {
         // 备忘录提醒重排：未触发的提醒重新排期
         com.eyemonitor.util.ReminderScheduler.rescheduleAll(context);
         Log.i(TAG, "备忘录提醒已重排");
+
+        // 打卡时段提醒重排（早安 5:00 / 晚安 19:00，已配对才排）
+        com.eyemonitor.service.MonitorService.scheduleCheckInReminders(context);
+        Log.i(TAG, "打卡提醒已重排");
     }
 }

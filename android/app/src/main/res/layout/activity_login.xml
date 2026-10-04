@@ -11,8 +11,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_header_gradient"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
+        android:paddingStart="@dimen/space_24"
+        android:paddingEnd="@dimen/space_24"
         android:paddingTop="@dimen/space_40"
         android:paddingBottom="@dimen/space_28">
 
@@ -73,7 +73,7 @@
                     android:hint="@string/login_username_hint"
                     android:inputType="text"
                     android:maxLength="64"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <EditText
                     android:id="@+id/et_password"
@@ -97,7 +97,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/login_go_register"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="@color/primary_text"
                     android:textSize="@dimen/text_14"
                     android:gravity="center"
                     android:paddingTop="@dimen/space_14"
@@ -134,7 +134,7 @@
                     android:hint="@string/login_username_hint"
                     android:inputType="text"
                     android:maxLength="64"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <EditText
                     android:id="@+id/et_reg_password"
@@ -144,7 +144,7 @@
                     android:hint="@string/login_password_hint"
                     android:inputType="textPassword"
                     android:maxLength="64"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <EditText
                     android:id="@+id/et_reg_nickname"
@@ -154,7 +154,7 @@
                     android:hint="@string/reg_nickname_hint"
                     android:inputType="text"
                     android:maxLength="32"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <EditText
                     android:id="@+id/et_reg_birthday"
@@ -164,7 +164,7 @@
                     android:hint="@string/reg_birthday_hint"
                     android:inputType="datetime"
                     android:maxLength="10"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <EditText
                     android:id="@+id/et_reg_bio"
@@ -174,15 +174,15 @@
                     android:hint="@string/reg_bio_hint"
                     android:inputType="text"
                     android:maxLength="60"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="@dimen/space_12" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/reg_gender_label"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="6dp" />
+                    android:textSize="@dimen/text_14"
+                    android:layout_marginBottom="@dimen/space_8" />
 
                 <RadioGroup
                     android:layout_width="match_parent"
@@ -215,14 +215,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/bar_height"
                     android:text="@string/reg_button"
-                    android:layout_marginTop="16dp" />
+                    android:layout_marginTop="@dimen/space_16" />
 
                 <TextView
                     android:id="@+id/tv_go_login"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/reg_go_login"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="@color/primary_text"
                     android:textSize="@dimen/text_14"
                     android:gravity="center"
                     android:paddingTop="@dimen/space_14"
@@ -241,7 +241,7 @@
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:padding="14dp">
+                android:padding="@dimen/space_14">
 
                 <TextView
                     android:layout_width="0dp"

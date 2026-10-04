@@ -16,14 +16,14 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/bg_top_card"
-        android:elevation="4dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp"
+        android:elevation="@dimen/shadow_2"
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8"
         android:gravity="center_vertical"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="16dp">
+        android:layout_marginTop="@dimen/space_16">
 
         <ImageView
             android:id="@+id/iv_avatar_self"
@@ -41,18 +41,18 @@
             android:layout_marginStart="10dp" />
     </LinearLayout>
 
-    <!-- 头像下小菜单（点头像弹出：去找他 / 设围栏），默认隐藏 -->
+    <!-- 头像下小菜单（点头像弹出：去找他 / 设围栏），默认隐藏；v2：44dp 热区行 + divider 分隔 + text_12 -->
     <LinearLayout
         android:id="@+id/top_tools_menu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/bg_card"
-        android:elevation="4dp"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
+        android:background="@drawable/bg_tools_menu"
+        android:elevation="@dimen/shadow_2"
+        android:paddingStart="@dimen/space_8"
+        android:paddingEnd="@dimen/space_8"
+        android:paddingTop="@dimen/space_4"
+        android:paddingBottom="@dimen/space_4"
         android:gravity="center_vertical"
         android:layout_gravity="center_horizontal|top"
         android:layout_marginTop="86dp"
@@ -65,7 +65,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:padding="8dp"
+            android:minHeight="@dimen/touch_target"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true">
 
@@ -80,17 +81,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/menu_go_to_peer"
-                android:textColor="@color/primary"
-                android:textSize="11sp"
-                android:layout_marginTop="3dp" />
+                android:textColor="@color/primary_text"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="@dimen/space_4" />
         </LinearLayout>
 
         <TextView
             android:layout_width="1dp"
             android:layout_height="32dp"
-            android:background="@color/text_secondary"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp" />
+            android:background="@color/divider"
+            android:layout_marginTop="@dimen/space_10"
+            android:layout_marginBottom="@dimen/space_10" />
 
         <!-- 图标+文字：设围栏（圈定范围图标） -->
         <LinearLayout
@@ -99,7 +100,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:padding="8dp"
+            android:minHeight="@dimen/touch_target"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true">
 
@@ -114,9 +116,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/fence_set_entry"
-                android:textColor="@color/primary"
-                android:textSize="11sp"
-                android:layout_marginTop="3dp" />
+                android:textColor="@color/primary_text"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="@dimen/space_4" />
         </LinearLayout>
     </LinearLayout>
 
@@ -127,7 +129,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_card"
-        android:elevation="6dp"
+        android:elevation="@dimen/shadow_2"
         android:visibility="gone"
         android:padding="@dimen/space_16"
         android:layout_gravity="bottom"

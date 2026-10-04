@@ -57,3 +57,19 @@ server/certs/
 # ===== 部署打包产物（勿提交） =====
 server-deploy.tgz
 *.tgz
+
+# ===== 调试残留（uiautomator dump / 截图）=====
+.ear*.xml
+.hdr*.xml
+.acc*.xml
+.def*.xml
+.dog2.xml
+.med.xml
+.more.xml
+.now.xml
+.inp.xml
+.snd.xml
+.tmp-*.xml
+.tmp-*.png
+ui_*_tmp.xml
+demo-*.png

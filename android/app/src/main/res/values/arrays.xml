@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============================================================
+         升级粒子动画配色（LevelUpOverlayView 用）
+         <integer-array> 项引用 @color/ 可解析为 ARGB int（getIntArray）
+         ============================================================ -->
+
+    <!-- 默认主题：珊瑚粉 / 暖橙 -->
+    <integer-array name="level_up_colors_default">
+        <item>@color/particle_coral</item>
+        <item>@color/particle_orange</item>
+        <item>@color/particle_pink</item>
+        <item>@color/particle_rose</item>
+    </integer-array>
+
+    <!-- 狗狗乐园：爪印粉系 + 暖橙点缀 -->
+    <integer-array name="level_up_colors_dog">
+        <item>@color/particle_paw</item>
+        <item>@color/particle_pink</item>
+        <item>@color/particle_orange</item>
+        <item>@color/particle_coral</item>
+    </integer-array>
+</resources>

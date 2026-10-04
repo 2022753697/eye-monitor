@@ -11,7 +11,7 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/vp_more"
         android:layout_width="match_parent"
-        android:layout_height="200dp" />
+        android:layout_height="212dp" />
 
     <!-- 页码指示点 -->
     <LinearLayout
@@ -24,15 +24,15 @@
 
         <View
             android:id="@+id/more_dot_0"
-            android:layout_width="6dp"
-            android:layout_height="6dp"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
             android:background="@drawable/bg_dot"
             android:layout_marginEnd="5dp" />
 
         <View
             android:id="@+id/more_dot_1"
-            android:layout_width="6dp"
-            android:layout_height="6dp"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
             android:background="@drawable/bg_dot"
             android:layout_marginStart="5dp" />
     </LinearLayout>

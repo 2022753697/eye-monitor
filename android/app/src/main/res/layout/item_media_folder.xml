@@ -5,8 +5,8 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/bg_card"
-    android:layout_margin="4dp"
-    android:padding="10dp">
+    android:layout_margin="@dimen/space_4"
+    android:padding="@dimen/space_10">
 
     <!-- 第一层：文件夹名称 + 查看更多（右侧） -->
     <LinearLayout
@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_8"
             android:text="@string/gallery_more"
-            android:textColor="@color/primary"
+            android:textColor="@color/primary_text"
             android:textSize="@dimen/text_12" />
     </LinearLayout>
 

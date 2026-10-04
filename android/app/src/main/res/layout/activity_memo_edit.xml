@@ -13,8 +13,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/bg_header_gradient_std"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12">
 
         <ImageButton
             android:id="@+id/btn_memo_edit_back"
@@ -55,7 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_16">
 
             <!-- 正文输入 -->
             <EditText
@@ -74,35 +74,30 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="12dp" />
+                android:layout_marginTop="@dimen/space_12" />
 
             <!-- 子项编辑区 -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:text="@string/memo_item_hint"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_12" />
 
             <LinearLayout
                 android:id="@+id/ll_memo_edit_items"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="8dp" />
+                android:layout_marginTop="@dimen/space_8" />
 
             <TextView
                 android:id="@+id/btn_memo_item_add"
                 style="@style/Widget.EyeMonitor.Button.Outlined"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_marginTop="8dp"
-                android:minHeight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
+                android:layout_height="@dimen/bar_height_compact"
+                android:layout_marginTop="@dimen/space_8"
                 android:gravity="center"
                 android:text="@string/memo_item_add" />
 
@@ -112,9 +107,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:background="@drawable/bg_memo_item"
-                android:padding="12dp">
+                android:padding="@dimen/space_12">
 
                 <TextView
                     android:layout_width="0dp"
@@ -139,13 +134,13 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_memo_item"
-                android:padding="12dp"
-                android:layout_marginTop="8dp"
+                android:padding="@dimen/space_12"
+                android:layout_marginTop="@dimen/space_8"
                 android:visibility="gone">
 
                 <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="@dimen/icon_18"
+                    android:layout_height="@dimen/icon_18"
                     android:src="@drawable/ic_alarm"
                     android:tint="@color/status_warn"
                     android:contentDescription="@string/cd_reminder" />
@@ -155,9 +150,9 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_8"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp" />
+                    android:textSize="@dimen/text_14" />
             </LinearLayout>
 
             <!-- 置顶开关 -->
@@ -166,9 +161,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_8"
                 android:background="@drawable/bg_memo_item"
-                android:padding="12dp">
+                android:padding="@dimen/space_12">
 
                 <TextView
                     android:layout_width="0dp"

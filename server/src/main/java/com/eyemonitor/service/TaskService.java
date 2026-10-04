@@ -31,10 +31,12 @@ public class TaskService {
 
     private final TaskRepo taskRepo;
     private final PairRepo pairRepo;
+    private final AffectionService affectionService;
 
-    public TaskService(TaskRepo taskRepo, PairRepo pairRepo) {
+    public TaskService(TaskRepo taskRepo, PairRepo pairRepo, AffectionService affectionService) {
         this.taskRepo = taskRepo;
         this.pairRepo = pairRepo;
+        this.affectionService = affectionService;
     }
 
     /** 处理结果：forward=true 时 handler 转发给 peer；error 非空时回 system_tip 给发送方 */
@@ -143,6 +145,12 @@ public class TaskService {
             task.setStatus(TaskEntity.STATUS_ACCEPTED);
         }
         taskRepo.save(task);
+        // 好感度钩子：任务接受 +2（AffectionService 内部容错，幂等键含 taskId+action）
+        try {
+            if (accept) affectionService.onTaskAccepted(pairCode, taskId);
+        } catch (Exception ex) {
+            log.error("任务接受好感度钩子异常 taskId={}", taskId, ex);
+        }
         log.info("任务响应 taskId={} action={} userId={}", taskId, action, userId);
         return new Result(true, null);
     }
@@ -165,6 +173,12 @@ public class TaskService {
         task.setStatus(TaskEntity.STATUS_COMPLETED);
         task.setCompletedTs(System.currentTimeMillis());
         taskRepo.save(task);
+        // 好感度钩子：任务完成 +5（幂等键含 taskId+action，重复确认不重复加分）
+        try {
+            affectionService.onTaskCompleted(pairCode, taskId);
+        } catch (Exception ex) {
+            log.error("任务完成好感度钩子异常 taskId={}", taskId, ex);
+        }
         log.info("任务完成确认 taskId={} publisher={}", taskId, userId);
         return new Result(true, null);
     }
@@ -187,6 +201,12 @@ public class TaskService {
         task.setStatus(TaskEntity.STATUS_REWARDED);
         task.setRewardedTs(System.currentTimeMillis());
         taskRepo.save(task);
+        // 好感度钩子：任务兑现 +3（幂等键含 taskId+action，重复确认不重复加分）
+        try {
+            affectionService.onTaskRewarded(pairCode, taskId);
+        } catch (Exception ex) {
+            log.error("任务兑现好感度钩子异常 taskId={}", taskId, ex);
+        }
         log.info("奖励兑现确认 taskId={} receiver={}", taskId, userId);
         return new Result(true, null);
     }

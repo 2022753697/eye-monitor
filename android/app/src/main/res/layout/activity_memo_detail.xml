@@ -13,8 +13,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/bg_header_gradient_std"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12">
 
         <ImageButton
             android:id="@+id/btn_memo_detail_back"
@@ -55,7 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_16">
 
             <!-- 正文 -->
             <TextView
@@ -63,8 +63,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
-                android:textSize="17sp"
-                android:lineSpacingExtra="4dp" />
+                android:textSize="@dimen/text_17"
+                android:lineSpacingExtra="@dimen/space_4" />
 
             <!-- 图片条（本地路径横向排列） -->
             <LinearLayout
@@ -72,7 +72,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_12"
                 android:visibility="gone" />
 
             <!-- 子项 -->
@@ -81,29 +81,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="12dp" />
+                android:layout_marginTop="@dimen/space_12" />
 
             <!-- 信息行 -->
             <TextView
                 android:id="@+id/tv_memo_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_12" />
 
-            <!-- 删除 -->
+            <!-- 删除（v2 §2.9：去手工四覆盖，bar_height 标准高） -->
             <TextView
                 android:id="@+id/btn_memo_delete"
                 style="@style/Widget.EyeMonitor.Button.Danger"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="24dp"
-                android:minHeight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
+                android:layout_height="@dimen/bar_height"
+                android:layout_marginTop="@dimen/space_24"
                 android:gravity="center"
                 android:text="@string/memo_delete" />
         </LinearLayout>

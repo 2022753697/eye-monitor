@@ -4,15 +4,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- 第 2 页：清空聊天 + 3 个预留位（左滑可见） -->
+        <!-- 第 2 页（含 v2 补位：纪念日 / 亲密度，替换原空占位） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingTop="14dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="16dp">
+        android:paddingTop="@dimen/space_14"
+        android:paddingStart="@dimen/space_8"
+        android:paddingEnd="@dimen/space_8"
+        android:paddingBottom="@dimen/space_16">
 
         <LinearLayout
             android:id="@+id/grid_clear"
@@ -21,7 +21,7 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -37,23 +37,94 @@
                 android:layout_height="wrap_content"
                 android:text="@string/menu_clear_chat"
                 android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_12"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
+        <!-- 打卡（三入口之一：更多面板） -->
         <LinearLayout
+            android:id="@+id/grid_checkin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/space_8"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_check_in"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="11dp"
+                android:tint="@color/primary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/affection_check_in"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
 
+        <!-- v2 §2.3 补位：纪念日入口（复用 anniversary_title + ic_heart） -->
         <LinearLayout
+            android:id="@+id/grid_anniversary"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/space_8"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_heart"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="11dp"
+                android:tint="@color/primary"
+                android:contentDescription="@string/anniversary_title" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/anniversary_title"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
 
+        <!-- v2 §2.3 补位：亲密度（复用 profile_affection_section + ic_heart） -->
         <LinearLayout
+            android:id="@+id/grid_affection"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/space_8"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_heart"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="11dp"
+                android:tint="@color/primary"
+                android:contentDescription="@string/profile_affection_section" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/profile_affection_section"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

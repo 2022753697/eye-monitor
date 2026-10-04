@@ -9,7 +9,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/bg_card"
-        android:padding="12dp">
+        android:padding="@dimen/space_12">
 
         <!-- 缩略图 / 无图占位 -->
         <FrameLayout
@@ -40,8 +40,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp">
+            android:layout_marginStart="@dimen/space_12"
+            android:layout_marginEnd="@dimen/space_8">
 
             <TextView
                 android:id="@+id/tv_memo_snippet"
@@ -50,15 +50,15 @@
                 android:maxLines="2"
                 android:ellipsize="end"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_15" />
 
             <TextView
                 android:id="@+id/tv_memo_time"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/space_8"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_12" />
         </LinearLayout>
 
         <!-- 角标列：置顶 / 提醒 / 子项数 -->
@@ -70,8 +70,8 @@
 
             <ImageView
                 android:id="@+id/iv_memo_pin"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
+                android:layout_width="@dimen/icon_16"
+                android:layout_height="@dimen/icon_16"
                 android:src="@drawable/ic_pin"
                 android:tint="@color/accent"
                 android:visibility="gone"
@@ -79,9 +79,9 @@
 
             <ImageView
                 android:id="@+id/iv_memo_alarm"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginTop="6dp"
+                android:layout_width="@dimen/icon_16"
+                android:layout_height="@dimen/icon_16"
+                android:layout_marginTop="@dimen/space_8"
                 android:src="@drawable/ic_alarm"
                 android:tint="@color/status_warn"
                 android:visibility="gone"
@@ -91,9 +91,9 @@
                 android:id="@+id/tv_memo_items"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
+                android:layout_marginTop="@dimen/space_8"
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/text_11"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>

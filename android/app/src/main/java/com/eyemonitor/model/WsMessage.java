@@ -240,6 +240,53 @@ public class WsMessage {
                 Map.of("taskId", taskId), System.currentTimeMillis());
     }
 
+    // --- 好感度/等级系统消息类型（契约 v1，与 server 侧同步） ---
+
+    /** 打卡上报：window=morning（早安 5-11 点）| evening（晚安 19-24 点）；积分由服务器记账，两端共享 */
+    public static WsMessage createCheckIn(String deviceId, String pairCode, String window) {
+        return new WsMessage("check_in", deviceId, pairCode,
+                Map.of("window", window), System.currentTimeMillis());
+    }
+
+    // --- affection_sync 载荷读取辅助（服务器→客户端快照：points/level/progress/title/updatedAt） ---
+
+    /** 共享积分（pair 级唯一值，双端永远相同） */
+    public int affectionPoints() {
+        return numPayload("points", 0);
+    }
+
+    /** 共享等级（1-6，升级是共同事件） */
+    public int affectionLevel() {
+        return numPayload("level", 0);
+    }
+
+    /** 当前等级进度（0~1，服务器按门槛表计算推送） */
+    public double affectionProgress() {
+        Object v = payload != null ? payload.get("progress") : null;
+        return v instanceof Number ? ((Number) v).doubleValue() : 0d;
+    }
+
+    /** 等级称号（如 心动/热恋/情深） */
+    public String affectionTitle() {
+        Object v = payload != null ? payload.get("title") : null;
+        return v instanceof String ? (String) v : "";
+    }
+
+    /** 快照更新时间（epoch ms） */
+    public long affectionUpdatedAt() {
+        return numPayload("updatedAt", 0L);
+    }
+
+    private int numPayload(String key, int def) {
+        Object v = payload != null ? payload.get(key) : null;
+        return v instanceof Number ? ((Number) v).intValue() : def;
+    }
+
+    private long numPayload(String key, long def) {
+        Object v = payload != null ? payload.get(key) : null;
+        return v instanceof Number ? ((Number) v).longValue() : def;
+    }
+
     // --- JSON 序列化/反序列化 ---
 
     public String toJson() {

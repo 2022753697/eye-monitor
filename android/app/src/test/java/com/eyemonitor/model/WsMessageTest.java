@@ -45,4 +45,33 @@ public class WsMessageTest {
     public void invalidJsonReturnsNull() {
         assertNull(WsMessage.fromJson("{broken json"));
     }
+
+    @Test
+    public void checkInRoundTrip() {
+        WsMessage m = WsMessage.createCheckIn("dev-1", "123456", "morning");
+        WsMessage r = WsMessage.fromJson(m.toJson());
+        assertNotNull(r);
+        assertEquals("check_in", r.getType());
+        assertEquals("morning", r.getPayload().get("window"));
+    }
+
+    @Test
+    public void affectionSyncPayloadReaders() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("points", 621);
+        payload.put("level", 3);
+        payload.put("progress", 0.5);
+        payload.put("title", "热恋");
+        payload.put("updatedAt", 1700000000000L);
+        WsMessage m = new WsMessage("affection_sync", "dev-1", "123456", payload,
+                1700000000000L);
+        WsMessage r = WsMessage.fromJson(m.toJson());
+        assertNotNull(r);
+        assertEquals("affection_sync", r.getType());
+        assertEquals(621, r.affectionPoints());
+        assertEquals(3, r.affectionLevel());
+        assertEquals(0.5, r.affectionProgress(), 1e-6);
+        assertEquals("热恋", r.affectionTitle());
+        assertEquals(1700000000000L, r.affectionUpdatedAt());
+    }
 }

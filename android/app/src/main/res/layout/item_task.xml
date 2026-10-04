@@ -25,8 +25,8 @@
 
             <ImageView
                 android:id="@+id/iv_task_bubble_icon"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
+                android:layout_width="@dimen/icon_16"
+                android:layout_height="@dimen/icon_16"
                 android:src="@drawable/ic_task"
                 android:tint="@color/primary" />
 
@@ -34,10 +34,10 @@
                 android:id="@+id/tv_task_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/space_4"
                 android:text="@string/task_bubble_title"
-                android:textColor="@color/primary"
-                android:textSize="12sp"
+                android:textColor="@color/primary_text"
+                android:textSize="@dimen/text_12"
                 android:textStyle="bold" />
 
             <TextView
@@ -45,9 +45,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_8"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
+                android:textSize="@dimen/text_11"
                 android:gravity="end" />
         </LinearLayout>
 
@@ -88,9 +88,9 @@
             android:id="@+id/tv_task_reward"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="12sp"
-            android:textColor="@color/accent" />
+            android:layout_marginTop="@dimen/space_4"
+            android:textSize="@dimen/text_12"
+            android:textColor="@color/accent_text" />
 
         <!-- 分隔线 2 -->
         <View
@@ -113,7 +113,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_11"
                 android:textColor="@color/text_secondary" />
 
             <TextView
@@ -121,8 +121,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/task_tap_detail"
-                android:textSize="11sp"
-                android:textColor="@color/primary" />
+                android:textSize="@dimen/text_11"
+                android:textColor="@color/primary_text" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -6,29 +6,10 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 渐变头栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/bg_header_gradient"
-        android:padding="@dimen/space_16"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
-            android:text="@string/permission_title" />
-
-        <Button
-            android:id="@+id/btn_back"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/back" />
-    </LinearLayout>
+    <!-- 统一头栏（v2 §2.12：std 渐变 + icon 返回 + 标题「权限设置」20sp 居中） -->
+    <include
+        layout="@layout/component_header_bar"
+        android:id="@+id/header_permission_bar" />
 
     <!-- 内容区 -->
     <ScrollView

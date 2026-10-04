@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋视 · 资料页（改造后）原型</title>
+<style>
+/* 恋视 UI v2 原型 · 资料页 390×844，1px=1dp；令牌对齐 docs/ui-guide.md v2 */
+:root{
+  --c-primary:#FF6B6B; --c-primary-fill:#D13F47; --c-primary-text:#C03D3D;
+  --c-accent:#FFA26B; --c-accent-text:#C97A3D;
+  --c-hg-start:#EE5F68; --c-hg-end:#D96F52;
+  --c-bg:#FFF9F7; --c-surface:#FFFFFF; --c-surface-alt:#FFF0EC; --c-surface-variant:#F6EFEC;
+  --c-text-1:#4A3B3D; --c-text-2:#7A696C; --c-text-3:#A99A9C;
+  --c-divider:#F0E0DC;
+  --t-44:44px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-full:999px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#2B2B2B;display:flex;flex-direction:column;align-items:center;padding:24px 0 40px;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+.phone{width:390px;height:844px;background:var(--c-bg);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sysbar{height:24px;background:linear-gradient(180deg,var(--c-hg-start),var(--c-hg-start));color:rgba(255,255,255,.92);font-size:11px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
+/* ============ 统一头栏 HeaderBar（std 渐变 + 44 返回 + 20sp 居中标题） ============ */
+.hdr{
+  background:linear-gradient(90deg,var(--c-hg-start),var(--c-hg-end));
+  display:flex;align-items:center;padding:6px 12px;min-height:56px;flex-shrink:0;
+}
+.hdr .back{
+  width:var(--t-44);height:var(--t-44);border-radius:var(--r-full);
+  background:rgba(255,255,255,.26);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.hdr .back svg{width:24px;height:24px}
+.hdr .title{flex:1;text-align:center;font-size:20px;font-weight:700;color:#fff;letter-spacing:.5px}
+.hdr .slot{width:var(--t-44);height:var(--t-44)}  /* 等宽动作槽：保标题真居中 */
+/* ============ 内容 ============ */
+.content{flex:1;overflow-y:auto;padding:16px}
+/* 头像 92dp + 主色描边环 */
+.avatar-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.avatar{
+  width:92px;height:92px;border-radius:var(--r-full);
+  background:linear-gradient(145deg,#FFD9D2,#FFB3A8);
+  border:3px solid var(--c-primary);          /* bg_avatar_ring：主色描边点睛 */
+  display:flex;align-items:center;justify-content:center;
+  font-size:44px;cursor:pointer;
+}
+/* 通用卡片 */
+.card{background:var(--c-surface);border-radius:var(--r-lg);padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card-title{font-size:14px;color:var(--c-text-1);margin-bottom:6px}
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field .lbl{font-size:14px;color:var(--c-text-1);margin-bottom:6px}
+.input{
+  width:100%;height:48px;                    /* bar_height 48dp（禁52） */
+  background:var(--c-surface-alt);border:1px solid transparent;border-radius:var(--r-md);
+  padding:0 16px;font-size:14px;color:var(--c-text-1);outline:none;
+}
+.input:focus{border-color:var(--c-primary-text);background:#fff}
+.input.area{height:auto;min-height:72px;padding:12px 16px;line-height:1.5}
+.radio-row{display:flex;gap:12px}
+.radio{
+  flex:1;height:48px;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--c-surface-alt);border-radius:var(--r-md);
+  font-size:14px;color:var(--c-text-1);cursor:pointer;
+}
+.radio.on{background:#FFF0EC;color:var(--c-primary-text);font-weight:600}
+.radio .dot{width:16px;height:16px;border-radius:var(--r-full);border:2px solid var(--c-text-3);display:inline-flex;align-items:center;justify-content:center}
+.radio.on .dot{border-color:var(--c-primary-text)}
+.radio.on .dot::after{content:"";width:8px;height:8px;border-radius:var(--r-full);background:var(--c-primary-text)}
+/* 服务器行 */
+.divider{height:1px;background:var(--c-divider);margin:16px 0}
+.server-row{display:flex;align-items:center;padding:10px 0;cursor:pointer;border-radius:var(--r-md)}
+.server-row .val{flex:1;font-size:14px;color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.server-row .chg{font-size:14px;color:var(--c-primary-text);margin-left:8px}  /* 链接：primary_text AA */
+/* 主按钮 */
+.btn-primary{
+  width:100%;height:48px;border:none;border-radius:var(--r-lg);
+  background:var(--c-primary-fill);color:#fff;font-size:15px;font-weight:600;
+  cursor:pointer;margin-top:16px;
+}
+.btn-primary:active{filter:brightness(.92)}
+/* 亲密度等级卡 */
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sec-head .t{font-size:16px;font-weight:700;color:var(--c-text-1)}
+.sec-head .ic{font-size:20px}
+.aff-level{font-size:28px;font-weight:700;color:var(--c-primary-text)}  /* 大数字：primary_text（原 #FF6B6B ❌→AA 5.28:1） */
+.aff-title{font-size:16px;font-weight:700;color:var(--c-accent-text);margin-top:2px}
+.progress{height:6px;border-radius:var(--r-full);background:var(--c-divider);margin-top:12px;overflow:hidden}
+.progress i{display:block;height:100%;width:68%;border-radius:var(--r-full);background:var(--c-primary)}  /* 装饰可用品牌色 */
+.pts-row{display:flex;justify-content:space-between;margin-top:8px}
+.pts-row span{font-size:12px;color:var(--c-text-2)}
+/* 周对比 */
+.week-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--c-divider)}
+.week-row:last-child{border-bottom:none}
+.week-row .k{flex:1;font-size:14px;color:var(--c-text-1)}
+.week-row .v{font-size:14px;color:var(--c-primary-text);font-weight:600}   /* 数值：primary_text AA */
+.week-row .v.orange{color:var(--c-accent-text)}
+/* 装扮区 */
+.theme-item{
+  display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--r-md);
+  cursor:pointer;background:var(--c-surface-variant);margin-top:8px;
+}
+.theme-item .thumb{width:44px;height:44px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:22px}
+.theme-item .name{flex:1;font-size:14px;color:var(--c-text-1);font-weight:600}
+.theme-item .tag{font-size:12px;color:var(--c-text-3)}
+.theme-item.on{border:1.5px solid var(--c-primary-text)}
+.theme-default{background:linear-gradient(135deg,#FFE3DE,#FFF0EC)}
+.theme-dog{background:linear-gradient(135deg,#F48FA8,#FFA26B)}
+/* 规格 */
+.spec{width:390px;margin:14px auto 0;color:#E8E8E8;font-size:12px;background:#333;border-radius:10px;padding:12px 14px}
+.spec summary{cursor:pointer;font-weight:600;color:#FFB4B4}
+.spec table{width:100%;border-collapse:collapse;margin-top:8px}
+.spec td{padding:3px 6px;border-bottom:1px solid #444}
+.spec td:first-child{color:#FFB4B4;width:46%}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="sysbar"><span>9:41</span><span>📶 🔋</span></div>
+
+  <!-- 统一头栏 -->
+  <div class="hdr">
+    <button class="back" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="title">我的主页</div>
+    <div class="slot"></div>
+  </div>
+
+  <div class="content">
+    <!-- 头像 -->
+    <div class="avatar-wrap"><div class="avatar">👧</div></div>
+
+    <!-- 编辑卡片 -->
+    <div class="card">
+      <div class="field">
+        <div class="lbl">昵称</div>
+        <input class="input" value="小樱桃">
+      </div>
+      <div class="field">
+        <div class="lbl">性别</div>
+        <div class="radio-row">
+          <div class="radio on"><span class="dot"></span>女</div>
+          <div class="radio"><span class="dot"></span>男</div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="lbl">生日</div>
+        <input class="input" value="2001-03-18">
+      </div>
+      <div class="field">
+        <div class="lbl">个性签名</div>
+        <input class="input area" value="想把晚霞都拍给你看">
+      </div>
+      <div class="divider"></div>
+      <div class="lbl">服务器地址</div>
+      <div class="server-row">
+        <span class="val">wss://100.101.102.103:18443/ws/eye</span>
+        <span class="chg">修改</span>
+      </div>
+      <button class="btn-primary">保存</button>
+    </div>
+
+    <!-- 亲密度等级 -->
+    <div class="card">
+      <div class="sec-head"><span class="ic">💗</span><span class="t">亲密度等级</span></div>
+      <div class="aff-level">Lv.3</div>
+      <div class="aff-title">热恋期</div>
+      <div class="progress"><i></i></div>
+      <div class="pts-row"><span>积分 260</span><span>进度 68%</span></div>
+    </div>
+
+    <!-- 本周互动对比 -->
+    <div class="card">
+      <div class="sec-head"><span class="t">本周互动对比</span></div>
+      <div class="week-row"><span class="k">聊天回合</span><span class="v">我 42 · TA 38</span></div>
+      <div class="week-row"><span class="k">打卡次数</span><span class="v">我 5 · TA 4</span></div>
+      <div class="week-row"><span class="k">共同在线</span><span class="v orange">128 分钟</span></div>
+    </div>
+
+    <!-- 装扮 · 主题 -->
+    <div class="card">
+      <div class="sec-head">
+        <span class="t">装扮 · 主题</span>
+        <span style="flex:1"></span>
+        <span style="font-size:12px;color:var(--c-text-3)">解锁共同 · 各自应用</span>
+      </div>
+      <div class="theme-item on">
+        <div class="thumb theme-default">🌺</div>
+        <div class="name">珊瑚恋语（默认）</div>
+        <div class="tag">使用中</div>
+      </div>
+      <div class="theme-item">
+        <div class="thumb theme-dog">🐶</div>
+        <div class="name">狗狗乐园</div>
+        <div class="tag">Lv.3 解锁</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<details class="spec">
+  <summary>📏 尺寸 / 字号规格标注（1px = 1dp）</summary>
+  <table>
+    <tr><td>头栏</td><td>std 渐变 #EE5F68→#D96F52，min-height 56dp，返回 44dp，标题 text_20 粗居中</td></tr>
+    <tr><td>头像</td><td>92dp 圆形 + 3dp 主色描边环（bg_avatar_ring）</td></tr>
+    <tr><td>输入框 / 按钮</td><td>48dp（bar_height，原 52 整改）</td></tr>
+    <tr><td>字段 label</td><td>text_14，margin-bottom 6→8dp（8 步进）</td></tr>
+    <tr><td>服务器行</td><td>值 text_14 text_secondary；「修改」→ primary_text（AA 5.28:1）</td></tr>
+    <tr><td>亲密度大数字</td><td>text_28 粗 + primary_text #C03D3D（原 #FF6B6B 2.78:1 ❌ 整改）</td></tr>
+    <tr><td>等级称号</td><td>text_16 粗 + accent_text #C97A3D</td></tr>
+    <tr><td>进度条</td><td>6dp 高，品牌珊瑚装饰可保留</td></tr>
+    <tr><td>周对比数值</td><td>text_14 粗 + primary_text / accent_text（AA）</td></tr>
+    <tr><td>卡片</td><td>radius_lg 16dp，padding 16dp，shadow 2dp</td></tr>
+    <tr><td>主题项</td><td>缩略图 44dp、选中态 1.5dp primary_text 描边</td></tr>
+  </table>
+</details>
+</body>
+</html>

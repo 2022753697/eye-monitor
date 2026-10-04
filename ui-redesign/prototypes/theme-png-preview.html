@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋视 · 自制 PNG 素材主题系统（珊瑚 / 狗狗）原型预览</title>
+<style>
+/* ============================================================
+   恋视（眼互）UI v2 原型 · 自制 PNG 素材主题系统
+   手机视口 390×844 逻辑像素，1px = 1dp（CSS 模拟）
+   依据 .omc/specs/deep-interview-theme.md（唯一权威）+ docs/ui-guide.md 品牌令牌
+   场景：聊天页（珊瑚=默认 / 狗狗=乐园）双主题对照 + 页内主题开关
+   ============================================================
+   核心演示：
+   ① 头栏布局固定（旧版装饰参与流式 → 按钮左移 26dp 的 bug 对照）
+   ② 发送按钮 44dp 内套 1-1.5dp 同色系细边框环（对照旧版无边框）
+   ③ 九宫格气泡：同一张素材，短文本"嗯" vs 长文本 20+ 字均不变形
+   基线：气泡 40dp 最小高 / 280dp 最大宽 / 12dp 内边距；九宫格 16dp 圆角区
+         发送钮 44dp 热区 + 图标视觉 20dp；输入框 44dp 圆角 14dp（烘焙进 PNG）
+   ============================================================ */
+:root {
+  /* 品牌暖色盘（docs/ui-guide.md §1） */
+  --c-primary: #FF6B6B;
+  --c-primary-fill: #D13F47;   /* 实心按钮底 白字4.67:1 AA */
+  --c-primary-text: #C03D3D;   /* 描边/珊瑚文字 5.28:1 AA */
+  --c-accent: #FFA26B;
+  --c-accent-text: #C97A3D;
+  /* 文本层级（AA 变体） */
+  --c-text-1: #4A3B3D;         /* 主文本 8.6:1 */
+  --c-text-2: #7A696C;         /* 次文本 5.16:1 */
+  --c-text-3: #A99A9C;         /* 图注/时间戳（非关键，豁免 AA） */
+  --c-on-primary: #FFFFFF;
+  --c-on-primary-muted: rgba(255,255,255,.9);  /* 头栏次要文字（残差记录） */
+  /* 状态 */
+  --c-ok-text: #2E7D63;
+  --c-err-text: #B33A2C;
+  --c-surface-variant: #F6EFEC;
+  --c-divider: #F0E0DC;
+  --c-scrim: rgba(0,0,0,.10);
+  --c-header-btn: rgba(255,255,255,.30);
+  /* 尺寸令牌 */
+  --t-44: 44px;
+  --r-md: 12px;
+  --r-full: 999px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #2B2B2B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 48px;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+/* ================= 手机视口（双主题变量） ================= */
+.phone {
+  width: 390px; height: 844px;
+  border-radius: 36px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  position: relative;
+  color: var(--c-text-1);
+  transition: background-color .25s ease;
+}
+/* —— 主题 A：珊瑚（默认）：暖白背景 —— */
+.phone[data-theme="coral"] {
+  --bg: #FFF9F7;
+  --sysbar: #FF6B6B;
+  --hd-s: #FF6B6B;  --hd-e: #FFA26B;      /* 头栏渐变保留 Vector */
+  --send-fill: #FF6B6B; --send-ring: #D13F47;  /* 同色系细环（1.5dp） */
+  --bub-self-a: #FF6B6B; --bub-self-b: #FF6B6B; /* self 气泡珊瑚粉 */
+  --peer-stroke: #F4C2CD;                  /* peer 白底描边 */
+  --bub-r: 16px;                            /* 九宫格 16dp 圆角区 */
+  --input-bg: #F6EFEC;
+  background-color: var(--bg);
+}
+/* —— 主题 B：狗狗 · 乐园：淡粉爪印图案（pattern 由 JS 注入）—— */
+.phone[data-theme="dog"] {
+  --bg: #FFF6F2;
+  --sysbar: #E05B4E;
+  --hd-s: #E05B4E;  --hd-e: #D97B4E;        /* 暖陶土渐变（白字大字号 ≥3.0:1） */
+  --send-fill: #FF8A6B; --send-ring: #D9603F;
+  --bub-self-a: #FF8A72; --bub-self-b: #FF6B6B; /* 更暖的乐园粉 */
+  --peer-stroke: #F2B8B0;
+  --bub-r: 20px;                            /* 狗狗主题气泡更圆 */
+  --input-bg: #FFF0E8;
+  background-color: var(--bg);
+}
+/* ---- 模拟系统状态栏 ---- */
+.sysbar {
+  height: 24px;
+  background: var(--hd-s, var(--sysbar));
+  color: rgba(255,255,255,.92);
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+/* ============================================================
+   聊天头栏：行A = 左（标题20sp粗 + Lv徽章同行）｜右（纯图标钮 44dp×2 右对齐贴边）
+   行B = 状态行 11sp 紧凑单行 + scrim 压暗带
+   头栏行A 为 FrameLayout 等价容器：爪印绝对定位悬浮右上角，不参与流式布局
+   ============================================================ */
+.chat-header {
+  background: linear-gradient(135deg, var(--hd-s), var(--hd-e));
+  flex-shrink: 0;
+  position: relative;
+  padding: 8px 12px 6px;
+}
+.chat-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
+  background: linear-gradient(180deg, rgba(0,0,0,0), var(--c-scrim));
+  pointer-events: none;
+}
+.hdr-rowA {
+  display: flex; align-items: center;
+  position: relative; z-index: 1;
+}
+.hdr-title-box { display: flex; align-items: center; flex: 1; min-width: 0; }
+.hdr-title { font-size: 20px; font-weight: 700; color: var(--c-on-primary); letter-spacing: .5px; white-space: nowrap; }
+.hdr-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: rgba(255,255,255,.22);
+  border-radius: var(--r-full);
+  padding: 1px 6px 1px 3px;
+  margin-left: 8px;
+}
+.hdr-badge .heart { font-size: 10px; }
+.hdr-badge .lv { font-size: 10px; font-weight: 700; color: var(--c-on-primary-muted); }
+/* 纯图标钮：44dp 热区 + 20dp 图形，右对齐贴边（任意主题 x 坐标一致） */
+.hdr-icon-btn {
+  width: var(--t-44); height: var(--t-44);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-header-btn);
+  border-radius: var(--r-md);
+  margin-left: 8px;
+  cursor: pointer;
+  position: relative; z-index: 1;
+}
+.hdr-icon-btn svg { width: 20px; height: 20px; }
+.hdr-icon-btn:active { background: rgba(255,255,255,.5); }
+/* 爪印装饰：绝对定位悬浮右上角（不参与流式布局 → 零占位） */
+.hdr-paw {
+  position: absolute; top: 0; right: 4px;
+  width: 32px; height: 32px;
+  color: rgba(255,255,255,.92);
+  transform: rotate(-12deg);
+  z-index: 2;
+  pointer-events: none;
+  display: none;
+}
+.phone[data-theme="dog"] .hdr-paw { display: block; }
+.dog-note {
+  position: absolute; top: 84px; right: 44px;
+  font-size: 10px; color: #fff;
+  background: rgba(74,59,61,.78);
+  padding: 2px 8px; border-radius: var(--r-full);
+  z-index: 6; pointer-events: none;
+  display: none; white-space: nowrap;
+}
+.phone[data-theme="dog"] .dog-note { display: block; }
+/* 行B：状态行 */
+.hdr-rowB {
+  display: flex; align-items: center; gap: 2px;
+  margin-top: 2px;
+  position: relative; z-index: 1;
+  color: var(--c-on-primary-muted);
+  font-size: 11px;
+  height: 22px; white-space: nowrap;
+}
+.hdr-rowB .ic { display: inline-flex; align-items: center; }
+.hdr-rowB svg { display: block; }
+.hdr-rowB .sep { margin: 0 2px; opacity: .65; }
+/* 头栏对齐参考线（交互开关打开时显示）：两主题按钮右缘 x 一致 */
+.align-guide {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none; z-index: 5;
+  display: none;
+}
+.phone.show-align .align-guide { display: block; }
+.align-guide .gl {
+  position: absolute; top: 0; bottom: 0;
+  border-left: 1.5px dashed rgba(255,255,255,.75);
+}
+.align-guide .g1 { left: 282px; }
+.align-guide .g2 { left: 378px; }
+.align-guide .gl i {
+  position: absolute; top: 2px; left: 4px;
+  font-style: normal; font-size: 9px; color: rgba(255,255,255,.95);
+  background: rgba(74,59,61,.6); padding: 0 4px; border-radius: 3px;
+}
+/* ================= 消息列表 ================= */
+.msg-list {
+  flex: 1; overflow-y: auto;
+  padding: 8px 0 132px;   /* 底部留白给「发送钮对照」悬浮卡 */
+  display: flex; flex-direction: column;
+  scrollbar-width: none;
+}
+.msg-list::-webkit-scrollbar { display: none; }
+.sys-tip {
+  align-self: center;
+  background: var(--c-surface-variant);
+  border-radius: var(--r-full);
+  padding: 5px 14px;
+  font-size: 12px; color: var(--c-text-2);
+  margin: 8px 0;
+  max-width: 85%;
+  text-align: center;
+}
+/* ---- 对方气泡（左） ---- */
+.row-peer { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 60px 4px 12px; }
+/* ---- 自己气泡（右） ---- */
+.row-self { display: flex; flex-direction: column; align-items: flex-end; padding: 4px 12px 4px 60px; }
+.peer-name { font-size: 12px; color: var(--c-primary-text); margin: 0 0 3px 4px; }
+/* 九宫格气泡（.9.png 素材模拟）：
+   peer = 白底 + 1-1.5dp 描边；四角圆角 var(--bub-r) 固定，中段任意拉伸 */
+.bubble {
+  position: relative;
+  padding: 12px;                       /* 内边距 12dp（基线表） */
+  min-height: 40px;                    /* 气泡最小高 40dp */
+  max-width: 280px;                    /* 气泡最大宽 280dp */
+  font-size: 15px; line-height: 1.5;
+}
+/* 注：不设 overflow:hidden——border-radius 已裁切圆角背景；九宫格标注浮签需越界显示 */
+.bubble-peer {
+  background: var(--c-surface);
+  border: 1.5px solid var(--peer-stroke);
+  border-radius: var(--bub-r);
+  color: var(--c-text-1);
+}
+.bubble-self {
+  background: linear-gradient(135deg, var(--bub-self-a), var(--bub-self-b));
+  border-radius: var(--bub-r);
+  color: var(--c-on-primary);
+}
+/* 狗狗主题爪印角标：气泡外角（角区内，不挤文字） */
+.paw-badge {
+  position: absolute; display: none;
+  pointer-events: none; z-index: 1;
+}
+.phone[data-theme="dog"] .paw-badge { display: block; }
+.bubble-self .paw-badge { right: 5px; bottom: 3px; color: rgba(255,255,255,.5); }
+.bubble-peer .paw-badge { left: 5px; bottom: 3px; color: rgba(211,63,71,.35); }
+/* 时间行：text_11 + text_tertiary（图注级） */
+.time-row {
+  display: flex; align-items: center; gap: 2px;
+  margin: 3px 0 0 4px;
+  font-size: 11px; color: var(--c-text-3);
+}
+.time-row.end { margin: 3px 4px 0 0; }
+.time-row .read { color: var(--c-text-3); }
+/* ---- 九宫格拉伸区标注（开关打开时显示） ---- */
+.np-ov { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 3; }
+.phone.show-np .np-ov { display: block; }
+.np-c {
+  position: absolute; width: 16px; height: 16px;   /* 九宫格 16dp 圆角区固定 */
+  outline: 1.5px dashed rgba(74,59,61,.4);
+  background: rgba(255,255,255,.30);
+}
+.np-tl { top: 0; left: 0; border-radius: 16px 0 0 0; }
+.np-tr { top: 0; right: 0; border-radius: 0 16px 0 0; }
+.np-bl { bottom: 0; left: 0; border-radius: 0 0 0 16px; }
+.np-br { bottom: 0; right: 0; border-radius: 0 0 16px 0; }
+.np-band {
+  position: absolute; top: 16px; left: 16px; right: 16px; bottom: 16px; /* 中段拉伸区 */
+  background: repeating-linear-gradient(45deg, rgba(74,59,61,.07) 0 5px, transparent 5px 10px);
+  outline: 1.5px dashed rgba(74,59,61,.35);
+  border-radius: 4px;
+}
+.np-tag {
+  position: absolute; top: -20px;
+  font-style: normal; font-size: 10px; color: #fff;
+  background: rgba(74,59,61,.85);
+  padding: 1px 6px; border-radius: 4px;
+  white-space: nowrap; z-index: 4;
+}
+.np-tag.t-c { left: 0; }
+.np-tag.t-s { right: 0; }
+/* ================= 底部输入栏（44dp 热区体系） ================= */
+.input-bar {
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-divider);
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: var(--t-44); height: var(--t-44);
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  color: var(--c-text-2);
+}
+.icon-btn:active { background: var(--c-surface-variant); }
+.icon-btn svg { width: 20px; height: 20px; }      /* 图标视觉 20dp（素材基线） */
+/* 输入框：44dp 高，圆角 14dp 已烘焙进 PNG（theme_*_input_bg.png），不占用 dimens → 规避 checkUiStyle 14dp 拦截 */
+.chat-input {
+  flex: 1; height: 44px;
+  background: var(--input-bg);
+  border-radius: 14px;
+  border: none;
+  padding: 0 16px;
+  font-size: 15px;
+  color: var(--c-text-1);
+  outline: none;
+}
+.chat-input::placeholder { color: var(--c-text-3); }
+/* 发送钮：圆底不变（44dp），套 1.5dp 同色系细边框环（inset 画进 44dp 内，零占位）
+   按压反馈：scale .92 + 变暗（btn_press_scale 体系） */
+.send-btn {
+  width: var(--t-44); height: var(--t-44);
+  border-radius: var(--r-full);
+  background: var(--send-fill);
+  box-shadow: inset 0 0 0 1.5px var(--send-ring);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+.send-btn:active { transform: scale(.92); filter: brightness(.88); }
+.send-btn svg { width: 20px; height: 20px; }      /* 图标视觉 20dp */
+/* 发送钮对照悬浮卡（新/旧 并排小对照图，位于输入栏旁） */
+.send-cmp-float {
+  position: absolute; right: 8px; bottom: 66px;   /* 贴在输入栏上缘 */
+  width: 238px;
+  background: rgba(35,35,35,.95);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  z-index: 7; pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.send-cmp-float::after {
+  content: ""; position: absolute; right: 24px; bottom: -8px;
+  border: 8px solid transparent; border-top-color: rgba(35,35,35,.95); border-bottom: none;
+}
+.scf-title { font-size: 10px; color: #FFB4B4; font-weight: 600; margin-bottom: 8px; }
+.scf-row { display: flex; align-items: flex-end; gap: 14px; }
+.scf-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.scf-item em { font-style: normal; font-size: 10px; color: #D8D8D8; }
+.mini-send {
+  width: 44px; height: 44px; border-radius: var(--r-full);
+  background: #FF6B6B; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.mini-send.ring { box-shadow: inset 0 0 0 1.5px #D13F47; }
+.mini-send.ugly { opacity: .85; }
+.mini-send svg { width: 20px; height: 20px; }
+.scf-line { margin-top: 8px; font-size: 10px; color: #BFBFBF; line-height: 1.5; }
+.scf-line i { font-style: normal; color: #8ED19A; }
+/* ================= 页脚控制区 & 规格 ================= */
+.controls {
+  width: 390px; margin: 18px auto 0;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+}
+.theme-switch {
+  display: inline-flex; align-items: center;
+  background: #3A3A3A; border-radius: 12px; padding: 3px;
+  user-select: none;
+}
+.theme-switch button {
+  font-family: inherit; font-size: 13px; color: #E8E8E8;
+  background: transparent; border: none; border-radius: 9px;
+  padding: 8px 14px; cursor: pointer;
+}
+.theme-switch button.on { background: #FF6B6B; color: #fff; font-weight: 600; }
+.ctl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ctl-row label {
+  color: #E8E8E8; font-size: 12px;
+  background: #3A3A3A; padding: 6px 12px; border-radius: 8px;
+  cursor: pointer; user-select: none;
+}
+.ctl-row input { margin-right: 4px; accent-color: var(--c-primary); }
+.theme-caption { font-size: 11px; color: #9E9E9E; line-height: 1.6; }
+.theme-caption b { color: #FFB4B4; }
+.spec {
+  width: 390px; margin: 14px auto 0;
+  color: #E8E8E8; font-size: 12px;
+  background: #333; border-radius: 10px; padding: 12px 14px;
+}
+.spec summary { cursor: pointer; font-weight: 600; color: #FFB4B4; }
+.spec table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.spec td { padding: 3px 6px; border-bottom: 1px solid #444; vertical-align: top; }
+.spec td:first-child { color: #FFB4B4; width: 44%; }
+.spec p.note { margin-top: 8px; line-height: 1.6; color: #CCC; }
+.spec p.note b { color: #FFB4B4; }
+/* 头栏对照小图 */
+.cmp-row { display: flex; gap: 10px; margin-top: 10px; }
+.cmp-box { flex: 1; min-width: 0; }
+.cmp-box .cap { text-align: center; margin-bottom: 5px; font-size: 11px; color: #9E9E9E; line-height: 1.5; }
+.cmp-box.after .cap { color: #8ED19A; }
+.hdr-strip {
+  position: relative; height: 62px;
+  border-radius: 8px; padding: 0 6px;
+  background: linear-gradient(135deg, #FF6B6B, #FFA26B);
+  color: #fff; font-size: 12px;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.hs-title { font-weight: 700; }
+.hs-badge {
+  font-size: 8px; font-weight: 700; color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.22); border-radius: 999px;
+  padding: 1px 4px; margin-left: 4px;
+}
+.hs-spacer { flex: 1; }
+.hs-paw { width: 18px; height: 18px; margin-left: 8px; color: rgba(255,255,255,.9); flex-shrink: 0; }  /* 流式内装饰（旧版 bug：排在按钮之后占位 26dp） */
+.hs-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(255,255,255,.32);
+  margin-left: 4px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.hs-btn.map svg, .hs-btn.gal svg { width: 16px; height: 16px; }
+.hs-paw-f { position: absolute; top: 2px; right: 10px; width: 22px; height: 22px; z-index: 2; color: rgba(255,255,255,.95); transform: rotate(-12deg); }  /* 悬浮爪印（新版） */
+.hs-dash {
+  position: absolute; right: 6px; top: 6px; bottom: 6px; width: 68px;
+  border: 1.5px dashed rgba(255,255,255,.75);
+  border-radius: 8px;
+  background: rgba(255,255,255,.08);
+}
+.hs-dash::after {
+  content: "新版贴边位"; position: absolute; top: -11px; right: 0;
+  font-size: 8px; color: rgba(255,255,255,.9); white-space: nowrap;
+}
+.cmp-box.before .hs-dash::after { content: "新版按钮位"; }
+.hs-dim {
+  position: absolute; right: 6px; top: 50px; width: 26px; height: 0;
+  border-top: 1.5px dashed rgba(255,255,255,.85);
+}
+.hs-dim::before, .hs-dim::after {
+  content: ""; position: absolute; top: -3px; height: 6px;
+  border-left: 1.5px solid rgba(255,255,255,.85);
+}
+.hs-dim::before { left: 0; }
+.hs-dim::after { right: 0; }
+.hs-dim i {
+  position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: 8px; color: #fff;
+  background: rgba(0,0,0,.4); padding: 0 4px; border-radius: 3px;
+  white-space: nowrap;
+}
+.align-rule {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px; font-size: 10px; color: #BFBFBF;
+}
+.align-rule .rl {
+  flex: 1; border-top: 1.5px dashed #666; position: relative;
+}
+.align-rule .rl span {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  background: #333; padding: 0 4px; font-size: 8px; color: #9E9E9E;
+}
+/* 发送钮对照（详情区大图） */
+.send-cmp{ display:flex; gap:28px; align-items:flex-end; margin-top:10px; padding:10px; background:#2A2A2A; border-radius:8px; }
+.send-cmp .it{ display:flex; flex-direction:column; align-items:center; gap:5px; }
+.send-cmp em{ font-style:normal; font-size:10px; color:#CCC; text-align:center; line-height:1.5; }
+.send-cmp em b{ color:#8ED19A; }
+.send-cmp .old em b{ color:#FFB4B4; }
+/* 九宫格原理小图 */
+.np-grid { display:grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 34px; gap:2px; width: 170px; margin:10px auto 4px; }
+.np-grid span { display:flex; align-items:center; justify-content:center; font-size:9px; color:#4A3B3D; border-radius:3px; font-weight:600; }
+.np-grid .g-c { background:#FFB4AE; }
+.np-grid .g-e { background: repeating-linear-gradient(45deg, #FFD9D2 0 4px, #FFE7E2 4px 8px); }
+.np-grid .g-m { background: repeating-linear-gradient(45deg, #FFC9C0 0 4px, #FFD9D2 4px 8px); }
+/* Lv 徽章示例 */
+.lv-ex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+.lv-ex .lvx {
+  display:inline-flex; align-items:center; gap:2px;
+  background: rgba(255,107,107,.14);
+  border: 1px solid rgba(255,107,107,.35);
+  border-radius: 999px; padding: 2px 8px 2px 5px;
+  font-size: 11px; color: var(--c-primary-text); font-weight: 700;
+}
+.lv-ex .lvx .heart { font-size: 10px; }
+.lv-ex .cap { font-size: 10px; color: #9E9E9E; }
+</style>
+</head>
+<body>
+
+<!-- ================= 手机视口 ================= -->
+<div class="phone" id="phone" data-theme="coral">
+  <!-- 模拟系统状态栏 -->
+  <div class="sysbar"><span>9:41</span><span>📶 🔋</span></div>
+
+  <!-- ============ 聊天头栏（行A 即 FrameLayout：爪印悬浮不占位） ============ -->
+  <div class="chat-header">
+    <!-- 爪印装饰：绝对定位悬浮右上角，不参与流式布局（仅狗狗主题） -->
+    <div class="hdr-paw" title="theme_dog_header_decor.png（悬浮层）">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+        <ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/>
+        <ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/>
+        <ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/>
+      </svg>
+    </div>
+    <!-- 行A：左（20sp 粗标题 + Lv 徽章同行）｜右（地图/图库纯图标钮 44dp×2，右对齐贴边） -->
+    <div class="hdr-rowA">
+      <div class="hdr-title-box">
+        <span class="hdr-title">TA</span>
+        <span class="hdr-badge"><span class="heart">💗</span><span class="lv">Lv.3</span></span>
+      </div>
+      <!-- 地图：44dp 热区 + 20dp 图形 -->
+      <button class="hdr-icon-btn" aria-label="位置地图" title="btn_chat_map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6 3-6-3z"/><path d="M9 4v13M15 7v13"/></svg>
+      </button>
+      <!-- 图库：同上 -->
+      <button class="hdr-icon-btn" aria-label="共享图库" title="btn_chat_gallery">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5-9 9"/></svg>
+      </button>
+    </div>
+    <!-- 行B：状态行（紧凑单行 11sp） -->
+    <div class="hdr-rowB">
+      <span class="ic"><svg width="10" height="13" viewBox="0 0 10 13"><rect x="1.5" y="0.5" width="7" height="11" rx="2" fill="none" stroke="rgba(255,255,255,.9)"/><rect x="4" y="9" width="2" height="3" fill="rgba(255,255,255,.9)"/><rect x="2.5" y="2" width="5" height="5" fill="rgba(255,255,255,.9)"/></svg></span>
+      <span>100%</span><span class="sep">·</span><span>充电</span><span class="sep">·</span><span>4G</span>
+      <span class="sep">·</span><span class="ic"><svg width="8" height="10" viewBox="0 0 8 10"><path d="M2 1v8M6 1v8" stroke="rgba(255,255,255,.9)" stroke-width="1.4" stroke-linecap="round"/><path d="M3 3l2-2M3 6l2-2" stroke="rgba(255,255,255,.9)" stroke-width="1.2"/></svg></span>
+      <span>蓝牙开</span><span class="sep">·</span><span>在线</span>
+    </div>
+    <!-- 对齐参考线（交互开关） -->
+    <div class="align-guide">
+      <div class="gl g1"><i>x₁ 左缘</i></div>
+      <div class="gl g2"><i>x₂ 右缘</i></div>
+    </div>
+  </div>
+
+  <!-- 狗狗主题提示浮签 -->
+  <div class="dog-note">🐾 悬浮装饰：绝对定位，不占位</div>
+
+  <!-- ============ 消息列表 ============ -->
+  <div class="msg-list">
+
+    <div class="sys-tip">你们已经配对成功，接下来的路一起走 💗</div>
+
+    <!-- 对方：长文本气泡 -->
+    <div class="row-peer">
+      <div class="peer-name">TA</div>
+      <div class="bubble bubble-peer">
+        今晚的电影票我买好啦！8 点场，看完再去喝奶茶，位置发你啦 🎬
+        <span class="paw-badge"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+      </div>
+      <div class="time-row">19:40</div>
+    </div>
+
+    <!-- 自己：短文本「嗯」（九宫格演示：16dp 角区固定，矮气泡也圆润） -->
+    <div class="row-self">
+      <div class="bubble bubble-self np-demo">
+        嗯
+        <span class="paw-badge"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+      </div>
+      <div class="time-row end">21:02</div>
+    </div>
+
+    <!-- 自己：长文本 20+ 字（九宫格演示：中段拉伸不变形） -->
+    <div class="row-self">
+      <div class="bubble bubble-self np-demo">
+        好呀好呀！我 6 点半出发，地铁口等你，到了给你发消息，别忘了带伞，预报说晚上要下雨 ☔
+        <span class="paw-badge"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+      </div>
+      <div class="time-row end"><span class="read">已读</span><span>· 21:03</span></div>
+    </div>
+
+    <!-- 对方：狗狗乐园（应景） -->
+    <div class="row-peer">
+      <div class="peer-name">TA</div>
+      <div class="bubble bubble-peer">
+        狗狗乐园的早鸟票也抢到啦，周末带你去玩！🐾
+        <span class="paw-badge"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+      </div>
+      <div class="time-row">21:05</div>
+    </div>
+  </div>
+
+  <!-- 发送钮对照悬浮卡（点 ② 的"旁边"小对照图） -->
+  <div class="send-cmp-float">
+    <div class="scf-title">发送钮 丑版 vs 新版（点开下方②详情）</div>
+    <div class="scf-row">
+      <span class="scf-item">
+        <span class="mini-send ugly"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></span>
+        <em>旧版 · 无边框</em>
+      </span>
+      <span class="scf-item">
+        <span class="mini-send ring"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></span>
+        <em>新版 · 1.5dp 细环</em>
+      </span>
+    </div>
+    <div class="scf-line">形状不变 · 套环画进 44dp 内 <i>零占位</i> · 按压 scale 0.92 + 变暗</div>
+  </div>
+
+  <!-- ============ 底部输入栏 ============ -->
+  <div class="input-bar">
+    <button class="icon-btn" aria-label="语音"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <input class="chat-input" placeholder="输入消息…">
+    <button class="icon-btn" aria-label="表情"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.2" fill="#7A696C"/><circle cx="15" cy="10" r="1.2" fill="#7A696C"/><path d="M8.5 14.5c1 1.2 2.5 1.8 3.5 1.8s2.5-.6 3.5-1.8"/></svg></button>
+    <button class="send-btn" aria-label="发送" title="theme_*_btn_send.png（细环 1.5dp）"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></button>
+    <button class="icon-btn" aria-label="更多"><svg viewBox="0 0 24 24" fill="none" stroke="#7A696C" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="#7A696C"/><circle cx="12" cy="12" r="1.6" fill="#7A696C"/><circle cx="19" cy="12" r="1.6" fill="#7A696C"/></svg></button>
+  </div>
+</div>
+
+<!-- ================= 页脚控制区：主题切换开关 ================= -->
+<div class="controls">
+  <div class="theme-switch" id="themeSwitch">
+    <button data-t="coral" class="on">🐚 珊瑚 · 默认</button>
+    <button data-t="dog">🐾 狗狗 · 乐园</button>
+  </div>
+  <div class="ctl-row">
+    <label><input type="checkbox" id="ckNp"> ③ 显示九宫格拉伸区</label>
+    <label><input type="checkbox" id="ckAlign"> ① 头栏对齐参考线</label>
+  </div>
+  <div class="theme-caption" id="capCaption">当前主题：<b>珊瑚（默认）</b> — 切换即时生效，无需重启（模拟 ThemeManager.applyTheme）。双主题下地图/图库钮 44dp×2 保持右缘贴边，x 坐标像素级一致。</div>
+</div>
+
+<!-- ============ ① 头栏布局对照 ============ -->
+<details class="spec">
+  <summary>🖼 ① 头栏布局：旧版「被挤」vs 新版「固定」（26dp 移位对照）</summary>
+  <div class="cmp-row">
+    <div class="cmp-box before">
+      <div class="cap">旧版 · 装饰参与流式布局<br>（按钮被挤左移 26dp）</div>
+      <div class="hdr-strip">
+        <span class="hs-title">TA</span><span class="hs-badge">Lv.3</span>
+        <span class="hs-spacer"></span>
+        <span class="hs-btn map"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6 3-6-3z"/><path d="M9 4v13"/></svg></span>
+        <span class="hs-btn gal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5-9 9"/></svg></span>
+        <span class="hs-paw"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+        <span class="hs-dash"></span>
+        <span class="hs-dim"><i>26dp</i></span>
+      </div>
+    </div>
+    <div class="cmp-box after">
+      <div class="cap">新版 · 爪印绝对定位悬浮<br>（两钮右缘贴边不动）</div>
+      <div class="hdr-strip">
+        <span class="hs-title">TA</span><span class="hs-badge">Lv.3</span>
+        <span class="hs-spacer"></span>
+        <span class="hs-btn map"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6 3-6-3z"/><path d="M9 4v13"/></svg></span>
+        <span class="hs-btn gal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5-9 9"/></svg></span>
+        <span class="hs-paw-f"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><ellipse cx="12" cy="15.5" rx="5.4" ry="4.6"/><ellipse cx="5.8" cy="8" rx="2.8" ry="3.4"/><ellipse cx="10.6" cy="4.6" rx="2.6" ry="3.4"/><ellipse cx="15.8" cy="5.4" rx="2.8" ry="3.4"/><ellipse cx="18.9" cy="10.5" rx="2.6" ry="3.4"/></svg></span>
+        <span class="hs-dash"></span>
+      </div>
+    </div>
+  </div>
+  <div class="align-rule"><span class="rl"><span>两图虚线区 = 新版贴边按钮位（右缘基准一致）</span></span></div>
+  <p class="note">
+    <b>① 根因（实机定位）：</b>旧行 A 为线性排布，爪印装饰（18dp+8dp margin）在流式内占位 → 地图/图库钮整体左移 <b>26dp</b>（3x 密度实测 78px）。<br>
+    <b>② 修复：</b>行 A 改 FrameLayout 容器，爪印 <b>绝对定位悬浮右上角</b>，不再参与流式布局；珊瑚/狗狗主题下按钮右缘均贴边，<b>uiautomator 断言 btn_chat_map / btn_chat_gallery 的 x 坐标一致</b>。<br>
+    <b>③ 狗狗头栏 PNG 不含爪印</b>（爪印由悬浮层提供，不烘焙进渐变图）。
+  </p>
+</details>
+
+<!-- ============ ② 发送按钮对照 ============ -->
+<details class="spec">
+  <summary>✈ ② 发送按钮：丑版（无边框）vs 新版（44dp 内套 1.5dp 同色系细环）</summary>
+  <div class="send-cmp">
+    <div class="it old">
+      <span class="mini-send ugly"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></span>
+      <em><b>旧版（当前）</b><br>纯色圆底 + 纸飞机<br>无边框，缺少轮廓</em>
+    </div>
+    <div class="it new">
+      <span class="mini-send ring"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-7 18-3-8z"/></svg></span>
+      <em><b>新版（PNG 化）</b><br>圆底 + 1.5dp 同色系细环<br>环画进 44dp 内，零占位</em>
+    </div>
+  </div>
+  <p class="note">
+    <b>① 形状不变：</b>44dp 圆底照旧，仅套一道 <b>1-1.5dp 同色系细边框环</b>（inset 画进按钮背景内，与现有描边按钮语言一致，低调不抢戏）。<br>
+    <b>② 单态 PNG + 系统反馈：</b>不画按压态多张，按压时 <b>scale 0.92 + 半透明变暗</b>（复用 btn_press_scale，通用全部 PNG 按钮）。<br>
+    <b>③ 环色随主题：</b>珊瑚 #FF6B6B 底 / #D13F47 环；狗狗 #FF8A6B 底 / #D9603F 环 → 素材 <code>theme_coral_btn_send.png</code> / <code>theme_dog_btn_send.png</code>。
+  </p>
+</details>
+
+<!-- ============ ③ 九宫格气泡说明 ============ -->
+<details class="spec">
+  <summary>💬 ③ 九宫格气泡：同一张 .9 素材，短文本 vs 长文本都不变形</summary>
+  <div class="np-grid">
+    <span class="g-c">角 16dp</span><span class="g-e">水平拉伸</span><span class="g-c">角 16dp</span>
+    <span class="g-e">垂直拉伸</span><span class="g-m">内容区拉伸</span><span class="g-e">垂直拉伸</span>
+    <span class="g-c">角 16dp</span><span class="g-e">水平拉伸</span><span class="g-c">角 16dp</span>
+  </div>
+  <p class="note">
+    <b>① 原理：</b>气泡 <code>.9.png</code> 的 4 个 <b>16dp 圆角区固定不拉伸</b>，只有中段（上下/左右/内容区）参与拉伸 → 任何文字量下四角弧度始终一致，<b>永不变形</b>。<br>
+    <b>② 演示方法：</b>上方真机里勾选「③ 显示九宫格拉伸区」，对比「嗯」与 20+ 字长气泡——角区 16dp 完全相同，仅中段拉长。该交互与本页 CSS border-radius 模拟九宫格渲染一致。<br>
+    <b>③ 主题差异：</b>珊瑚气泡圆角 16dp；狗狗主题更圆（<b>20dp</b>）+ 外角 <b>爪印角标</b>（角区内 11dp，不挤文字）。<br>
+    <b>④ 基线：</b>气泡最小高 40dp / 最大宽 280dp / 内边距 12dp；self = 珊瑚粉（打包前后同款渐变或纯色），peer = 白底 + 1.5dp 粉描边。
+  </p>
+</details>
+
+<!-- ============ 尺寸基线 & 机制 ============ -->
+<details class="spec">
+  <summary>📏 尺寸基线 / 素材清单 / 兜底机制（1px = 1dp）</summary>
+  <table>
+    <tr><td>手机视口</td><td>390 × 844 逻辑像素</td></tr>
+    <tr><td>聊天气泡（.9.png）</td><td>最小高 40dp · 最大宽 280dp · 内边距 12dp · 九宫格圆角区 16dp（狗狗 20dp）</td></tr>
+    <tr><td>发送按钮</td><td>44dp 热区 · 1-1.5dp 同色系细环（画进 44dp 内）· 图标视觉 20dp</td></tr>
+    <tr><td>地图 / 图库钮</td><td>44dp 热区 × 2 · 右对齐贴边 · 图标视觉 20dp</td></tr>
+    <tr><td>聊天背景</td><td>1080px 宽可平铺（图案式）：珊瑚=暖白 #FFF9F7 / 狗狗=淡粉爪印图案</td></tr>
+    <tr><td>输入框背景</td><td>44dp 高 · 圆角 14dp（烘焙进 PNG，不占 dimens → 规避 checkUiStyle 14dp 拦截）</td></tr>
+    <tr><td>头栏标题 / 徽章</td><td>text_20（20sp）粗白字 · Lv 徽章 text_10 + 90% 白</td></tr>
+    <tr><td>爪印装饰</td><td>悬浮层（绝对定位）≈32dp，不参与流式布局；按钮 0 移位</td></tr>
+    <tr><td>语音 / 表情 / 更多图标</td><td>44dp 热区 · 图标视觉 20dp</td></tr>
+  </table>
+  <div class="lv-ex">
+    <span class="cap">Lv 徽章示例（双主题样式一致，仅随头栏渐变不同）：</span>
+    <span class="lvx"><span class="heart">💗</span>Lv.1</span>
+    <span class="lvx"><span class="heart">💗</span>Lv.3</span>
+  </div>
+  <p class="note">
+    <b>素材清单（每主题 10 张 × 2 主题 = 20 张，3x 高分辨率，drawable-xxhdpi）：</b>气泡 self/peer .9.png ×2 · 发送钮 ×1 · 地图/图库图标 ×2 · 聊天背景 ×1 · 输入框背景 ×1 · 语音/表情/更多 ×3。<br>
+    <b>命名族：</b><code>theme_&lt;id&gt;_&lt;element&gt;</code>（如 theme_dog_bubble_self.9.png、theme_dog_btn_send.png）；ThemeManager 维护 id→resId 映射 + <b>缺素材回退默认主题资源</b>，绝不崩溃。<br>
+    <b>承载：</b>res 编译期打包（非 assets 运行时加载）；头栏渐变保留 Vector（九宫格对渐变不友好）。
+  </p>
+</details>
+
+<script>
+(function(){
+  'use strict';
+  var phone = document.getElementById('phone');
+
+  /* —— 狗狗主题背景：淡粉爪印图案（SVG 平铺，瓦片 96px）—— */
+  var paw = "<ellipse cx='12' cy='15.5' rx='5.4' ry='4.6'/><ellipse cx='5.8' cy='8' rx='2.8' ry='3.4'/><ellipse cx='10.6' cy='4.6' rx='2.6' ry='3.4'/><ellipse cx='15.8' cy='5.4' rx='2.8' ry='3.4'/><ellipse cx='18.9' cy='10.5' rx='2.6' ry='3.4'/>";
+  var pawTile = "url(\"data:image/svg+xml," + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'>" +
+    "<g fill='#FF6B6B' fill-opacity='0.06'>" +
+    "<g transform='translate(10 4) scale(2)'>" + paw + "</g>" +
+    "<g transform='translate(52 52) scale(1.7) rotate(20)'>" + paw + "</g>" +
+    "<g transform='translate(14 60) scale(1.2) rotate(-8)'>" + paw + "</g>" +
+    "</g></svg>") + "\")";
+
+  function applyTheme(t){
+    phone.setAttribute('data-theme', t);
+    if (t === 'dog') {
+      phone.style.backgroundImage = pawTile;
+      phone.style.backgroundSize = '96px 96px';
+    } else {
+      phone.style.backgroundImage = 'none';
+    }
+    var cap = document.getElementById('capCaption');
+    cap.innerHTML = t === 'dog'
+      ? '当前主题：<b>狗狗 · 乐园</b> — 淡粉爪印背景 · 陶土渐变 · 气泡更圆+爪印角标 · 爪印悬浮右上角。切换即时生效，无需重启（模拟 ThemeManager.applyTheme）。'
+      : '当前主题：<b>珊瑚（默认）</b> — 暖白背景 · vivid 珊瑚渐变 · 16dp 九宫格气泡。切换即时生效，无需重启（模拟 ThemeManager.applyTheme）。双主题下地图/图库钮 44dp×2 保持右缘贴边，x 坐标像素级一致。';
+  }
+
+  /* —— 主题切换开关（互斥激活态） —— */
+  var btns = document.querySelectorAll('#themeSwitch button');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      applyTheme(b.getAttribute('data-t'));
+    });
+  });
+
+  /* —— 九宫格拉伸区标注（注入到两个 np-demo 气泡里） —— */
+  document.querySelectorAll('.np-demo').forEach(function(bubble){
+    var ov = document.createElement('div');
+    ov.className = 'np-ov';
+    ov.innerHTML =
+      '<i class="np-c np-tl"></i><i class="np-c np-tr"></i>' +
+      '<i class="np-c np-bl"></i><i class="np-c np-br"></i>' +
+      '<i class="np-band"></i>' +
+      '<em class="np-tag t-c">角区 16dp</em>' +
+      '<em class="np-tag t-s">中段拉伸</em>';
+    bubble.appendChild(ov);
+  });
+  document.getElementById('ckNp').addEventListener('change', function(e){
+    phone.classList.toggle('show-np', e.target.checked);
+  });
+
+  /* —— 头栏对齐参考线 —— */
+  document.getElementById('ckAlign').addEventListener('change', function(e){
+    phone.classList.toggle('show-align', e.target.checked);
+  });
+
+  /* 初始：珊瑚 */
+  applyTheme('coral');
+})();
+</script>
+</body>
+</html>

@@ -5,17 +5,17 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:background="@drawable/bg_card"
-    android:layout_margin="4dp"
-    android:padding="10dp"
+    android:layout_margin="@dimen/space_4"
+    android:padding="@dimen/space_10"
     android:gravity="center_vertical">
 
     <TextView
         android:id="@+id/tv_folder_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="← 全部"
-        android:textColor="@color/primary"
-        android:textSize="14sp" />
+        android:text="@string/gallery_folder_back_all"
+        android:textColor="@color/primary_text"
+        android:textSize="@dimen/text_14" />
 
     <TextView
         android:id="@+id/tv_folder_header_name"

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋视 · 登录页（改造后）原型</title>
+<style>
+/* 恋视 UI v2 原型 · 登录页（Hero）390×844，1px=1dp */
+:root{
+  --c-primary:#FF6B6B; --c-primary-fill:#D13F47; --c-primary-text:#C03D3D;
+  --c-vivid-start:#FF6B6B; --c-vivid-end:#FFA26B;
+  --c-bg:#FFF9F7; --c-surface:#FFFFFF; --c-surface-alt:#FFF0EC;
+  --c-text-1:#4A3B3D; --c-text-2:#7A696C; --c-text-3:#A99A9C;
+  --c-divider:#F0E0DC;
+  --r-md:12px; --r-lg:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#2B2B2B;display:flex;flex-direction:column;align-items:center;padding:24px 0 40px;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+.phone{width:390px;height:844px;background:var(--c-bg);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sysbar{height:24px;background:linear-gradient(180deg,var(--c-vivid-start),var(--c-vivid-start));color:rgba(255,255,255,.92);font-size:11px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
+/* Hero 头：品牌大标题（text_28，v1 已 30→28 归并） */
+.hero{
+  background:linear-gradient(135deg,var(--c-vivid-start),var(--c-vivid-end));
+  padding:40px 24px 28px;flex-shrink:0;
+}
+.hero .brand{font-size:28px;font-weight:700;color:#fff;letter-spacing:2px}
+.hero .sub{margin-top:6px;font-size:13px;color:rgba(255,255,255,.9)}
+/* 内容滚动 */
+.content{flex:1;overflow-y:auto;padding:24px}
+/* 登录卡 */
+.card{background:var(--c-surface);border-radius:var(--r-lg);padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card .t{font-size:20px;font-weight:700;color:var(--c-text-1);margin-bottom:16px}
+.field{margin-bottom:12px}
+.input{
+  width:100%;height:48px;                                /* bar_height 48dp（52 已整改） */
+  background:var(--c-surface-alt);border:none;border-radius:var(--r-md);
+  padding:0 16px;font-size:15px;color:var(--c-text-1);outline:none;font-family:inherit;
+}
+.input:focus{background:#fff;outline:1.5px solid var(--c-primary-text)}
+.btn-login{width:100%;height:48px;border:none;border-radius:var(--r-lg);background:var(--c-primary-fill);color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
+.btn-login:active{filter:brightness(.92)}
+.link{display:block;text-align:center;padding:14px 0 0;font-size:14px;color:var(--c-primary-text);cursor:pointer}
+/* 服务器行 */
+.server-row{
+  display:flex;align-items:center;margin-top:16px;padding:14px;border-radius:var(--r-md);cursor:pointer;
+}
+.server-row:active{background:var(--c-surface-alt)}
+.server-row .k{flex:1;font-size:14px;color:var(--c-text-1)}
+.server-row .v{font-size:13px;color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.spec{width:390px;margin:14px auto 0;color:#E8E8E8;font-size:12px;background:#333;border-radius:10px;padding:12px 14px}
+.spec summary{cursor:pointer;font-weight:600;color:#FFB4B4}
+.spec table{width:100%;border-collapse:collapse;margin-top:8px}
+.spec td{padding:3px 6px;border-bottom:1px solid #444}
+.spec td:first-child{color:#FFB4B4;width:46%}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="sysbar"><span>9:41</span><span>📶 🔋</span></div>
+
+  <!-- Hero 头（Login/Main 未配对共用 hero 变体） -->
+  <div class="hero">
+    <div class="brand">恋视</div>
+    <div class="sub">恋视 · 恋爱守护</div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="t">登录</div>
+      <input class="input" style="margin-bottom:12px" placeholder="用户名" autocomplete="off">
+      <input class="input" style="margin-bottom:16px" placeholder="密码" type="password">
+      <button class="btn-login">登录</button>
+      <span class="link">没有账号？去注册</span>
+    </div>
+
+    <!-- 服务器地址入口（登录前可改，解锁「先有鸡还是先有蛋」） -->
+    <div class="server-row">
+      <span class="k">服务器地址</span>
+      <span class="v">wss://100.101.102.103:18443/ws/eye</span>
+    </div>
+  </div>
+</div>
+<details class="spec">
+  <summary>📏 尺寸 / 字号规格标注（1px = 1dp）</summary>
+  <table>
+    <tr><td>Hero 头</td><td>vivid 渐变；品牌名 text_28（原 30 已归并）+ letterSpacing；padding 40/24/28 → space_40/24/28 令牌</td></tr>
+    <tr><td>副标题</td><td>text_13 + 90% 白</td></tr>
+    <tr><td>登录卡</td><td>radius_lg 16、padding 24dp、shadow 2dp</td></tr>
+    <tr><td>卡标题</td><td>text_20 粗 + text_primary</td></tr>
+    <tr><td>输入框 / 按钮</td><td>48dp（bar_height；原 52dp 已整改），radius_md / radius_lg</td></tr>
+    <tr><td>「去注册」链接</td><td>text_14 + primary_text #C03D3D（原 ?attr/colorPrimary #FF6B6B 2.78:1 ❌ 整改）</td></tr>
+    <tr><td>服务器行</td><td>padding 14dp（space_14）、圆角 radius_md、值 text_13 text_secondary</td></tr>
+  </table>
+</details>
+</body>
+</html>

@@ -96,26 +96,9 @@
 
     <!-- 扇形气泡菜单：子项初始叠放在 FAB 位置（margin 同 FAB），
          展开时用三角函数计算左上方扇形目标坐标，ObjectAnimator 从 FAB 中心散开。
-         气泡 = 椭圆造型（两字项为圆 52dp，新建文件夹为胖椭圆 96x52），文字内敛不溢出 -->
-    <TextView
-        android:id="@+id/btn_gallery_back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/space_16"
-        android:background="@drawable/bg_bubble_menu"
-        android:elevation="3dp"
-        android:gravity="center"
-        android:minWidth="52dp"
-        android:minHeight="52dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:text="@string/back"
-        android:textColor="@color/primary"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:visibility="invisible" />
-
+         气泡 = 椭圆造型（两字项为圆 48dp，新建文件夹为胖椭圆 96x48），文字内敛不溢出。
+         v2 §2.6：已删「返回」气泡（返回由头栏 HeaderBar 承担）；文字改 primary_text AA、elevation shadow_2。
+         剩余三项：上传 / 选择 / 新建文件夹。 -->
     <TextView
         android:id="@+id/btn_gallery_upload"
         android:layout_width="wrap_content"
@@ -123,14 +106,14 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_bubble_menu"
-        android:elevation="3dp"
+        android:elevation="@dimen/shadow_2"
         android:gravity="center"
         android:minWidth="52dp"
-        android:minHeight="52dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
+        android:minHeight="@dimen/bar_height"
+        android:paddingStart="@dimen/space_10"
+        android:paddingEnd="@dimen/space_10"
         android:text="@string/gallery_upload"
-        android:textColor="@color/primary"
+        android:textColor="@color/primary_text"
         android:textSize="14sp"
         android:textStyle="bold"
         android:visibility="invisible" />
@@ -142,14 +125,14 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_bubble_menu"
-        android:elevation="3dp"
+        android:elevation="@dimen/shadow_2"
         android:gravity="center"
         android:minWidth="52dp"
-        android:minHeight="52dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
+        android:minHeight="@dimen/bar_height"
+        android:paddingStart="@dimen/space_10"
+        android:paddingEnd="@dimen/space_10"
         android:text="@string/gallery_select"
-        android:textColor="@color/primary"
+        android:textColor="@color/primary_text"
         android:textSize="14sp"
         android:textStyle="bold"
         android:visibility="invisible" />
@@ -161,15 +144,15 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/space_16"
         android:background="@drawable/bg_bubble_menu"
-        android:elevation="3dp"
+        android:elevation="@dimen/shadow_2"
         android:gravity="center"
         android:minWidth="56dp"
-        android:minHeight="56dp"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
+        android:minHeight="@dimen/bar_height"
+        android:paddingStart="@dimen/space_4"
+        android:paddingEnd="@dimen/space_4"
         android:text="@string/gallery_folder_new_bubble"
         android:lineSpacingExtra="0dp"
-        android:textColor="@color/primary"
+        android:textColor="@color/primary_text"
         android:textSize="12sp"
         android:textStyle="bold"
         android:visibility="invisible" />

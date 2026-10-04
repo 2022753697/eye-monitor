@@ -47,7 +47,8 @@ public class PermissionActivity extends BaseActivity {
         tvBattery = findViewById(R.id.tv_perm_battery);
         tvBoot = findViewById(R.id.tv_perm_boot);
 
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        findViewById(R.id.header_back).setOnClickListener(v -> finish());
+        ((TextView) findViewById(R.id.header_title)).setText(R.string.permission_title);
 
         findViewById(R.id.row_perm_notification).setOnClickListener(v ->
                 requestMissing(new String[]{Manifest.permission.POST_NOTIFICATIONS}));
@@ -131,6 +132,8 @@ public class PermissionActivity extends BaseActivity {
                 new ComponentName(this, BootReceiver.class))
                 != PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
         setStatus(tvBoot, bootOk, R.string.perm_always_on, R.string.perm_disabled, false);
+        // v2 §2.12：boot 默认开启=text_secondary；已停用=status_error_text
+        if (!bootOk) tvBoot.setTextColor(getColor(R.color.status_error_text));
     }
 
     /** 状态文案 + 颜色（绿=已授权，橙=未授权；isClickableHint=false 时保持次级灰） */
@@ -141,8 +144,9 @@ public class PermissionActivity extends BaseActivity {
     private void setStatus(TextView tv, boolean ok, int okTextRes, int notOkTextRes,
                            boolean colored) {
         tv.setText(getString(ok ? okTextRes : notOkTextRes));
-        tv.setTextColor(getColor(ok ? R.color.status_ok
-                : (colored ? R.color.status_warn : R.color.text_secondary)));
+        // v2 §2.12：状态文字一律用 *_text 语义变体（AA）：已授权=status_ok_text、未授权=status_warn_text
+        tv.setTextColor(getColor(ok ? R.color.status_ok_text
+                : (colored ? R.color.status_warn_text : R.color.text_secondary)));
     }
 
     @Override

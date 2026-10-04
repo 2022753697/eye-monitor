@@ -23,6 +23,7 @@ public class WsMessage {
      * pair_request, pair_recover, pair_confirm, app_switch, location,
      * request_peer_location, chat, anniversary_sync, fence_sync,
      * user_profile, sos, sos_ack, device_status, media, media_deleted,
+     * affection_sync（服务端推送好感度快照）, check_in（客户端打卡上报）,
      * ping, pong, error
      */
     private String type;
@@ -144,6 +145,26 @@ public class WsMessage {
     public static WsMessage createMediaDeleted(String deviceId, String pairCode, String fileId) {
         return new WsMessage("media_deleted", deviceId, pairCode,
                 Map.of("fileId", fileId), System.currentTimeMillis());
+    }
+
+    /**
+     * 好感度快照推送（affection_sync）：升级必推 / 非升级 60 秒节流（服务端 AffectionService 控制）。
+     * payload 字段名 points/level/progress/title 小驼峰，双端协议一致。
+     *
+     * @param pairCode 6 位配对码
+     * @param points   共享积分（pair 唯一值，双端一致）
+     * @param level    共享等级 1-6
+     * @param progress 本级进度 0.0-1.0（Lv.6 恒为 1.0）
+     * @param title    等级称号（初识/心动/热恋/情深/挚爱/永恒）
+     */
+    public static WsMessage createAffectionSync(String pairCode, long points, int level,
+                                                double progress, String title) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("points", points);
+        payload.put("level", level);
+        payload.put("progress", progress);
+        if (title != null) payload.put("title", title);
+        return new WsMessage("affection_sync", null, pairCode, payload, System.currentTimeMillis());
     }
 
     // --- JSON 序列化/反序列化 ---

@@ -48,6 +48,11 @@ public class PrefsManager {
     private static final String KEY_SOS_LAST_TRIGGER = "sos_last_trigger";
     private static final String KEY_PAIR_AWAITING_PEER = "pair_awaiting_peer";
     private static final String KEY_PEER_DEVICE_ID = "peer_device_id";
+    // 装扮区主题选择（本地偏好：解锁共同、应用各自）
+    private static final String KEY_THEME_ID = "theme_id";
+    // 打卡单窗口单次记录（yyyy-MM-dd；本地偏好 + 服务端 dedupKey 兜底）
+    private static final String KEY_CHECKIN_MORNING_DATE = "checkin_morning_date";
+    private static final String KEY_CHECKIN_EVENING_DATE = "checkin_evening_date";
     private final SharedPreferences prefs;
 
     public PrefsManager(Context context) {
@@ -253,6 +258,24 @@ public class PrefsManager {
         }
     }
 
+    /** 早安打卡日期（yyyy-MM-dd；同一天该窗口已打过则不再提醒/发送） */
+    public String getCheckInMorningDate() {
+        return prefs.getString(KEY_CHECKIN_MORNING_DATE, null);
+    }
+
+    public void setCheckInMorningDate(String date) {
+        prefs.edit().putString(KEY_CHECKIN_MORNING_DATE, date).apply();
+    }
+
+    /** 晚安打卡日期（yyyy-MM-dd） */
+    public String getCheckInEveningDate() {
+        return prefs.getString(KEY_CHECKIN_EVENING_DATE, null);
+    }
+
+    public void setCheckInEveningDate(String date) {
+        prefs.edit().putString(KEY_CHECKIN_EVENING_DATE, date).apply();
+    }
+
     /**
      * 获取对方显示名（备注优先；无备注返回自动学习的昵称，均未设置返回 null）。
      * 全 App 显示统一的对方名称，改这一处即全面生效。
@@ -262,6 +285,13 @@ public class PrefsManager {
         if (remark != null && !remark.isEmpty()) {
             return remark;
         }
+        return prefs.getString(KEY_PEER_NICKNAME, null);
+    }
+
+    /** 对方显示名（备注优先，微信式；无备注回退昵称；均无返回 null）——气泡/引用/系统行等展示统一用它 */
+    public String getPeerDisplayName() {
+        String remark = getPeerRemark();
+        if (remark != null && !remark.trim().isEmpty()) return remark.trim();
         return prefs.getString(KEY_PEER_NICKNAME, null);
     }
 
@@ -436,6 +466,18 @@ public class PrefsManager {
     /** 是否已配对 */
     public boolean isPaired() {
         return getPairCode() != null;
+    }
+
+    /** 当前主题 id（默认/珊瑚恋语） */
+    public String getThemeId() {
+        return prefs.getString(KEY_THEME_ID, com.eyemonitor.ui.theme.ChatTheme.ID_DEFAULT);
+    }
+
+    /** 保存主题选择（本地偏好，不影响对方） */
+    public void setThemeId(String themeId) {
+        if (themeId != null) {
+            prefs.edit().putString(KEY_THEME_ID, themeId).apply();
+        }
     }
 
     /** 清除所有配置 */

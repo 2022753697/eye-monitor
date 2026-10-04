@@ -87,14 +87,14 @@ public class GalleryActivity extends AppCompatActivity {
     private TextView tvBatchCount;
     private GalleryAdapter adapter;
 
-    /** 扇形气泡菜单：自下而上 [返回, 上传, 选择, 新建文件夹] */
+    /** 扇形气泡菜单：自下而上 [上传, 选择, 新建文件夹]（v2 §2.6 已删「返回」项，返回由头栏承担） */
     private final java.util.List<View> fabMenuItems = new java.util.ArrayList<>();
     private boolean fabMenuOpen;
 
     /** 扇形展开参数（与 fabMenuItems 一一对应）：距左轴仰角（度）+ 半径（dp）
-     *  等半径 = 气泡落在同一圆弧上（围绕 FAB 的整齐扇形），角度 10°~80° 均分 */
-    private static final float[] FAB_MENU_ANGLES = {5f, 30f, 55f, 80f};
-    private static final float[] FAB_MENU_RADIUS = {140f, 140f, 140f, 140f};
+     *  等半径 = 气泡落在同一圆弧上（围绕 FAB 的整齐扇形），角度 30°~80° 均分 */
+    private static final float[] FAB_MENU_ANGLES = {30f, 55f, 80f};
+    private static final float[] FAB_MENU_RADIUS = {140f, 140f, 140f};
 
     /** 批量选择模式与选中集合 */
     private boolean batchMode;
@@ -158,10 +158,6 @@ public class GalleryActivity extends AppCompatActivity {
         btnGallerySelect = findViewById(R.id.btn_gallery_select);
         batchBar = findViewById(R.id.batch_bar);
         tvBatchCount = findViewById(R.id.tv_batch_count);
-        findViewById(R.id.btn_gallery_back).setOnClickListener(v -> {
-            collapseFabMenu();
-            finish();
-        });
         findViewById(R.id.btn_gallery_upload).setOnClickListener(v -> {
             collapseFabMenu();
             pickMedia();
@@ -174,7 +170,6 @@ public class GalleryActivity extends AppCompatActivity {
             collapseFabMenu();
             showCreateFolderDialog();
         });
-        fabMenuItems.add(findViewById(R.id.btn_gallery_back));
         fabMenuItems.add(findViewById(R.id.btn_gallery_upload));
         fabMenuItems.add(findViewById(R.id.btn_gallery_select));
         fabMenuItems.add(findViewById(R.id.btn_menu_new_folder));

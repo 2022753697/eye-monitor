@@ -36,12 +36,11 @@
             android:textColor="@color/white"
             android:gravity="center" />
 
-        <TextView
+        <Button
             android:id="@+id/btn_task_publish"
             style="@style/Widget.EyeMonitor.Button.HeaderAction"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
             android:text="@string/task_publish" />
     </LinearLayout>
 
@@ -56,7 +55,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="8dp" />
+            android:padding="@dimen/space_8" />
     </HorizontalScrollView>
 
     <!-- 任务列表 -->

@@ -32,6 +32,7 @@
     <!-- 胶囊（替换魔法 999dp） -->
 
     <!-- 字号（8 级节奏：12/14/16/20 + 补充 10-18/24-30） -->
+    <dimen name="text_9">9sp</dimen>
     <dimen name="text_10">10sp</dimen>
     <!-- 仅限角标数字/非关键标注（不承诺 AA） -->
     <dimen name="text_11">11sp</dimen>
@@ -70,6 +71,7 @@
     <dimen name="icon_18">18dp</dimen>
     <dimen name="icon_20">20dp</dimen>
     <dimen name="icon_24">24dp</dimen>
+    <dimen name="icon_28">28dp</dimen>
     <dimen name="icon_36">36dp</dimen>
     <dimen name="icon_44">44dp</dimen>
 

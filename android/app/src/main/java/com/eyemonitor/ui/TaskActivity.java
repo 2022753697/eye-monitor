@@ -255,17 +255,20 @@ public class TaskActivity extends BaseActivity {
                 int pillColor = R.color.text_secondary;
                 switch (e.status == null ? "" : e.status) {
                     case TaskEntity.STATUS_ACCEPTED:
-                        pillBg = R.drawable.bg_pill_pink;
-                        pillColor = R.color.primary;
+                        // v2 §2.7：已接受=surface_ok 底 + status_ok_text 字
+                        pillBg = R.drawable.bg_pill_green;
+                        pillColor = R.color.status_ok_text;
                         break;
                     case TaskEntity.STATUS_COMPLETED:
                     case TaskEntity.STATUS_REWARDED:
+                        // v2 §2.7：已完成/已兑现=surface_ok 底 + status_ok_text 字
                         pillBg = R.drawable.bg_pill_green;
-                        pillColor = R.color.status_ok;
+                        pillColor = R.color.status_ok_text;
                         break;
                     case TaskEntity.STATUS_REJECTED:
+                        // v2 §2.7：已拒绝=surface_error 底 + status_error_text 字
                         pillBg = R.drawable.bg_pill_red;
-                        pillColor = R.color.status_error;
+                        pillColor = R.color.status_error_text;
                         break;
                 }
                 tvStatus.setBackgroundResource(pillBg);

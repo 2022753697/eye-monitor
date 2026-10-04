@@ -20,7 +20,7 @@
             android:id="@+id/rv_anniversaries"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp"
+            android:padding="@dimen/space_16"
             android:clipToPadding="false" />
 
         <!-- 空态（组件化） -->
@@ -30,21 +30,20 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- 底部添加按钮 -->
+    <!-- 底部添加按钮（v2 §2.8：去 52dp 禁值，bar_height 48dp） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@color/surface"
-        android:elevation="4dp"
-        android:padding="12dp">
+        android:elevation="@dimen/shadow_2"
+        android:padding="@dimen/space_12">
 
         <Button
             android:id="@+id/btn_anniversary_add"
             style="@style/Widget.EyeMonitor.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="52dp"
+            android:layout_height="@dimen/bar_height"
             android:text="@string/anniversary_add" />
     </LinearLayout>
 </LinearLayout>

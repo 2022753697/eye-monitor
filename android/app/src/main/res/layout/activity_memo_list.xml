@@ -13,8 +13,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/bg_header_gradient_std"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingStart="@dimen/space_12"
+        android:paddingEnd="@dimen/space_12">
 
         <ImageButton
             android:id="@+id/btn_memo_back"
