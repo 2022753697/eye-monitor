@@ -595,5 +595,5 @@ eye-monitor/
 >
 > 但说到底，两个人在一起，最体面的状态从来不是谁盯紧谁、谁防着谁，而是彼此心里都有数——我知道外面诱惑很多，你也知道我不会走；你给得了我安心，我也守得住自己。如果连这点默契都没有，靠监控换来的也不是爱，只是延迟分手的证据。
 
-<div style="text-align: center; background-color: #fff0f0; padding: 20px; border: 3px dashed #ff0000; border-radius: 10px;"><font color="red" style="font-size: 65px">❤️ 祝天下有情人终成眷属 ❤️</font></div>
+![❤️ 祝天下有情人终成眷属 ❤️](screenshots/blessing.png)
 
