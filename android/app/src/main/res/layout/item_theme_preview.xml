@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 装扮区主题预览卡：头栏渐变条 + 聊天背景样张 + 双气泡 + 发送键 + 名称/锁定态 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:elevation="2dp"
+    android:padding="@dimen/space_12"
+    android:layout_marginBottom="@dimen/space_12"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 头栏渐变样条 -->
+    <ImageView
+        android:id="@+id/preview_header"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/cd_theme_preview" />
+
+    <!-- 主体行：聊天背景样张(双气泡) + 发送键 + 名称 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="@dimen/space_8">
+
+        <!-- 聊天背景样张（内置双气泡） -->
+        <FrameLayout
+            android:id="@+id/preview_chat_bg"
+            android:layout_width="88dp"
+            android:layout_height="64dp"
+            android:background="@color/dog_bg">
+
+            <TextView
+                android:id="@+id/preview_bubble_self"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|bottom"
+                android:background="@drawable/bg_bubble_self"
+                android:text="@string/profile_week_me"
+                android:textColor="@color/text_on_primary"
+                android:textSize="@dimen/text_11"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/preview_bubble_peer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|top"
+                android:background="@drawable/bg_bubble_peer"
+                android:text="@string/profile_week_peer"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_11"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="4dp" />
+        </FrameLayout>
+
+        <!-- 发送键样张 -->
+        <ImageView
+            android:id="@+id/preview_send"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_send"
+            android:background="@drawable/bg_icon_circle"
+            android:padding="8dp"
+            android:contentDescription="@string/btn_send"
+            android:layout_marginStart="@dimen/space_8" />
+
+        <!-- 名称 + 锁定态 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="@dimen/space_12">
+
+            <TextView
+                android:id="@+id/preview_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/TextAppearance.EyeMonitor.Title"
+                android:textSize="@dimen/text_14" />
+
+            <TextView
+                android:id="@+id/preview_lock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/TextAppearance.EyeMonitor.Label"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

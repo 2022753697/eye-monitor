@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 按住说话条（狗狗主题）：白底圆角胶囊 + 1.5dp 珊瑚描边（与输入框同语言） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <corners android:radius="22dp" />
+    <stroke
+        android:width="1.5dp"
+        android:color="@color/dog_input_stroke" />
+</shape>

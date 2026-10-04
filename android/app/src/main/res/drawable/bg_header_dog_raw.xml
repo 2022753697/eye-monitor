@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 头栏底图（v5 1080x253 居中裁切）：尺寸与头栏一致，铺满 -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/theme_dog_header_bg_v5"
+    android:gravity="fill"
+    android:tileMode="disabled" />

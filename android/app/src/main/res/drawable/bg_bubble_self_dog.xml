@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗乐园自己气泡：20dp 全圆角珊瑚粉 + 右下白色爪印角标 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/dog_bubble_self" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ic_paw_white" android:gravity="bottom|end"
+        android:right="6dp"
+        android:bottom="6dp"
+        android:width="20dp"
+        android:height="20dp" />
+</layer-list>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗主题 对方气泡（镜像）：框架(左下尾巴) + 耳(右上) + 狗爪(右下) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bubble_frame_dog_peer" />
+    <item android:gravity="top|end" android:drawable="@drawable/bubble_ear_peer" />
+    <item android:gravity="bottom|end" android:drawable="@drawable/bubble_paw_peer" />
+</layer-list>

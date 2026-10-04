@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗主题 自己气泡：空心框架(右下尾巴) + 悬浮耳(左上) + 狗爪(左下) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bubble_frame_dog_self" />
+    <item android:gravity="top|start" android:drawable="@drawable/bubble_ear_self" />
+    <item android:gravity="bottom|start" android:drawable="@drawable/bubble_paw_self" />
+</layer-list>

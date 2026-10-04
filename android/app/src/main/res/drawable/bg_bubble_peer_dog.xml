@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗乐园对方气泡：20dp 全圆角白底珊瑚描边 + 左下爪印角标 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/dog_bubble_peer" />
+            <corners android:radius="20dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="@color/dog_bubble_stroke" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ic_paw_coral" android:gravity="bottom|start"
+        android:left="6dp"
+        android:bottom="6dp"
+        android:width="20dp"
+        android:height="20dp" />
+</layer-list>

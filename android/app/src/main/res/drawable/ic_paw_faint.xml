@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 爪印（白色，狗狗乐园主题：头栏装饰 / 自己气泡角标 / 升级通知小图标） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 三颗上趾 -->
+    <path
+        android:fillColor="#40F7B2C0"
+        android:pathData="M4,10 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+    <path
+        android:fillColor="#40F7B2C0"
+        android:pathData="M9,7.5 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+    <path
+        android:fillColor="#40F7B2C0"
+        android:pathData="M15,10 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+    <!-- 第四趾 -->
+    <path
+        android:fillColor="#40F7B2C0"
+        android:pathData="M6.3,15.5 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z" />
+    <!-- 掌垫 -->
+    <path
+        android:fillColor="#40F7B2C0"
+        android:pathData="M8.9,16.5 a4.6,4.2 0 1,0 9.2,0 a4.6,4.2 0 1,0 -9.2,0 Z" />
+</vector>

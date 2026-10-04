@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗乐园头栏渐变变体：柔和粉 → 暖橙（270° 自上而下，与品牌渐变同构） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@color/dog_grad_start"
+        android:endColor="@color/dog_grad_end"
+        android:angle="270" />
+</shape>

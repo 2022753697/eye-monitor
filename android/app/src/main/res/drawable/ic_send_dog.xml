@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 狗狗乐园发送键：珊瑚粉圆角底 + 顶部两只狗狗耳朵 + 白色纸飞机（矢量自绘） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 耳朵（先画，被圆角矩形盖住下缘 → 只露上半） -->
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M7,11 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 Z" />
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M27,11 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 Z" />
+    <!-- 圆角底（20dp）：x4→x44，y14→y48 -->
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M4,14 h40 a14,14 0 0,1 14,14 v6 a14,14 0 0,1 -14,14 h-40 a14,14 0 0,1 -14,-14 v-6 a14,14 0 0,1 14,-14 Z" />
+    <!-- 白色纸飞机（描边） -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13,24 L30,24 M30,24 L23,17 M30,24 L23,31" />
+</vector>

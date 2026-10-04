@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 聊天头栏底部微压暗带（v2 §2.1）：顶部透明 → 底部 10% 黑，
+     兜底 11sp 90% 白 on 渐变 ~2.6:1 对比残差（依赖图标冗余信息） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#00000000"
+        android:endColor="@color/scrim_header" />
+</shape>

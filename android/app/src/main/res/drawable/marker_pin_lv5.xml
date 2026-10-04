@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lv.5 专属爪印 marker pin：水滴形爪印（狗狗乐园全局彩蛋，替代原独立 marker 色） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 水滴主体 -->
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M24,4C16.3,4 10,10.3 10,18c0,10.5 14,26 14,26s14,-15.5 14,-26C38,10.3 31.7,4 24,4z" />
+    <!-- 三颗上趾 -->
+    <path
+        android:fillColor="@color/dog_bubble_peer"
+        android:pathData="M15.5,16 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" />
+    <path
+        android:fillColor="@color/dog_bubble_peer"
+        android:pathData="M21.4,13 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0 Z" />
+    <path
+        android:fillColor="@color/dog_bubble_peer"
+        android:pathData="M27.9,16 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" />
+    <!-- 掌垫 -->
+    <path
+        android:fillColor="@color/dog_bubble_peer"
+        android:pathData="M18.5,24 a5.5,5 0 1,0 11,0 a5.5,5 0 1,0 -11,0 Z" />
+</vector>

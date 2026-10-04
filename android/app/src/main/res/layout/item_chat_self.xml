@@ -1,118 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 自己文本气泡：右对齐；结构=已撤回系统行 → 引用条 → 气泡 → 时间行(下方右对齐) -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 自己文本气泡（根=FrameLayout 悬浮层）：内容块(撤回/引用/气泡/时间) + 耳/爪绝对悬浮 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ll_bubble_decor"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:gravity="end"
-    android:paddingStart="60dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <!-- 已撤回系统提示（居中灰字，撤回后替代气泡） -->
-    <TextView
-        android:id="@+id/tv_recalled"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_12"
-        android:visibility="gone" />
+        android:orientation="vertical"
+        android:gravity="end"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingStart="60dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
-    <!-- 微信式引用条：灰底圆角 + 左侧色条 + [发送者名] + 内容（点击定位原消息） -->
-    <LinearLayout
-        android:id="@+id/ll_chat_ref"
+        <!-- 已撤回系统提示（居中灰字，撤回后替代气泡） -->
+        <TextView
+            android:id="@+id/tv_recalled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_12"
+            android:visibility="gone" />
+
+        <!-- 微信式引用条：灰底圆角 + 左侧色条 + [发送者名] + 内容（点击定位原消息） -->
+        <LinearLayout
+            android:id="@+id/ll_chat_ref"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_quote_ref"
+            android:paddingStart="4dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:layout_marginBottom="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="match_parent"
+                android:background="@color/accent"
+                android:layout_marginEnd="6dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_ref_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/text_11"
+                    android:textColor="@color/primary_text"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tv_ref_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/text_12"
+                    android:textColor="@color/text_secondary"
+                    android:maxWidth="180dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 气泡本体（耳/爪不再放在这里——移出到根悬浮层，避免被本容器裁剪） -->
+        <FrameLayout
+        android:id="@+id/ll_bubble_box"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_quote_ref"
-        android:paddingStart="4dp"
-        android:paddingEnd="10dp"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:layout_marginBottom="2dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="gone">
+        android:clipChildren="false"
+        android:clipToPadding="false">
+<TextView
+            android:id="@+id/tv_chat_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_bubble_self"
+            android:textColor="@color/text_on_primary"
+            android:textSize="@dimen/text_15"
+            android:lineSpacingExtra="2dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp" />
 
-        <View
-            android:layout_width="3dp"
-            android:layout_height="match_parent"
-            android:background="@color/accent"
-            android:layout_marginEnd="6dp" />
+<ImageView
+            android:id="@+id/iv_bubble_paw"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/iv_bubble_ear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:visibility="gone" />
+    </FrameLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="4dp">
 
             <TextView
-                android:id="@+id/tv_ref_name"
+                android:id="@+id/tv_chat_read"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="@dimen/text_11"
-                android:textColor="@color/primary"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:text="@string/chat_read_label"
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/text_9"
+                android:layout_marginEnd="2dp"
+                android:visibility="gone" />
+
+            <!-- 未送达（发送失败，点击重发） -->
+            <TextView
+                android:id="@+id/tv_send_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chat_send_failed"
+                android:textColor="@color/status_error"
+                android:textSize="@dimen/text_9"
+                android:layout_marginEnd="2dp"
+                android:visibility="gone" />
 
             <TextView
-                android:id="@+id/tv_ref_text"
+                android:id="@+id/tv_chat_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="@dimen/text_12"
-                android:textColor="@color/text_secondary"
-                android:maxWidth="180dp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/text_9" />
         </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_chat_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_bubble_self"
-        android:textColor="@color/text_on_primary"
-        android:textSize="@dimen/text_15"
-        android:lineSpacingExtra="2dp"
-        android:padding="12dp" />
+    <!-- 主题装饰悬浮层（根级，物理上不可能被气泡容器裁剪；bind 里按主题显隐/定位） -->
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="4dp">
 
-        <TextView
-            android:id="@+id/tv_chat_read"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/chat_read_label"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/text_11"
-            android:layout_marginEnd="2dp"
-            android:visibility="gone" />
-
-        <!-- 未送达（发送失败，点击重发） -->
-        <TextView
-            android:id="@+id/tv_send_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/chat_send_failed"
-            android:textColor="@color/status_error"
-            android:textSize="@dimen/text_11"
-            android:layout_marginEnd="2dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/tv_chat_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/text_11" />
-    </LinearLayout>
-</LinearLayout>
+</FrameLayout>

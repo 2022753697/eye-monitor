@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 装扮区主题卡片：选中态（珊瑚描边，默认态用 bg_card） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <corners android:radius="16dp" />
+    <stroke
+        android:width="2dp"
+        android:color="@color/primary" />
+</shape>

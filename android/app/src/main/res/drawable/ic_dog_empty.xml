@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 空态狗狗插画：圆脸 + 垂耳 + 豆豆眼（珊瑚粉系，聊天页空态 / 主题预览共用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- 左耳 -->
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M7,32 a13,17 0 1,0 26,0 a13,17 0 1,0 -26,0 Z" />
+    <!-- 右耳 -->
+    <path
+        android:fillColor="@color/dog_bubble_self"
+        android:pathData="M63,32 a13,17 0 1,0 26,0 a13,17 0 1,0 -26,0 Z" />
+    <!-- 头 -->
+    <path
+        android:fillColor="#FFC2CF"
+        android:pathData="M48,24 a30,30 0 1,0 0.1,0 Z" />
+    <!-- 眼睛 -->
+    <path
+        android:fillColor="@color/text_primary"
+        android:pathData="M38,46 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 Z" />
+    <path
+        android:fillColor="@color/text_primary"
+        android:pathData="M58,46 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 Z" />
+    <!-- 口鼻区 -->
+    <path
+        android:fillColor="@color/dog_bubble_peer"
+        android:pathData="M48,58 a16,12 0 1,0 0.1,0 Z" />
+    <!-- 鼻子 -->
+    <path
+        android:fillColor="@color/particle_rose"
+        android:pathData="M48,56 a4,3 0 1,0 8,0 a4,3 0 1,0 -8,0 Z" />
+    <!-- 微笑 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/text_primary"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M42,68 Q48,74 54,68" />
+</vector>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 打卡图标：爱心 + 对勾（白色，头栏/更多面板/提醒通知通用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,20.35 l-1.1,-1.0 C5.3,15.4 3,12.9 3,9.8 3,7.2 5,5 7.6,5 c1.35,0 2.65,0.63 3.5,1.63 C11.95,5.63 13.25,5 14.6,5 17.2,5 19.2,7.2 19.2,9.8 c0,3.1 -2.3,5.6 -5.9,9.55 L10,20.35 Z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M16.5,15.5 L18.8,17.8 L23,13" />
+</vector>
