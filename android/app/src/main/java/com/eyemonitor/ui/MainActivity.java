@@ -365,11 +365,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
             Transitions.push(this);
         });
         btnChatMore.setOnClickListener(v -> morePanelController.toggle());
-        // Phase 5 消息搜索：头栏搜索图标 → SearchActivity
-        findViewById(R.id.btn_chat_search).setOnClickListener(v -> {
-            startActivity(new Intent(this, SearchActivity.class));
-            Transitions.push(this);
-        });
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 好感度：头栏徽章行点击进资料页等级详情
         affectionBadgeBar.setOnClickListener(v -> {
@@ -471,6 +466,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                     @Override public void onHideEmojiPanelInstant() { hideEmojiPanelInstant(); }
                     @Override public void onHideKeyboard() { hideKeyboard(); }
                     @Override public void onChangeAppearance() { cycleAppearance(); }
+                    @Override public void onOpenSearch() {
+                        startActivity(new Intent(MainActivity.this, SearchActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
                 });
         // emoji 面板（微信式底部上滑）：初始化 8 列网格
         emojiPanel = findViewById(R.id.emoji_panel);

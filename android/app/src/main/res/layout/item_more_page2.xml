@@ -128,7 +128,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色）-->
+    <!-- Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色） + Phase 5 消息搜索 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -136,6 +136,34 @@
         android:paddingStart="@dimen/space_8"
         android:paddingEnd="@dimen/space_8"
         android:paddingBottom="@dimen/space_16">
+
+        <LinearLayout
+            android:id="@+id/grid_search"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/space_8"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_search"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="11dp"
+                android:tint="@color/primary"
+                android:contentDescription="@string/cd_chat_search" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/cd_chat_search"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_12"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/grid_appearance"

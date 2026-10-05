@@ -35,6 +35,8 @@ public class ChatMorePanelController {
         void onHideKeyboard();
         /** Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色） */
         void onChangeAppearance();
+        /** Phase 5 消息搜索入口 */
+        void onOpenSearch();
     }
 
     private final MainActivity activity;
@@ -62,10 +64,10 @@ public class ChatMorePanelController {
         updateMoreDots(0);
     }
 
-    /** 外观切换后重开面板并停在第 2 页（用户可连续点按，不丢失上下文） */
+    /** 外观切换后重开面板并停在第 2 页（连续点按不丢上下文；无滑入动画，视觉原位保持） */
     public void reopenOnSecondPage() {
+        morePanel.clearAnimation();
         morePanel.setVisibility(View.VISIBLE);
-        bottomBar.startAnimation(AnimationUtils.loadAnimation(activity, R.anim.slide_in_bottom));
         if (vpMore != null) {
             vpMore.post(() -> vpMore.setCurrentItem(1, false));
         }
@@ -196,6 +198,11 @@ public class ChatMorePanelController {
                     v.findViewById(R.id.grid_affection).setOnClickListener(x -> {
                         hide();
                         actions.onOpenProfile();
+                    });
+                    // Phase 5 消息搜索入口（更多面板第 2 页）
+                    v.findViewById(R.id.grid_search).setOnClickListener(x -> {
+                        hide();
+                        actions.onOpenSearch();
                     });
                     // Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色）
                     v.findViewById(R.id.grid_appearance).setOnClickListener(x -> {

@@ -214,27 +214,6 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <!-- 消息搜索（Phase 5：头栏图标 → SearchActivity） -->
-            <LinearLayout
-                android:id="@+id/btn_chat_search"
-                android:layout_width="@dimen/touch_target"
-                android:layout_height="@dimen/touch_target"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:background="@drawable/bg_btn_white_rect"
-                android:layout_marginStart="@dimen/space_8"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_chat_search">
-
-                <ImageView
-                    android:layout_width="@dimen/icon_20"
-                    android:layout_height="@dimen/icon_20"
-                    android:src="@drawable/ic_search"
-                    android:tint="@color/text_on_primary"
-                    android:importantForAccessibility="no" />
-            </LinearLayout>
-
             <!-- 共享地图（v2：纯图标 44dp 热区，图形 20dp 视觉，白 30% 圆底 radius_md；ID/点击回调不动） -->
             <LinearLayout
                 android:id="@+id/btn_chat_map"
