@@ -17,8 +17,8 @@
     <color name="primary_fill">#D13F47</color>
     <color name="primary_text">#FF9A9A</color>
     <color name="accent_text">#FFB98A</color>
-    <color name="header_grad_start">#EE5F68</color>
-    <color name="header_grad_end">#B85A48</color>
+    <color name="header_grad_start">@color/background</color>
+    <color name="header_grad_end">@color/background</color>
 
     <!-- 背景与表面：暖黑 -->
     <color name="background">#1C1517</color>

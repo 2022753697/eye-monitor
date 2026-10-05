@@ -41,6 +41,7 @@ public class ChatMorePanelController {
     private final Actions actions;
     private View morePanel;
     private View bottomBar;
+    private ViewPager2 vpMore;
 
     public ChatMorePanelController(MainActivity activity, View root, Actions actions) {
         this.activity = activity;
@@ -48,16 +49,27 @@ public class ChatMorePanelController {
         morePanel = root.findViewById(R.id.more_panel);
         bottomBar = root.findViewById(R.id.bottom_bar);
 
-        ViewPager2 vpMore = morePanel.findViewById(R.id.vp_more);
-        vpMore.setAdapter(new MorePageAdapter());
-        vpMore.setOffscreenPageLimit(2);
-        vpMore.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+        ViewPager2 vp = morePanel.findViewById(R.id.vp_more);
+        this.vpMore = vp;
+        vp.setAdapter(new MorePageAdapter());
+        vp.setOffscreenPageLimit(2);
+        vp.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 updateMoreDots(position);
             }
         });
         updateMoreDots(0);
+    }
+
+    /** 外观切换后重开面板并停在第 2 页（用户可连续点按，不丢失上下文） */
+    public void reopenOnSecondPage() {
+        morePanel.setVisibility(View.VISIBLE);
+        bottomBar.startAnimation(AnimationUtils.loadAnimation(activity, R.anim.slide_in_bottom));
+        if (vpMore != null) {
+            vpMore.post(() -> vpMore.setCurrentItem(1, false));
+        }
+        actions.onScrollToBottom();
     }
 
     /** 页码指示点刷新（当前页高亮） */

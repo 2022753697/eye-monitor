@@ -118,6 +118,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     // 媒体选择器请求码
     private static final int REQ_PICK_MEDIA = 2002;
     private static final int REQ_VOICE_PERMISSION = 2005;
+    /** 外观切换后 recreate，重开更多面板第 2 页（intent 标记，onResume 消费） */
+    private static final String EXTRA_REOPEN_MORE_PAGE2 = "reopen_more_page2";
 
     // 配对面板
     private EditText etPairCode;
@@ -545,6 +547,11 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         super.onResume();
         chatForeground = true;
         handleSosFromNotificationIntent(getIntent());
+        // 外观切换后 recreate：重开更多面板第 2 页（一次性标记，消费后清除）
+        if (getIntent().getBooleanExtra(EXTRA_REOPEN_MORE_PAGE2, false)) {
+            getIntent().removeExtra(EXTRA_REOPEN_MORE_PAGE2);
+            morePanelController.reopenOnSecondPage();
+        }
         // 从监控设置页（使用情况/无障碍）返回：复查仍缺则再提醒一次
         PermissionHelper.guideIfReturnedFromSettings(this);
         switchView(prefs.isPaired() && !isPairAwaitingPeer());
@@ -2281,6 +2288,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                 : PrefsManager.NIGHT_LIGHT.equals(next) ? R.string.night_light
                 : R.string.night_follow_system;
         com.eyemonitor.util.Toasts.showRes(MainActivity.this, labelRes);
+        // 重开后自动停在更多面板第 2 页（用户可连续点按切换，不丢失上下文）
+        getIntent().putExtra(EXTRA_REOPEN_MORE_PAGE2, true);
         recreate();
     }
 
