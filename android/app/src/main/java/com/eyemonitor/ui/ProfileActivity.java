@@ -121,7 +121,6 @@ public class ProfileActivity extends AppCompatActivity {
         llThemeList = findViewById(R.id.ll_theme_list);
         loadAffection();
         renderThemes();
-        setupNightMode();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(kickedReceiver, new IntentFilter(MonitorService.ACTION_KICKED),
@@ -354,37 +353,6 @@ public class ProfileActivity extends AppCompatActivity {
             });
             llThemeList.addView(card);
         }
-    }
-
-    /** 外观模式三态（Phase 4）：跟随系统 / 浅色 / 深色，切换后 recreate 生效 */
-    private void setupNightMode() {
-        final TextView chipFollow = findViewById(R.id.chip_night_follow);
-        final TextView chipLight = findViewById(R.id.chip_night_light);
-        final TextView chipDark = findViewById(R.id.chip_night_dark);
-        renderNightChips(chipFollow, chipLight, chipDark);
-        chipFollow.setOnClickListener(v -> { prefs.setNightMode(PrefsManager.NIGHT_FOLLOW_SYSTEM); applyNight(); });
-        chipLight.setOnClickListener(v -> { prefs.setNightMode(PrefsManager.NIGHT_LIGHT); applyNight(); });
-        chipDark.setOnClickListener(v -> { prefs.setNightMode(PrefsManager.NIGHT_DARK); applyNight(); });
-    }
-
-    private void renderNightChips(TextView follow, TextView light, TextView dark) {
-        String mode = prefs.getNightMode();
-        follow.setSelected(PrefsManager.NIGHT_FOLLOW_SYSTEM.equals(mode));
-        light.setSelected(PrefsManager.NIGHT_LIGHT.equals(mode));
-        dark.setSelected(PrefsManager.NIGHT_DARK.equals(mode));
-    }
-
-    private void applyNight() {
-        com.eyemonitor.util.Toasts.showRes(this, R.string.night_mode_applied);
-        // 通知 AppCompatDelegate（EyeApp 启动已 setDefaultNightMode，这里运行时切换）
-        String mode = prefs.getNightMode();
-        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-                PrefsManager.NIGHT_DARK.equals(mode)
-                        ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-                        : PrefsManager.NIGHT_LIGHT.equals(mode)
-                        ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
-                        : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        recreate();
     }
 
     /** 服务器地址入口（WS3/AC4）：弹窗改存 Prefs，重启监控后生效，免重打包 */

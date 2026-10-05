@@ -40,6 +40,8 @@ public class WsAuthInterceptor implements HandshakeInterceptor {
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
         // 1) Header 优先（新客户端，token 不进访问日志）
         String token = request.getHeaders().getFirst(HEADER_TOKEN);
+        log.info("WS 握手 header 检查: tokenIsNull={}, headerSize={}",
+                token == null, request.getHeaders().size());
         if (token == null || token.isBlank()) {
             // 2) 兼容旧客户端：?token=<accessToken>
             String query = request.getURI().getQuery();

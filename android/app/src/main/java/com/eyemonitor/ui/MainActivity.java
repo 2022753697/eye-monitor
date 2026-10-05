@@ -468,6 +468,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                     @Override public void onScrollToBottom() { scrollToBottom(); }
                     @Override public void onHideEmojiPanelInstant() { hideEmojiPanelInstant(); }
                     @Override public void onHideKeyboard() { hideKeyboard(); }
+                    @Override public void onChangeAppearance() { showAppearanceDialog(); }
                 });
         // emoji 面板（微信式底部上滑）：初始化 8 列网格
         emojiPanel = findViewById(R.id.emoji_panel);
@@ -2255,6 +2256,35 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     private void hideEmojiPanelInstant() {
         emojiPanel.clearAnimation();
         emojiPanel.setVisibility(View.GONE);
+    }
+
+    /** Phase 4 深色模式：外观三态入口（更多面板第二页 → 弹单选：跟随系统/浅色/深色） */
+    private void showAppearanceDialog() {
+        String[] options = {
+                getString(R.string.night_follow_system),
+                getString(R.string.night_light),
+                getString(R.string.night_dark)};
+        String current = prefs.getNightMode();
+        int checked = PrefsManager.NIGHT_DARK.equals(current) ? 2
+                : PrefsManager.NIGHT_LIGHT.equals(current) ? 1 : 0;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.profile_appearance_section)
+                .setSingleChoiceItems(options, checked, (d, which) -> {
+                    String mode = which == 2 ? PrefsManager.NIGHT_DARK
+                            : which == 1 ? PrefsManager.NIGHT_LIGHT : PrefsManager.NIGHT_FOLLOW_SYSTEM;
+                    prefs.setNightMode(mode);
+                    d.dismiss();
+                    com.eyemonitor.util.Toasts.showRes(MainActivity.this, R.string.night_mode_applied);
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                            PrefsManager.NIGHT_DARK.equals(mode)
+                                    ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                                    : PrefsManager.NIGHT_LIGHT.equals(mode)
+                                    ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+                                    : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                    recreate();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     /** 清空本地聊天记录 */

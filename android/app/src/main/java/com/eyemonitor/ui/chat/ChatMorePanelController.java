@@ -33,6 +33,8 @@ public class ChatMorePanelController {
         void onScrollToBottom();
         void onHideEmojiPanelInstant();
         void onHideKeyboard();
+        /** Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色） */
+        void onChangeAppearance();
     }
 
     private final MainActivity activity;
@@ -182,6 +184,11 @@ public class ChatMorePanelController {
                     v.findViewById(R.id.grid_affection).setOnClickListener(x -> {
                         hide();
                         actions.onOpenProfile();
+                    });
+                    // Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色）
+                    v.findViewById(R.id.grid_appearance).setOnClickListener(x -> {
+                        hide();
+                        actions.onChangeAppearance();
                     });
                 }
             }
