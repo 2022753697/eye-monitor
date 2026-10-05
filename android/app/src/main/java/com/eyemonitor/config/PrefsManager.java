@@ -50,6 +50,11 @@ public class PrefsManager {
     private static final String KEY_PEER_DEVICE_ID = "peer_device_id";
     // 装扮区主题选择（本地偏好：解锁共同、应用各自）
     private static final String KEY_THEME_ID = "theme_id";
+    // 深色模式三态（Phase 4）：follow_system / light / dark；App 启动时 EyeApp 应用 AppCompatDelegate
+    private static final String KEY_NIGHT_MODE = "night_mode";
+    public static final String NIGHT_FOLLOW_SYSTEM = "follow_system";
+    public static final String NIGHT_LIGHT = "light";
+    public static final String NIGHT_DARK = "dark";
     // 打卡单窗口单次记录（yyyy-MM-dd；本地偏好 + 服务端 dedupKey 兜底）
     private static final String KEY_CHECKIN_MORNING_DATE = "checkin_morning_date";
     private static final String KEY_CHECKIN_EVENING_DATE = "checkin_evening_date";
@@ -477,6 +482,17 @@ public class PrefsManager {
     public void setThemeId(String themeId) {
         if (themeId != null) {
             prefs.edit().putString(KEY_THEME_ID, themeId).apply();
+        }
+    }
+
+    /** 深色模式三态（默认跟随系统） */
+    public String getNightMode() {
+        return prefs.getString(KEY_NIGHT_MODE, NIGHT_FOLLOW_SYSTEM);
+    }
+
+    public void setNightMode(String mode) {
+        if (NIGHT_FOLLOW_SYSTEM.equals(mode) || NIGHT_LIGHT.equals(mode) || NIGHT_DARK.equals(mode)) {
+            prefs.edit().putString(KEY_NIGHT_MODE, mode).apply();
         }
     }
 

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Phase 4 深色模式：parent 换 DayNight（AppCompatDelegate 三态自动切 values-night 覆盖）
-         DayNight 在浅色下行为等同原 Light.NoActionBar -->
+    <!-- Phase 4 深色模式：夜间资源覆盖（values-night 自动命中，无需改代码） -->
     <style name="Theme.EyeMonitor" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- 主色 -->
+        <!-- 主色（深色下提亮的珊瑚） -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
         <item name="colorOnPrimary">@color/text_on_primary</item>
@@ -12,13 +11,13 @@
         <item name="colorOnSecondary">@color/text_on_primary</item>
         <item name="colorAccent">@color/accent</item>
 
-        <!-- 表面与背景 -->
+        <!-- 表面与背景：暖黑 -->
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
 
-        <!-- 语义色令牌（皮肤预留：换肤时替换此处实现） -->
+        <!-- 语义色令牌 -->
         <item name="textPrimary">@color/text_primary</item>
         <item name="textSecondary">@color/text_secondary</item>
         <item name="textMuted">@color/text_secondary</item>
@@ -33,12 +32,12 @@
         <item name="colorControlActivated">@color/primary</item>
         <item name="colorControlHighlight">@color/white_translucent</item>
 
-        <!-- 控件默认样式（防呆：裸 Button / RadioButton 也统一为设计体系形态） -->
+        <!-- 控件默认样式 -->
         <item name="materialButtonStyle">@style/Widget.EyeMonitor.Button.Default</item>
         <item name="radioButtonStyle">@style/Widget.EyeMonitor.RadioButton</item>
         <item name="editTextStyle">@style/Widget.EyeMonitor.EditText</item>
 
-        <!-- 系统栏 -->
+        <!-- 系统栏：状态栏保持珊瑚，导航栏暖黑 -->
         <item name="android:statusBarColor">@color/primary</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:navigationBarColor">@color/surface</item>

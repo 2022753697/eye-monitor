@@ -419,6 +419,48 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:layout_marginTop="@dimen/space_12" />
+
+                <!-- 外观模式三态（Phase 4 深色模式） -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Title"
+                    android:text="@string/profile_appearance_section"
+                    android:layout_marginTop="@dimen/space_16" />
+
+                <LinearLayout
+                    android:id="@+id/ll_night_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="@dimen/space_8">
+
+                    <TextView
+                        android:id="@+id/chip_night_follow"
+                        style="@style/Widget.EyeMonitor.Chip.Selectable"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/night_follow_system" />
+
+                    <TextView
+                        android:id="@+id/chip_night_light"
+                        style="@style/Widget.EyeMonitor.Chip.Selectable"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/space_8"
+                        android:text="@string/night_light" />
+
+                    <TextView
+                        android:id="@+id/chip_night_dark"
+                        style="@style/Widget.EyeMonitor.Chip.Selectable"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/space_8"
+                        android:text="@string/night_dark" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

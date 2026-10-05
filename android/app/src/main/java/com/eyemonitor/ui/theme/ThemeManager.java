@@ -39,7 +39,22 @@ public final class ThemeManager {
     public static ChatTheme getCurrent(Context context) {
         PrefsManager prefs = new PrefsManager(context);
         String id = prefs.getThemeId();
+        // Phase 4 深色模式：狗狗乐园手绘浅色皮肤在深色下不硬适配 → 回退默认珊瑚（不改用户设置）
+        if (ChatTheme.ID_DOG.equals(id) && isDarkMode(context)) {
+            return ChatTheme.buildDefault();
+        }
         return getById(id == null ? ChatTheme.ID_DEFAULT : id);
+    }
+
+    /** 当前是否深色模式（三态映射：dark 强制深 / light 强制浅 / follow_system 跟系统） */
+    public static boolean isDarkMode(Context context) {
+        PrefsManager prefs = new PrefsManager(context);
+        String mode = prefs.getNightMode();
+        if (PrefsManager.NIGHT_DARK.equals(mode)) return true;
+        if (PrefsManager.NIGHT_LIGHT.equals(mode)) return false;
+        int nightMode = context.getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 
     /** 主题是否已解锁（共同等级判定） */

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============ 深色模式（values-night 覆盖，Phase 4 2026-10） ============
+         原则：暖黑背景 + 品牌珊瑚点缀；文本对比度保持 AA；
+         狗狗乐园皮肤在深色下回退默认珊瑚主题（不重绘手绘 PNG）。 -->
+
+    <!-- 头栏文字阴影（图片底图可读性） -->
+    <color name="shadow_title">#73000000</color>
+    <color name="shadow_status">#66000000</color>
+
+    <!-- 品牌主色：深色下略提亮保证点缀可见度 -->
+    <color name="primary">#FF8080</color>
+    <color name="primary_dark">#E05555</color>
+    <color name="accent">#FFA26B</color>
+
+    <!-- AA 功能色（深色下保持可读） -->
+    <color name="primary_fill">#D13F47</color>
+    <color name="primary_text">#FF9A9A</color>
+    <color name="accent_text">#FFB98A</color>
+    <color name="header_grad_start">#EE5F68</color>
+    <color name="header_grad_end">#B85A48</color>
+
+    <!-- 背景与表面：暖黑 -->
+    <color name="background">#1C1517</color>
+    <color name="surface">#2A2124</color>
+    <color name="surface_alt">#33272B</color>
+    <color name="surface_variant">#3A2E31</color>
+
+    <!-- 文本：浅色系 -->
+    <color name="text_primary">#F0E6E4</color>
+    <color name="text_secondary">#C9BBBA</color>
+    <color name="text_tertiary">#9E8E90</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_primary_muted">#E6FFFFFF</color>
+
+    <!-- 状态语义色（深色下稍提亮） -->
+    <color name="status_ok">#5BD6A4</color>
+    <color name="status_warn">#F0A34F</color>
+    <color name="status_error">#E87A6B</color>
+    <color name="status_success">#5CD98B</color>
+    <color name="status_ok_text">#7FE0B6</color>
+    <color name="status_warn_text">#F5B572</color>
+    <color name="status_error_text">#F08A7C</color>
+    <color name="status_success_text">#7FE0A8</color>
+    <color name="status_error_fill">#B8544A</color>
+    <color name="surface_ok">#2E3D36</color>
+    <color name="surface_error">#40282B</color>
+    <color name="surface_press">#26FFFFFF</color>
+    <color name="media_badge_bg">#99000000</color>
+
+    <!-- 其他 -->
+    <color name="divider">#433537</color>
+    <color name="white_translucent">#33FFFFFF</color>
+    <color name="header_btn_bg">#4DFFFFFF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="black_60">#99000000</color>
+    <color name="scrim_header">#1A000000</color>
+    <color name="media_overlay_tint">#59FF6B6B</color>
+
+    <!-- 狗狗乐园：深色下不启用（回退默认），占位保留原值避免引用缺失 -->
+    <color name="dog_grad_start">#F48FA8</color>
+    <color name="dog_grad_end">#FFA26B</color>
+    <color name="dog_bg">#FFF3F5</color>
+    <color name="dog_paw">#F7B2C0</color>
+    <color name="dog_bubble_self">#F26E8D</color>
+    <color name="dog_bubble_peer">#FFF7F9</color>
+    <color name="dog_bubble_stroke">#F4C2CD</color>
+    <color name="dog_input_stroke">#F4C2CD</color>
+    <color name="particle_coral">#FF8080</color>
+    <color name="particle_pink">#FF8FA3</color>
+    <color name="particle_orange">#FFA26B</color>
+    <color name="particle_rose">#E05555</color>
+    <color name="particle_paw">#F7B2C0</color>
+</resources>

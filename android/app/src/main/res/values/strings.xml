@@ -630,6 +630,12 @@
     <string name="profile_week_note">近 7 天互动统计</string>
     <string name="profile_theme_locked">Lv.%1$d 解锁</string>
     <string name="profile_theme_applied">主题已应用</string>
+    <!-- 深色模式三态（Phase 4） -->
+    <string name="profile_appearance_section">外观模式</string>
+    <string name="night_follow_system">跟随系统</string>
+    <string name="night_light">浅色</string>
+    <string name="night_dark">深色</string>
+    <string name="night_mode_applied">外观已切换</string>
     <string name="theme_default_name">珊瑚恋语（默认）</string>
     <string name="theme_dog_name">狗狗乐园</string>
     <string name="cd_theme_preview">主题预览</string>
