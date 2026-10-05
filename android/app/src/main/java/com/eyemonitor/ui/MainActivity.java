@@ -363,6 +363,11 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
             Transitions.push(this);
         });
         btnChatMore.setOnClickListener(v -> morePanelController.toggle());
+        // Phase 5 消息搜索：头栏搜索图标 → SearchActivity
+        findViewById(R.id.btn_chat_search).setOnClickListener(v -> {
+            startActivity(new Intent(this, SearchActivity.class));
+            Transitions.push(this);
+        });
         btnSend.setOnClickListener(v -> sendChatMessage());
         // 好感度：头栏徽章行点击进资料页等级详情
         affectionBadgeBar.setOnClickListener(v -> {
@@ -511,6 +516,15 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         super.onNewIntent(intent);
         setIntent(intent);
         handleSosFromNotificationIntent(intent);
+        // Phase 5：搜索结果点击定位到消息（SearchActivity → EXTRA_TARGET_TS）
+        if (intent != null && intent.hasExtra(SearchActivity.EXTRA_TARGET_TS)) {
+            long target = intent.getLongExtra(SearchActivity.EXTRA_TARGET_TS, 0);
+            if (target > 0) {
+                loadChatHistory();
+                chatUiHandler.postDelayed(() -> scrollToRef(target), 300);
+            }
+            intent.removeExtra(SearchActivity.EXTRA_TARGET_TS);
+        }
     }
 
     /** 点 SOS 通知进入：延迟到窗口聚焦后弹回执弹窗（带 SOS 参数才处理） */

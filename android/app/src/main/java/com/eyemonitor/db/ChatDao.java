@@ -58,4 +58,19 @@ public interface ChatDao {
     /** 未送达的自己消息（重连后自动补发） */
     @Query("SELECT * FROM chat WHERE is_self = 1 AND kind = 'chat' AND send_state = 'pending' ORDER BY timestamp ASC")
     List<ChatEntity> getPendingSelf();
+
+    /** Phase 5 消息搜索：关键词 LIKE + 时间范围 + 类型筛选（kinds 逗号串传入，Room IN 内联） */
+    @Query("SELECT * FROM chat "
+            + "WHERE (:kw = '' OR text LIKE '%' || :kw || '%' OR from_name LIKE '%' || :kw || '%') "
+            + "AND timestamp BETWEEN :startTs AND :endTs "
+            + "AND kind IN (:kinds) "
+            + "ORDER BY timestamp DESC")
+    List<ChatEntity> search(String kw, long startTs, long endTs, java.util.List<String> kinds);
+
+    /** 搜索结果数量（搜索页角标/空态用） */
+    @Query("SELECT COUNT(*) FROM chat "
+            + "WHERE (:kw = '' OR text LIKE '%' || :kw || '%' OR from_name LIKE '%' || :kw || '%') "
+            + "AND timestamp BETWEEN :startTs AND :endTs "
+            + "AND kind IN (:kinds)")
+    int searchCount(String kw, long startTs, long endTs, java.util.List<String> kinds);
 }

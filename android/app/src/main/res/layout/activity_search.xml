@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- 头栏（标准 HeaderBar 形态） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_header_gradient"
+        android:paddingStart="@dimen/space_8"
+        android:paddingEnd="@dimen/space_8"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8">
+
+        <TextView
+            android:id="@+id/btn_search_back"
+            style="@style/Widget.EyeMonitor.Button.Header"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:text="‹" />
+
+        <EditText
+            android:id="@+id/et_search_input"
+            style="@style/Widget.EyeMonitor.EditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/space_8"
+            android:hint="@string/search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- 筛选 chips 区 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/space_12">
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/ll_type_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_8"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/ll_time_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_search_result_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.EyeMonitor.Label"
+        android:paddingStart="@dimen/space_16"
+        android:paddingEnd="@dimen/space_16"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_search_results"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:padding="@dimen/space_8" />
+
+    <TextView
+        android:id="@+id/tv_search_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/search_empty"
+        android:visibility="gone" />
+</LinearLayout>
