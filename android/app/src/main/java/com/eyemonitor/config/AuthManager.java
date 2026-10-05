@@ -552,6 +552,12 @@ public class AuthManager {
             PrefsManager prefs = new PrefsManager(ctx);
             if (data.has("accessToken")) prefs.setAccessToken(data.get("accessToken").getAsString());
             if (data.has("refreshToken")) prefs.setRefreshToken(data.get("refreshToken").getAsString());
+            // 记录当前登录账号 ID（JWT sub；同步聊天历史判定 isSelf 用）
+            String accessToken = prefs.getAccessToken();
+            if (accessToken != null && !accessToken.isEmpty()) {
+                long uid = decodeJwtSub(accessToken);
+                if (uid > 0) prefs.setUserId(uid);
+            }
             if (data.has("profile")) {
                 applyProfile(ctx, data.getAsJsonObject("profile"));
             }
@@ -559,6 +565,19 @@ public class AuthManager {
         } catch (Exception e) {
             Log.e(TAG, "applyAuthSession 失败", e);
         }
+    }
+
+    /** 解码 JWT payload 的 sub（userId）；不依赖第三方库（标准 Base64URL） */
+    private long decodeJwtSub(String jwt) {
+        try {
+            String[] parts = jwt.split("\\.");
+            if (parts.length < 2) return -1L;
+            byte[] payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP);
+            String json = new String(payload, java.nio.charset.StandardCharsets.UTF_8);
+            com.google.gson.JsonObject obj = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+            if (obj.has("sub")) return obj.get("sub").getAsLong();
+        } catch (Exception ignored) {}
+        return -1L;
     }
 
     /** 将服务器 profile 字段写入本地缓存（自身资料 + 昵称/性别等） */

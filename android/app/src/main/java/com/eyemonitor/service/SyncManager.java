@@ -390,10 +390,13 @@ public final class SyncManager {
                                         ? o.get("kind").getAsString() : null;
                                 String localKind = isSystem ? "system"
                                         : ("media".equals(kind) ? "media" : "chat");
-                                // 服务器 fromUser 为账号 ID，本地暂无用户 ID 映射：新增行按 peer 渲染。
-                                // 自自身消息本地在发送时已插入（isSelf=true），靠下方去重直接跳过，不会被错标为对方。
+                                // 修复：服务器 fromUser 是账号 ID——与本地登录用户 ID 比较判定 isSelf，
+                                // 避免清数据重装后历史里自己发的消息被误标为「对方发的」。
+                                long fromUser = o.has("fromUser") ? o.get("fromUser").getAsLong() : -1L;
+                                long myUserId = new PrefsManager(context).getUserId();
+                                boolean isSelf = myUserId > 0 && fromUser == myUserId;
                                 list.add(new ChatEntity(localKind,
-                                        text, null, false, ts));
+                                        text, null, isSelf, ts));
                             }
                             if (list.isEmpty()) return;
                             AppDatabase.dbExecutor.execute(() -> {

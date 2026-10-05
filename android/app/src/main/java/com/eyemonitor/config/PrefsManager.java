@@ -29,6 +29,8 @@ public class PrefsManager {
     private static final String KEY_ACCESS_TOKEN = "access_token";
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     private static final String KEY_USERNAME = "username";
+    /** 当前登录账号 ID（JWT sub；同步聊天历史判定 isSelf 用） */
+    private static final String KEY_USER_ID = "user_id";
     private static final String KEY_AVATAR = "avatar";
     private static final String KEY_BIRTHDAY = "birthday";
     private static final String KEY_BIO = "bio";
@@ -153,6 +155,15 @@ public class PrefsManager {
 
     public String getUsername() {
         return prefs.getString(KEY_USERNAME, null);
+    }
+
+    /** 当前登录账号 ID（JWT sub；同步聊天历史判定 isSelf 用，登录/刷新时写入） */
+    public long getUserId() {
+        return prefs.getLong(KEY_USER_ID, -1L);
+    }
+
+    public void setUserId(long userId) {
+        prefs.edit().putLong(KEY_USER_ID, userId).apply();
     }
 
     public void setUsername(String username) {
