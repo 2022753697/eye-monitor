@@ -36,7 +36,9 @@ public class AffectionActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_affection);
 
-        findViewById(R.id.btn_aff_back).setOnClickListener(v -> finish());
+        findViewById(R.id.header_back).setOnClickListener(v -> finish());
+        ((android.widget.TextView) findViewById(R.id.header_title))
+                .setText(getString(R.string.affection_section_title));
         tvAffLevel = findViewById(R.id.tv_aff_level);
         tvAffTitle = findViewById(R.id.tv_aff_title);
         tvAffPoints = findViewById(R.id.tv_aff_points);
@@ -85,7 +87,8 @@ public class AffectionActivity extends BaseActivity {
                             renderMilestones(e.level);
                         });
                     });
-                    renderWeek(data);
+                    // 周对比：OkHttp 回调线程 → 必须切主线程再碰 View
+                    runOnUiThread(() -> renderWeek(data));
                 } catch (Exception ex) {
                     android.util.Log.d("AffectionActivity", "亲密度解析失败", ex);
                 }

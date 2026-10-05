@@ -17,12 +17,16 @@
         android:paddingTop="@dimen/space_8"
         android:paddingBottom="@dimen/space_8">
 
-        <TextView
+        <ImageButton
             android:id="@+id/btn_search_back"
-            style="@style/Widget.EyeMonitor.Button.Header"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:text="‹" />
+            android:layout_width="@dimen/icon_44"
+            android:layout_height="@dimen/icon_44"
+            android:padding="10dp"
+            android:src="@drawable/ic_back"
+            android:tint="@color/white"
+            android:background="@drawable/bg_header_icon"
+            android:contentDescription="@string/cd_back"
+            style="?attr/borderlessButtonStyle" />
 
         <EditText
             android:id="@+id/et_search_input"
