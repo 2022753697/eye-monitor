@@ -206,8 +206,7 @@
                 android:padding="@dimen/space_16"
                 android:layout_marginTop="@dimen/space_16"
                 android:clickable="true"
-                android:focusable="true"
-                android:backgroundTint="?attr/selectableItemBackground">
+                android:focusable="true">
 
                 <ImageView
                     android:layout_width="20dp"
