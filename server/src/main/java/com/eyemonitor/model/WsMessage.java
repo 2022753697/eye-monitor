@@ -115,6 +115,27 @@ public class WsMessage {
         return new WsMessage("sos_ack", deviceId, pairCode, Map.of("from", from), System.currentTimeMillis());
     }
 
+    // --- 解除配对双向确认（Phase 6） ---
+
+    /** 申请解除（转发接收方弹确认） */
+    public static WsMessage createUnpairRequest(String deviceId, String pairCode, String requester) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("requester", requester != null ? requester : "");
+        return new WsMessage("pair_unpair_request", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 同意解除（接收方确认 → 服务器执行解除） */
+    public static WsMessage createUnpairConfirm(String deviceId, String pairCode) {
+        return new WsMessage("pair_unpair_confirm", deviceId, pairCode, Map.of(), System.currentTimeMillis());
+    }
+
+    /** 拒绝解除（回到申请方） */
+    public static WsMessage createUnpairReject(String deviceId, String pairCode, String rejecter) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("rejecter", rejecter != null ? rejecter : "");
+        return new WsMessage("pair_unpair_reject", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
     public static WsMessage createDeviceStatus(String deviceId, String pairCode, Map<String, Object> status) {
         return new WsMessage("device_status", deviceId, pairCode, status, System.currentTimeMillis());
     }

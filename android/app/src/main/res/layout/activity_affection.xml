@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- 渐变头栏：返回 + 标题（Phase 6 亲密度独立页） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_header_gradient"
+        android:paddingStart="@dimen/space_8"
+        android:paddingEnd="@dimen/space_8"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_8">
+
+        <TextView
+            android:id="@+id/btn_aff_back"
+            style="@style/Widget.EyeMonitor.Button.Header"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:text="‹" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            style="@style/TextAppearance.EyeMonitor.HeaderTitle"
+            android:text="@string/affection_section_title" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
+
+            <!-- 等级卡 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:padding="@dimen/space_16">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="@dimen/space_12">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_heart"
+                        android:tint="@color/primary"
+                        android:contentDescription="@string/affection_section_title" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextAppearance.EyeMonitor.Title"
+                        android:text="@string/affection_level_section"
+                        android:layout_marginStart="@dimen/space_8" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_aff_level"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Display"
+                    android:textSize="@dimen/text_28"
+                    android:textColor="@color/primary_text" />
+
+                <TextView
+                    android:id="@+id/tv_aff_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Title"
+                    android:textColor="@color/accent_text"
+                    android:layout_marginTop="2dp" />
+
+                <ProgressBar
+                    android:id="@+id/progress_affection"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:progressTint="@color/primary"
+                    android:progressBackgroundTint="@color/divider"
+                    android:max="100"
+                    android:progress="0"
+                    android:layout_marginTop="@dimen/space_10" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="@dimen/space_8">
+
+                    <TextView
+                        android:id="@+id/tv_aff_points"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/TextAppearance.EyeMonitor.Label" />
+
+                    <TextView
+                        android:id="@+id/tv_aff_progress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextAppearance.EyeMonitor.Label" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_aff_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Label"
+                    android:gravity="center"
+                    android:padding="@dimen/space_16"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- 等级里程碑：六级爬坡一览 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:padding="@dimen/space_16"
+                android:layout_marginTop="@dimen/space_16">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Title"
+                    android:text="@string/affection_milestone_section"
+                    android:layout_marginBottom="@dimen/space_8" />
+
+                <LinearLayout
+                    android:id="@+id/ll_level_milestones"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- 积分获取方式 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:padding="@dimen/space_16"
+                android:layout_marginTop="@dimen/space_16">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Title"
+                    android:text="@string/affection_earn_section"
+                    android:layout_marginBottom="@dimen/space_8" />
+
+                <TextView
+                    android:id="@+id/tv_earn_rules"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Body"
+                    android:textColor="@color/text_secondary" />
+            </LinearLayout>
+
+            <!-- 周互动对比卡 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:padding="@dimen/space_16"
+                android:layout_marginTop="@dimen/space_16">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Title"
+                    android:text="@string/profile_week_section"
+                    android:layout_marginBottom="2dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.EyeMonitor.Label"
+                    android:textColor="@color/text_tertiary"
+                    android:text="@string/profile_week_note"
+                    android:layout_marginBottom="@dimen/space_8" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="@dimen/space_8">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:text="@string/profile_week_chats" />
+
+                    <TextView
+                        android:id="@+id/tv_week_chats"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:textColor="@color/primary_text" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="@dimen/space_8">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:text="@string/profile_week_checkins" />
+
+                    <TextView
+                        android:id="@+id/tv_week_checkins"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:textColor="@color/primary_text" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="@dimen/space_8">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:text="@string/profile_week_online" />
+
+                    <TextView
+                        android:id="@+id/tv_week_online"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextAppearance.EyeMonitor.Body"
+                        android:textColor="@color/primary_text" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

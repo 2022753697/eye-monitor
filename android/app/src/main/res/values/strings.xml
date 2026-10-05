@@ -144,7 +144,15 @@
     <string name="dialog_nickname_title">设置昵称</string>
     <string name="dialog_nickname_hint">输入昵称（对方看到的名字）</string>
     <string name="dialog_unpair_title">解除配对</string>
-    <string name="dialog_unpair_message">确定要解除配对吗？本地聊天记录将清空。</string>
+    <string name="dialog_unpair_message">确定要发起解除配对吗？需要对方同意后才会解除，本地聊天记录将清空。</string>
+    <string name="unpair_request_sent">已发送解除请求，等待对方同意</string>
+    <string name="unpair_incoming_title">解除配对请求</string>
+    <string name="unpair_incoming_message">%1$s 请求解除配对，同意后聊天记录将清空。是否同意？</string>
+    <string name="unpair_agreed">已同意解除配对</string>
+    <string name="unpair_rejected">已拒绝解除请求</string>
+    <string name="unpair_peer_rejected">对方拒绝了解除配对请求</string>
+    <string name="unpair_done">配对已解除</string>
+    <string name="unpair_agree">同意解除</string>
     <string name="dialog_clear_chat_title">清空聊天</string>
     <string name="dialog_clear_chat_message">确定要清空所有聊天记录吗？此操作不可恢复。</string>
     <string name="ok">确定</string>
@@ -628,6 +636,14 @@
     <string name="profile_theme_section">装扮 · 主题</string>
     <string name="profile_theme_hint">等级达到解锁条件后双方可用，装扮只存本机、互不影响</string>
     <string name="profile_week_note">近 7 天互动统计</string>
+    <!-- Phase 6 亲密度独立页 -->
+    <string name="affection_section_title">亲密度</string>
+    <string name="affection_level_section">等级详情</string>
+    <string name="affection_milestone_section">等级里程碑</string>
+    <string name="affection_earn_section">积分获取方式</string>
+    <string name="affection_earn_rules">聊天回合 +1 · 早安/晚安打卡 +3 · 情侣任务 · SOS 回执 · 纪念日 · 同时在线 · 连续配对天数（每日上限 50 分）</string>
+    <string name="affection_milestone_format">Lv.%1$d %2$s · %3$d 分</string>
+    <string name="affection_milestone_current">当前</string>
     <string name="profile_theme_locked">Lv.%1$d 解锁</string>
     <string name="profile_theme_applied">主题已应用</string>
     <!-- 深色模式三态（Phase 4） -->
@@ -635,6 +651,7 @@
     <string name="night_follow_system">跟随系统</string>
     <string name="night_light">浅色</string>
     <string name="night_dark">深色</string>
+    <string name="night_mode_toast">外观 · %1$s</string>
     <string name="night_mode_applied">外观已切换</string>
     <string name="theme_default_name">珊瑚恋语（默认）</string>
     <string name="theme_dog_name">狗狗乐园</string>

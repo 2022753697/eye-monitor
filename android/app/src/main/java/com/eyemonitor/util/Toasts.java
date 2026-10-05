@@ -87,7 +87,8 @@ public final class Toasts {
         row.addView(tv);
         Toast t = Toast.makeText(ctx, text, duration);
         t.setView(row);
-        t.setGravity(Gravity.CENTER, 0, 0);
+        // Phase 6：提示靠底部（不再屏幕居中），底部留边距避免遮挡输入区
+        t.setGravity(Gravity.BOTTOM, 0, (int) (ctx.getResources().getDisplayMetrics().density * 96));
         if (celebrate) {
             row.setScaleX(0.8f);
             row.setScaleY(0.8f);

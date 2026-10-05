@@ -99,6 +99,9 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             case "chat_recall" -> handleChatRecall(session, msg, userId);
             case "sos" -> handleSos(session, msg, userId);
             case "sos_ack" -> handleSosAck(session, msg, userId);
+            case "pair_unpair_request" -> handleUnpairRequest(session, msg, userId);
+            case "pair_unpair_confirm" -> handleUnpairConfirm(session, msg, userId);
+            case "pair_unpair_reject" -> handleUnpairReject(session, msg, userId);
             case "media" -> handleMedia(session, msg, userId);
             case "task_publish", "task_respond", "task_complete", "task_reward" -> handleTaskMessage(session, msg, userId);
             case "check_in" -> handleCheckIn(session, msg, userId);
@@ -201,6 +204,30 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
             log.warn("SOS 回执好感度钩子异常", ex);
         }
         pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
+    }
+
+    // --- 解除配对双向确认（Phase 6） ---
+
+    /** 申请解除：转发接收方（带申请方昵称，接收方弹确认框） */
+    private void handleUnpairRequest(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        if (pairCode == null) return;
+        pairService.forwardToPeerByUser(userId, msg);
+    }
+
+    /** 同意解除：接收方确认后，服务器真正执行解除（清 registry + 通知双方） */
+    private void handleUnpairConfirm(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        if (pairCode == null) return;
+        pairService.unpair(pairCode);
+        // 双方本地由客户端收到 error{配对已解除} 或显式广播触发清理
+    }
+
+    /** 拒绝解除：回到申请方 */
+    private void handleUnpairReject(WebSocketSession session, WsMessage msg, long userId) {
+        String pairCode = resolvePairCode(msg, userId);
+        if (pairCode == null) return;
+        pairService.forwardToPeerByUser(userId, msg);
     }
 
     /**

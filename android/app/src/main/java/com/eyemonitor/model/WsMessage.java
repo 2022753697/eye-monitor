@@ -119,8 +119,7 @@ public class WsMessage {
         return new WsMessage("user_profile", deviceId, pairCode, payload, System.currentTimeMillis());
     }
 
-    /** SOS 紧急求助：位置可选（无定位时不带 lat/lng） */
-    public static WsMessage createSos(String deviceId, String pairCode, String text,
+    /** SOS 紧急求助：位置可选（无定位时不带 lat/lng） */    public static WsMessage createSos(String deviceId, String pairCode, String text,
                                       Double lat, Double lng) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("text", text);
@@ -134,6 +133,28 @@ public class WsMessage {
         Map<String, Object> payload = new HashMap<>();
         payload.put("from", from);
         return new WsMessage("sos_ack", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    // --- 解除配对双向确认（Phase 6：申请方需接收方同意） ---
+
+    /** 申请解除配对（带申请方昵称，转发给接收方弹确认） */
+    public static WsMessage createUnpairRequest(String deviceId, String pairCode, String requester) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("requester", requester != null ? requester : "");
+        return new WsMessage("pair_unpair_request", deviceId, pairCode, payload, System.currentTimeMillis());
+    }
+
+    /** 同意解除（接收方确认）——服务器收到后真正执行解除 */
+    public static WsMessage createUnpairConfirm(String deviceId, String pairCode) {
+        return new WsMessage("pair_unpair_confirm", deviceId, pairCode,
+                Map.of(), System.currentTimeMillis());
+    }
+
+    /** 拒绝解除（接收方不同意）——回到申请方 */
+    public static WsMessage createUnpairReject(String deviceId, String pairCode, String rejecter) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("rejecter", rejecter != null ? rejecter : "");
+        return new WsMessage("pair_unpair_reject", deviceId, pairCode, payload, System.currentTimeMillis());
     }
 
     /** 设备状态（五件套：电量/充电/网络/在线/蓝牙） */

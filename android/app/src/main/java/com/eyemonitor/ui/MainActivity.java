@@ -470,6 +470,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                         startActivity(new Intent(MainActivity.this, SearchActivity.class));
                         Transitions.push(MainActivity.this);
                     }
+                    @Override public void onOpenAffection() {
+                        startActivity(new Intent(MainActivity.this, AffectionActivity.class));
+                        Transitions.push(MainActivity.this);
+                    }
                 });
         // emoji 面板（微信式底部上滑）：初始化 8 列网格
         emojiPanel = findViewById(R.id.emoji_panel);
@@ -2031,6 +2035,19 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                 // 对方已确认安全：居中系统提示
                 appendSystemText(getString(R.string.sos_ack_chat));
                 break;
+            case "pair_unpair_request":
+                // 对方申请解除配对：弹确认框
+                showIncomingUnpairDialog(message);
+                break;
+            case "pair_unpair_confirm":
+                // 对方同意（服务器已解除）：本地清理 + 提示
+                com.eyemonitor.util.Toasts.showRes(this, R.string.unpair_done);
+                doUnpairLocalCleanup();
+                break;
+            case "pair_unpair_reject":
+                // 对方拒绝
+                com.eyemonitor.util.Toasts.showRes(this, R.string.unpair_peer_rejected);
+                break;
             case "media":
             case "media_deleted":
                 // 服务层已落库/清理，这里整页重载以渲染媒体气泡或移除被删项
@@ -2282,11 +2299,12 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                         : PrefsManager.NIGHT_LIGHT.equals(next)
                         ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
                         : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        // 提示当前切换到的模式
+        // 提示当前切换到的模式（底部 Toast，含模式名）
         int labelRes = PrefsManager.NIGHT_DARK.equals(next) ? R.string.night_dark
                 : PrefsManager.NIGHT_LIGHT.equals(next) ? R.string.night_light
                 : R.string.night_follow_system;
-        com.eyemonitor.util.Toasts.showRes(MainActivity.this, labelRes);
+        com.eyemonitor.util.Toasts.show(MainActivity.this,
+                getString(R.string.night_mode_toast, getString(labelRes)));
         // 重开后自动停在更多面板第 2 页（用户可连续点按切换，不丢失上下文）
         getIntent().putExtra(EXTRA_REOPEN_MORE_PAGE2, true);
         recreate();
@@ -2457,16 +2475,43 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
                 getString(R.string.dialog_unpair_title),
                 getString(R.string.dialog_unpair_message),
                 getString(R.string.ok), true, () -> {
-                    prefs.clearPairCode();
-                    // 清除“等对方加入”停留态，避免残留影响后续流程
-                    pairAwaitingPeer = false;
-                    prefs.setPairAwaitingPeer(false);
-                    stopService(new Intent(this, MonitorService.class));
-                    AppDatabase.dbExecutor.execute(() ->
-                            AppDatabase.getInstance(this).chatDao().clear());
-                    chatAdapter.clear();
-                    switchView(false);
+                    // Phase 6：解除配对需对方同意——发送请求，等待对方确认
+                    MonitorService.sendUnpairRequest(this);
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.unpair_request_sent);
                 });
+    }
+
+    /** 对方申请解除配对：弹确认框（同意 → 发 confirm；拒绝 → 发 reject） */
+    private void showIncomingUnpairDialog(com.eyemonitor.model.WsMessage message) {
+        String requester = "对方";
+        Object r = message.getPayload() != null ? message.getPayload().get("requester") : null;
+        if (r instanceof String && !((String) r).isEmpty()) requester = (String) r;
+        final String who = requester;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.unpair_incoming_title)
+                .setMessage(getString(R.string.unpair_incoming_message, who))
+                .setPositiveButton(R.string.unpair_agree, (d, w) -> {
+                    MonitorService.sendUnpairConfirm(this);
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.unpair_agreed);
+                    // 服务器执行解除后双方会收到 error/关闭连接，本地清理由后续统一处理
+                })
+                .setNegativeButton(R.string.cancel, (d, w) -> {
+                    MonitorService.sendUnpairReject(this);
+                    com.eyemonitor.util.Toasts.showRes(this, R.string.unpair_rejected);
+                })
+                .show();
+    }
+
+    /** 双方解除生效：清本地（配对码/聊天/服务）回配对面板 */
+    private void doUnpairLocalCleanup() {
+        prefs.clearPairCode();
+        pairAwaitingPeer = false;
+        prefs.setPairAwaitingPeer(false);
+        stopService(new Intent(this, MonitorService.class));
+        AppDatabase.dbExecutor.execute(() ->
+                AppDatabase.getInstance(this).chatDao().clear());
+        chatAdapter.clear();
+        switchView(false);
     }
 
     // --- 服务与权限（沿用原逻辑） ---

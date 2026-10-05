@@ -194,192 +194,42 @@
                     android:layout_marginTop="@dimen/space_16" />
             </LinearLayout>
 
-            <!-- ============ 好感度：等级详情区 ============ -->
+            <!-- ============ 好感度：入口卡片（详情已迁至 AffectionActivity） ============ -->
             <LinearLayout
+                android:id="@+id/card_affection_entry"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:background="@drawable/bg_card"
                 android:elevation="2dp"
                 android:padding="@dimen/space_16"
-                android:layout_marginTop="@dimen/space_16">
+                android:layout_marginTop="@dimen/space_16"
+                android:clickable="true"
+                android:focusable="true"
+                android:backgroundTint="?attr/selectableItemBackground">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="@dimen/space_12">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_heart"
-                        android:tint="@color/primary"
-                        android:contentDescription="@string/profile_affection_section" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextAppearance.EyeMonitor.Title"
-                        android:text="@string/profile_affection_section"
-                        android:layout_marginStart="@dimen/space_8" />
-                </LinearLayout>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_heart"
+                    android:tint="@color/primary"
+                    android:contentDescription="@string/affection_section_title" />
 
                 <TextView
-                    android:id="@+id/tv_aff_level"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.EyeMonitor.Display"
-                    android:textSize="@dimen/text_28"
-                    android:textColor="@color/primary_text" />
-
-                <TextView
-                    android:id="@+id/tv_aff_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     style="@style/TextAppearance.EyeMonitor.Title"
-                    android:textColor="@color/accent_text"
-                    android:layout_marginTop="2dp" />
-
-                <ProgressBar
-                    android:id="@+id/progress_affection_profile"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="6dp"
-                    android:progressTint="@color/primary"
-                    android:progressBackgroundTint="@color/divider"
-                    android:max="100"
-                    android:progress="0"
-                    android:layout_marginTop="@dimen/space_10" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="@dimen/space_8">
-
-                    <TextView
-                        android:id="@+id/tv_aff_points"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        style="@style/TextAppearance.EyeMonitor.Label" />
-
-                    <TextView
-                        android:id="@+id/tv_aff_progress"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextAppearance.EyeMonitor.Label" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tv_aff_empty"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.EyeMonitor.Label"
-                    android:gravity="center"
-                    android:padding="@dimen/space_16"
-                    android:visibility="gone" />
-            </LinearLayout>
-
-            <!-- ============ 好感度：周互动对比卡 ============ -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_card"
-                android:elevation="2dp"
-                android:padding="@dimen/space_16"
-                android:layout_marginTop="@dimen/space_16">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.EyeMonitor.Title"
-                    android:text="@string/profile_week_section"
-                    android:layout_marginBottom="2dp" />
+                    android:text="@string/affection_section_title"
+                    android:layout_marginStart="@dimen/space_8" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     style="@style/TextAppearance.EyeMonitor.Label"
                     android:textColor="@color/text_tertiary"
-                    android:text="@string/profile_week_note"
-                    android:layout_marginBottom="@dimen/space_8" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="@dimen/space_8">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:text="@string/profile_week_chats" />
-
-                    <TextView
-                        android:id="@+id/tv_week_chats"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:textColor="@color/primary_text" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="@dimen/space_8">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:text="@string/profile_week_checkins" />
-
-                    <TextView
-                        android:id="@+id/tv_week_checkins"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:textColor="@color/primary_text" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="@dimen/space_8">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:text="@string/profile_week_online" />
-
-                    <TextView
-                        android:id="@+id/tv_week_online"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextAppearance.EyeMonitor.Body"
-                        android:textColor="@color/accent_text" />
-                </LinearLayout>
+                    android:text="›" />
             </LinearLayout>
 
             <!-- ============ 好感度：装扮区（主题选择，本地偏好） ============ -->

@@ -37,6 +37,8 @@ public class ChatMorePanelController {
         void onChangeAppearance();
         /** Phase 5 消息搜索入口 */
         void onOpenSearch();
+        /** Phase 6 亲密度独立页入口 */
+        void onOpenAffection();
     }
 
     private final MainActivity activity;
@@ -194,10 +196,10 @@ public class ChatMorePanelController {
                         hide();
                         actions.onOpenAnniversary();
                     });
-                    // v2 §2.3 补位：亲密度入口（复用资料页等级详情）
+                    // v2 §2.3 补位：亲密度入口（Phase 6 独立页）
                     v.findViewById(R.id.grid_affection).setOnClickListener(x -> {
                         hide();
-                        actions.onOpenProfile();
+                        actions.onOpenAffection();
                     });
                     // Phase 5 消息搜索入口（更多面板第 2 页）
                     v.findViewById(R.id.grid_search).setOnClickListener(x -> {

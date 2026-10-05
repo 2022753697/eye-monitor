@@ -95,6 +95,10 @@ public class MonitorService extends Service {
     // SOS 紧急求助：发送 / 回执（「我没事」）
     public static final String ACTION_SEND_SOS = "com.eyemonitor.SEND_SOS";
     public static final String EXTRA_SOS_TEXT = "sos_text";
+    // 解除配对双向确认（Phase 6）
+    public static final String ACTION_SEND_UNPAIR_REQUEST = "com.eyemonitor.SEND_UNPAIR_REQUEST";
+    public static final String ACTION_SEND_UNPAIR_CONFIRM = "com.eyemonitor.SEND_UNPAIR_CONFIRM";
+    public static final String ACTION_SEND_UNPAIR_REJECT = "com.eyemonitor.SEND_UNPAIR_REJECT";
     public static final String ACTION_SEND_SOS_ACK = "com.eyemonitor.SEND_SOS_ACK";
     public static final String EXTRA_SOS_NAV = "sos_nav";
     public static final String EXTRA_SOS_LAT = "sos_lat";
@@ -410,6 +414,30 @@ public class MonitorService extends Service {
         context.startService(intent);
     }
 
+    /** 申请解除配对（需对方同意，服务器转发） */
+    public static void sendUnpairRequest(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_UNPAIR_REQUEST);
+        context.startService(intent);
+    }
+
+    /** 同意解除配对（服务器执行真正解除） */
+    public static void sendUnpairConfirm(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_UNPAIR_CONFIRM);
+        context.startService(intent);
+    }
+
+    /** 拒绝解除配对 */
+    public static void sendUnpairReject(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, MonitorService.class);
+        intent.setAction(ACTION_SEND_UNPAIR_REJECT);
+        context.startService(intent);
+    }
+
     /** 地图打开时请求立即上报一次本机位置 */
     public static void sendRequestSelfLocation(Context context) {
         if (context == null) return;
@@ -606,6 +634,34 @@ public class MonitorService extends Service {
         if (intent != null && ACTION_SEND_SOS_ACK.equals(intent.getAction())) {
             Log.i(TAG, "收到 SOS 回执发送请求（我没事）");
             handleSosConfirmed(intent);
+            return START_NOT_STICKY;
+        }
+
+        // 解除配对双向确认（Phase 6）
+        if (intent != null && ACTION_SEND_UNPAIR_REQUEST.equals(intent.getAction())) {
+            Log.i(TAG, "发送解除配对请求");
+            if (wsClient != null && prefs.getPairCode() != null) {
+                String requester = prefs.getNickname();
+                if (requester == null || requester.isEmpty()) requester = "对方";
+                wsClient.send(com.eyemonitor.model.WsMessage.createUnpairRequest(
+                        prefs.getDeviceId(), prefs.getPairCode(), requester));
+            }
+            return START_NOT_STICKY;
+        }
+        if (intent != null && ACTION_SEND_UNPAIR_CONFIRM.equals(intent.getAction())) {
+            Log.i(TAG, "发送同意解除配对");
+            if (wsClient != null && prefs.getPairCode() != null) {
+                wsClient.send(com.eyemonitor.model.WsMessage.createUnpairConfirm(
+                        prefs.getDeviceId(), prefs.getPairCode()));
+            }
+            return START_NOT_STICKY;
+        }
+        if (intent != null && ACTION_SEND_UNPAIR_REJECT.equals(intent.getAction())) {
+            Log.i(TAG, "发送拒绝解除配对");
+            if (wsClient != null && prefs.getPairCode() != null) {
+                wsClient.send(com.eyemonitor.model.WsMessage.createUnpairReject(
+                        prefs.getDeviceId(), prefs.getPairCode(), prefs.getNickname()));
+            }
             return START_NOT_STICKY;
         }
 
@@ -1305,6 +1361,18 @@ public class MonitorService extends Service {
             case "sos_ack":
                 // 对方回执「我没事」：落库 system 提示 + 广播 UI
                 handleSosAck(message);
+                break;
+            case "pair_unpair_request":
+                // 对方申请解除配对：广播 UI 弹确认框（同意/拒绝）
+                broadcastEvent(message);
+                break;
+            case "pair_unpair_confirm":
+                // 对方同意解除（服务器已执行）：广播 UI 清本地并回配对面板
+                broadcastEvent(message);
+                break;
+            case "pair_unpair_reject":
+                // 对方拒绝解除：广播 UI 提示
+                broadcastEvent(message);
                 break;
             case "anniversary_sync":
             case "fence_sync":
