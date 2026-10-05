@@ -129,10 +129,12 @@
     </LinearLayout>
 
     <!-- Phase 4 深色模式：外观三态入口（跟随系统/浅色/深色） + Phase 5 消息搜索 -->
+    <!-- 第二排与第一排一致：4 列均分（对齐），搜索/外观占前两格，后两格留空保持等宽 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:paddingTop="@dimen/space_14"
         android:paddingStart="@dimen/space_8"
         android:paddingEnd="@dimen/space_8"
         android:paddingBottom="@dimen/space_16">
@@ -192,5 +194,16 @@
                 android:textSize="@dimen/text_12"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
+
+        <!-- 空占位（与第一排 4 列对齐，保持等宽） -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
     </LinearLayout>
 </LinearLayout>
