@@ -129,23 +129,21 @@ public class SearchActivity extends BaseActivity {
     }
 
     private TextView chip(android.widget.LinearLayout host, String label, boolean selected) {
-        TextView t = (TextView) LayoutInflater.from(this)
-                .inflate(R.layout.item_search_chip, host, false);
-        t.setText(label);
-        t.setSelected(selected);
-        host.addView(t);
-        return t;
+        // inflate item_search_chip（Chip 根 + 样式），选中态/无√由样式与 checkable 驱动
+        com.google.android.material.chip.Chip chip = (com.google.android.material.chip.Chip)
+                LayoutInflater.from(this).inflate(R.layout.item_search_chip, host, false);
+        chip.setText(label);
+        chip.setChecked(selected);
+        host.addView(chip);
+        return chip;
     }
 
     private void refreshChips(android.widget.LinearLayout host, String selectedKey) {
         for (int i = 0; i < host.getChildCount(); i++) {
-            TextView t = (TextView) host.getChildAt(i);
-            // 用 text 匹配选中态（chips 无独立 id，text 即键）
-            boolean sel = t.getText().toString().equals(selectedKey);
-            // 时间 chips 键是数字串，类型 chips 键是类型码——统一按"选中项文本"处理
-            sel = selectedKey.equals("all") || selectedKey.equals("0")
-                    ? t.getText().toString().equals(labelOf(selectedKey)) : sel;
-            t.setSelected(sel);
+            com.google.android.material.chip.Chip t =
+                    (com.google.android.material.chip.Chip) host.getChildAt(i);
+            // chips 无独立 id，用 text 匹配选中项（类型 chips 键=类型码，时间 chips 键=天数字）
+            t.setChecked(t.getText().toString().equals(labelOf(selectedKey)));
         }
     }
 

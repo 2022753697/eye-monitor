@@ -25,7 +25,8 @@ public class CheckInReminderReceiver extends BroadcastReceiver {
             window = com.eyemonitor.util.AffectionUtils.currentWindow(System.currentTimeMillis());
         }
         Log.i(TAG, "打卡提醒触发: window=" + window);
-        MonitorService.showCheckInReminderNotification(context, window);
+        // 2026-10 用户决策：打卡不需要系统通知（想打就打），触发仅记录日志、不弹通知
+        // 如需恢复：调用 MonitorService.showCheckInReminderNotification(context, window)
         // 重排次日提醒（双窗口各排一次，保证跨天/重启后不丢）
         MonitorService.scheduleCheckInReminders(context);
     }

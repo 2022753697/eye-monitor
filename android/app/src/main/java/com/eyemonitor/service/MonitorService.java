@@ -299,8 +299,7 @@ public class MonitorService extends Service {
         Log.i(TAG, "本机deviceId: " + prefs.getDeviceId() + ", pairCode: " + prefs.getPairCode());
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
-        // 打卡时段提醒（早安 5:00 / 晚安 19:00，setWindow 非精确）
-        scheduleCheckInReminders(this);
+        // 2026-10 用户决策：打卡不做系统提醒（想打就打），不排时段闹钟
         accessibilityListenerSet = false;
         // 围栏翻转回调：跑在 dbExecutor 线程，发通知线程安全
         fenceTracker = new FenceEvaluator.Tracker((fence, nowInside, lat, lng) -> {
