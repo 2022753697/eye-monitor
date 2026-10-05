@@ -39,6 +39,14 @@ public interface ChatDao {
     @Query("SELECT COUNT(*) FROM chat WHERE kind = :kind AND timestamp = :ts AND text = :text")
     int countByKindTsText(String kind, long ts, String text);
 
+    /**
+     * 宽松去重：同 is_self + kind + text，且时间差 ≤ 5s 视为同一条（容忍 check-in 等历史路径
+     * 本地/服务器 ts 毫秒级偏差导致的重复回放）。
+     */
+    @Query("SELECT COUNT(*) FROM chat WHERE is_self = :isSelf AND kind = :kind AND text = :text "
+            + "AND ABS(timestamp - :ts) <= 5000")
+    int countDupBySelfKindText(boolean isSelf, String kind, long ts, String text);
+
     /** P2：标记自己发送、ts 不晚于 upToTs 的消息为对方已读 */
     @Query("UPDATE chat SET peer_read = 1 WHERE is_self = 1 AND timestamp <= :upToTs")
     void markOwnRead(long upToTs);

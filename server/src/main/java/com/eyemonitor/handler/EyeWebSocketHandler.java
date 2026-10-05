@@ -149,9 +149,13 @@ public class EyeWebSocketHandler extends TextWebSocketHandler {
         Long refMsgId = refId instanceof Number ? ((Number) refId).longValue() : null;
         String refTextS = refText instanceof String && !((String) refText).isEmpty()
                 ? (String) refText : null;
+        // 幂等防重：同配对同 ts 已存在（autoResend 补发/重连重投）→ 不重复落库不重复转发，仅回 ack
+        boolean existed = messageStore.chatExists(pairCode, msg.getTimestamp());
         messageStore.saveChat(pairCode, userId, text, false, msg.getTimestamp(),
                 "chat", refMsgId, refTextS);
-        pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
+        if (!existed) {
+            pairService.forwardToPeer(userId, msg.getDeviceId(), msg);
+        }
         // 送达回执给发送方：服务器收到即回 chat_ack{msgTs}（对方离线也视为已送达服务器，离线补收兜底）
         Map<String, Object> ackPayload = new HashMap<>();
         ackPayload.put("msgTs", msg.getTimestamp());

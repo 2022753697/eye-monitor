@@ -38,6 +38,17 @@ public class MessageStore {
     /** 撤回允许窗口（毫秒）：与规格「撤回限 2 分钟」一致 */
     public static final long RECALL_WINDOW_MS = 2 * 60_000L;
 
+    /** 幂等检查：同配对同 ts 是否已存在（autoResend 补发/重连重投时防重复落库+重复转发） */
+    public boolean chatExists(String pairCode, long ts) {
+        if (pairCode == null || ts <= 0) return false;
+        try {
+            return chatRepo.findFirstByPairCodeAndTs(pairCode, ts) != null;
+        } catch (Exception ex) {
+            log.error("聊天消息幂等检查失败", ex);
+            return false;
+        }
+    }
+
     public void saveChat(String pairCode, long fromUser, String text, boolean isSystem, long ts) {
         saveChat(pairCode, fromUser, text, isSystem, ts, "chat", null, null);
     }
@@ -51,6 +62,12 @@ public class MessageStore {
                          long ts, String kind, Long refMsgId, String refText) {
         try {
             if (pairCode == null || text == null) return;
+            // 幂等：同配对同 ts 已存在则跳过（客户端 autoResend 补发/重连重投时防重复落库+重复转发）
+            ChatMessageEntity exist = chatRepo.findFirstByPairCodeAndTs(pairCode, ts);
+            if (exist != null) {
+                log.debug("聊天消息幂等跳过: pair={} ts={} text={}", pairCode, ts, text);
+                return;
+            }
             ChatMessageEntity e = new ChatMessageEntity();
             e.setPairCode(pairCode);
             e.setFromUser(fromUser);

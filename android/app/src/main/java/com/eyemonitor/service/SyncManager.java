@@ -401,10 +401,13 @@ public final class SyncManager {
                             if (list.isEmpty()) return;
                             AppDatabase.dbExecutor.execute(() -> {
                                 for (ChatEntity e : list) {
-                                    // 去重：本地已有相同 (kind, ts, text) 则跳过——
+                                    // 去重：本地已有相同 (kind, ts, text) 或同 is_self+text 且时间窗内（
+                                    // 兼容历史 check-in 等路径本地/服务器 ts 毫秒偏差）则跳过——
                                     // 否则自己发的媒体/文本会在重进 app 拉历史时被回放成重复的「对方身份」气泡
                                     if (db.chatDao().countByKindTsText(
-                                            e.kind, e.timestamp, e.text) > 0) {
+                                            e.kind, e.timestamp, e.text) > 0
+                                            || db.chatDao().countDupBySelfKindText(
+                                            e.isSelf, e.kind, e.timestamp, e.text) > 0) {
                                         continue;
                                     }
                                     db.chatDao().insert(e);

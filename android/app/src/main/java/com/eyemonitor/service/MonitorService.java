@@ -251,11 +251,14 @@ public class MonitorService extends Service {
         String text = context.getString(morning
                 ? R.string.checkin_greeting_morning : R.string.checkin_greeting_evening);
         String from = prefs.getNickname();
-        sendChat(context, text, from != null ? from : "");
+        // 修复：先取统一时间戳，发送与本地落库用同一 ts（此前先 sendChat 内部取 ts、
+        // 后插库再取 now，晚 1ms → 服务器/本地 ts 不一致 → 重进 app 时 syncChats 去重失效，
+        // countByKindTsText 匹配不上导致同一消息重复入库/自己视角"又发一遍"）
+        final long now = System.currentTimeMillis();
+        sendChat(context, text, from != null ? from : "", 0, null, now);
 
         // 本地落库（聊天页数据源）+ 广播 chat_refresh：UI 打开时按 is_self 重载渲染自我气泡；
         // dbExecutor 单线程，广播触发的 getAll 一定排在 insert 之后，不会漏显。
-        final long now = System.currentTimeMillis();
         final String fText = text;
         final String fFrom = from != null ? from : "";
         final String pairCode = prefs.getPairCode();
