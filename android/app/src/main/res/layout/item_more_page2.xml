@@ -5,9 +5,11 @@
     android:orientation="vertical">
 
         <!-- 第 2 页（含 v2 补位：纪念日 / 亲密度，替换原空占位） -->
+        <!-- 两排各 weight=1 均分 ViewPager2 高度（必须 match_parent；均分保证每排容纳图标+文字不被压缩） -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="horizontal"
         android:paddingTop="@dimen/space_14"
         android:paddingStart="@dimen/space_8"
@@ -132,7 +134,8 @@
     <!-- 第二排与第一排一致：4 列均分（对齐），搜索/外观占前两格，后两格留空保持等宽 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="horizontal"
         android:paddingTop="@dimen/space_14"
         android:paddingStart="@dimen/space_8"
@@ -143,6 +146,7 @@
             android:id="@+id/grid_search"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="110dp"
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
@@ -164,6 +168,8 @@
                 android:text="@string/cd_chat_search"
                 android:textColor="@color/text_primary"
                 android:textSize="@dimen/text_12"
+                android:minHeight="20dp"
+                android:gravity="center"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
@@ -171,6 +177,7 @@
             android:id="@+id/grid_appearance"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="110dp"
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
@@ -192,6 +199,8 @@
                 android:text="@string/profile_appearance_section"
                 android:textColor="@color/text_primary"
                 android:textSize="@dimen/text_12"
+                android:minHeight="20dp"
+                android:gravity="center"
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
