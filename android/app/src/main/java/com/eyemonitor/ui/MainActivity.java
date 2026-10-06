@@ -201,7 +201,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     private boolean voiceCancelling;
     private TextView tvRecordTime;
     private com.eyemonitor.ui.LiveWaveView liveWave;
-    private int liveWaveCancelColor;
     private final Runnable voiceAmpRunnable = new Runnable() {
         @Override
         public void run() {
@@ -360,7 +359,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         tvRecordHint = findViewById(R.id.tv_record_hint);
         tvRecordTime = findViewById(R.id.tv_record_time);
         liveWave = findViewById(R.id.live_wave);
-        liveWaveCancelColor = getColor(R.color.status_error);
         rvChat = findViewById(R.id.rv_chat);
         // 好感度/等级 + 主题
         chatHeader = findViewById(R.id.chat_header);
