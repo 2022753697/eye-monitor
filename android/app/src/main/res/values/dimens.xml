@@ -55,6 +55,7 @@
     <dimen name="touch_target">44dp</dimen>
     <!-- 最低触控目标 -->
     <dimen name="bar_height_compact">44dp</dimen>
+    <dimen name="voice_panel_height">120dp</dimen>
     <dimen name="bar_height">48dp</dimen>
     <!-- 标准按钮/行高 -->
     <dimen name="bar_height_hero">56dp</dimen>

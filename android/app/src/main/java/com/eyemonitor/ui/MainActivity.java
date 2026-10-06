@@ -158,7 +158,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     private TextView tvVoiceBar;
     private View llRecordPanel;
     private TextView tvRecordHint;
-    private TextView btnRecordCancel;
     private RecyclerView rvChat;
     private ChatAdapter chatAdapter;
     private View bottomBar;
@@ -327,7 +326,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         tvVoiceBar = findViewById(R.id.tv_voice_bar);
         llRecordPanel = findViewById(R.id.ll_record_panel);
         tvRecordHint = findViewById(R.id.tv_record_hint);
-        btnRecordCancel = findViewById(R.id.btn_record_cancel);
         rvChat = findViewById(R.id.rv_chat);
         // 好感度/等级 + 主题
         chatHeader = findViewById(R.id.chat_header);
@@ -1449,19 +1447,20 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         if (llRecordPanel != null) llRecordPanel.setVisibility(View.GONE);
     }
 
-    /** 手指是否滑到「取消」按钮上：命中则松开即放弃录音 */
+    /** 微信式上滑取消：手指滑出面板顶部 → 面板变红「松开取消」+ 声波冻结 */
     private void updateVoiceCancelState(float rawX, float rawY) {
-        if (llRecordPanel == null || llRecordPanel.getVisibility() != View.VISIBLE
-                || btnRecordCancel == null || tvRecordHint == null) {
+        if (llRecordPanel == null || llRecordPanel.getVisibility() != View.VISIBLE) {
             return;
         }
         int[] loc = new int[2];
-        btnRecordCancel.getLocationInWindow(loc);
-        boolean over = rawX >= loc[0] && rawX <= loc[0] + btnRecordCancel.getWidth()
-                && rawY >= loc[1] && rawY <= loc[1] + btnRecordCancel.getHeight();
+        llRecordPanel.getLocationInWindow(loc);
+        boolean over = rawY < loc[1]; // 手指 y 高于面板顶部即取消区
         voiceCancelling = over;
-        tvRecordHint.setText(over
-                ? R.string.voice_release_cancel : R.string.voice_release_to_send);
+        if (tvRecordHint != null) {
+            tvRecordHint.setText(over
+                    ? R.string.voice_release_cancel : R.string.voice_release_to_send);
+            tvRecordHint.setTextColor(getColor(over ? R.color.status_error : R.color.text_tertiary));
+        }
     }
 
     /** 开始录音（60s 上限；按压条触发，松开发送/滑到取消放弃） */

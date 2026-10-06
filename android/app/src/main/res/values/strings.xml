@@ -129,7 +129,10 @@
     <string name="voice_playing">🎵 播放中…</string>
     <string name="voice_toggle">语音</string>
     <string name="voice_hold_hint">按住 说话</string>
-    <string name="voice_release_to_send">松开发送 · 滑向取消放弃</string>
+    <string name="voice_recording_time_placeholder">录音中 · 0:00</string>
+    <string name="voice_recording_time">录音中 · %1$s</string>
+    <string name="voice_max_reached">已达最长 60 秒</string>
+    <string name="voice_release_to_send">松开发送 · 上滑取消</string>
     <string name="voice_release_cancel">松开取消</string>
     <string name="voice_cancel">取消</string>
     <string name="voice_permission_granted">麦克风权限已开启，请按住说话</string>
