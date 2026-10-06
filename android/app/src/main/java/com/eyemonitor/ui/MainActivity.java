@@ -199,6 +199,38 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     private Runnable voiceTimeoutRunnable;
     private boolean voiceMode;
     private boolean voiceCancelling;
+    private TextView tvRecordTime;
+    private com.eyemonitor.ui.LiveWaveView liveWave;
+    private int liveWaveCancelColor;
+    private final Runnable voiceAmpRunnable = new Runnable() {
+        @Override
+        public void run() {
+            MediaRecorder r = voiceRecorder;
+            if (r == null || voiceCancelling || liveWave == null) {
+                return; // 不再自排；录音结束路径会移除回调
+            }
+            try {
+                int amp = r.getMaxAmplitude();
+                float v = amp <= 0 ? 0f : Math.min(1f, amp / 8000f);
+                liveWave.setAmplitude(v);
+            } catch (Exception ignored) {
+            }
+            chatUiHandler.postDelayed(this, 50);
+        }
+    };
+    private final Runnable voiceTickRunnable = new Runnable() {
+        @Override
+        public void run() {
+            long ms = System.currentTimeMillis() - voiceStartTs;
+            if (ms <= 0) return;
+            int sec = (int) (ms / 1000);
+            if (tvRecordTime != null) {
+                tvRecordTime.setText(getString(R.string.voice_recording_time,
+                        String.format(java.util.Locale.CHINA, "%d:%02d", sec / 60, sec % 60)));
+            }
+            chatUiHandler.postDelayed(this, 1000);
+        }
+    };
     /** 语音波形高亮：当前播放语音的波形视图（进度推进用） */
     private WaveformView playingVoiceWave;
     private final Runnable voiceProgressRunnable = new Runnable() {
@@ -326,6 +358,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         tvVoiceBar = findViewById(R.id.tv_voice_bar);
         llRecordPanel = findViewById(R.id.ll_record_panel);
         tvRecordHint = findViewById(R.id.tv_record_hint);
+        tvRecordTime = findViewById(R.id.tv_record_time);
+        liveWave = findViewById(R.id.live_wave);
+        liveWaveCancelColor = getColor(R.color.status_error);
         rvChat = findViewById(R.id.rv_chat);
         // 好感度/等级 + 主题
         chatHeader = findViewById(R.id.chat_header);
@@ -600,6 +635,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     protected void onDestroy() {
         chatUiHandler.removeCallbacks(hideTypingRunnable);
         chatUiHandler.removeCallbacks(voiceTimeoutRunnable);
+        chatUiHandler.removeCallbacks(voiceAmpRunnable);
+        chatUiHandler.removeCallbacks(voiceTickRunnable);
         if (voicePlayer != null) {
             voicePlayer.release();
             voicePlayer = null;
@@ -1441,9 +1478,25 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
     private void showRecordPanel() {
         if (llRecordPanel != null) llRecordPanel.setVisibility(View.VISIBLE);
         if (tvRecordHint != null) tvRecordHint.setText(R.string.voice_release_to_send);
+        if (tvRecordTime != null) {
+            tvRecordTime.setText(getString(R.string.voice_recording_time, "0:00"));
+        }
+        if (liveWave != null) {
+            liveWave.reset();
+            liveWave.setColor(getColor(R.color.primary));
+        }
+        if (llRecordPanel != null) {
+            llRecordPanel.setBackgroundResource(R.drawable.bg_card);
+        }
+        chatUiHandler.removeCallbacks(voiceAmpRunnable);
+        chatUiHandler.removeCallbacks(voiceTickRunnable);
+        chatUiHandler.post(voiceAmpRunnable);
+        chatUiHandler.post(voiceTickRunnable);
     }
 
     private void hideRecordPanel() {
+        chatUiHandler.removeCallbacks(voiceAmpRunnable);
+        chatUiHandler.removeCallbacks(voiceTickRunnable);
         if (llRecordPanel != null) llRecordPanel.setVisibility(View.GONE);
     }
 
@@ -1460,6 +1513,16 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
             tvRecordHint.setText(over
                     ? R.string.voice_release_cancel : R.string.voice_release_to_send);
             tvRecordHint.setTextColor(getColor(over ? R.color.status_error : R.color.text_tertiary));
+        }
+        if (tvRecordTime != null) {
+            tvRecordTime.setTextColor(getColor(over ? R.color.status_error : R.color.text_primary));
+        }
+        if (liveWave != null) {
+            liveWave.setColor(getColor(over ? R.color.status_error : R.color.primary));
+        }
+        if (llRecordPanel != null) {
+            llRecordPanel.setBackgroundResource(over
+                    ? R.drawable.bg_record_cancel_panel : R.drawable.bg_card);
         }
     }
 
@@ -1487,6 +1550,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
             voiceTimeoutRunnable = () -> {
                 hideRecordPanel();
                 tvVoiceBar.setText(R.string.voice_hold_hint);
+                com.eyemonitor.util.Toasts.showRes(this, R.string.voice_max_reached);
                 finishVoiceRecord(true);
             };
             chatUiHandler.postDelayed(voiceTimeoutRunnable, 60_000L);
@@ -1498,6 +1562,12 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
 
     private void finishVoiceRecord(final boolean send) {
         chatUiHandler.removeCallbacks(voiceTimeoutRunnable);
+        chatUiHandler.removeCallbacks(voiceAmpRunnable);
+        chatUiHandler.removeCallbacks(voiceTickRunnable);
+        if (liveWave != null) liveWave.reset();
+        if (tvRecordTime != null) {
+            tvRecordTime.setText(getString(R.string.voice_recording_time, "0:00"));
+        }
         MediaRecorder r = voiceRecorder;
         voiceRecorder = null;
         File f = voiceFile;
