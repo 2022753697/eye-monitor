@@ -354,6 +354,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.Host 
         ivIconGallery = findViewById(R.id.iv_icon_gallery);
         btnMic = findViewById(R.id.btn_mic);
         btnEmoji = findViewById(R.id.btn_emoji);
+        bottomBar = findViewById(R.id.bottom_bar);
         tvVoiceBar = findViewById(R.id.tv_voice_bar);
         llRecordPanel = findViewById(R.id.ll_record_panel);
         tvRecordHint = findViewById(R.id.tv_record_hint);
